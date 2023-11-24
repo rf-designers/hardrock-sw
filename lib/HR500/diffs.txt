@@ -1,0 +1,106 @@
+diff -rc ORIG/HR500.cpp ./HR500.cpp
+*** ORIG/HR500.cpp	Thu Oct 31 08:53:14 2019
+--- ./HR500.cpp	Sun May  8 02:38:02 2022
+***************
+*** 251,264 ****
+  
+  void TFT::drawChar( uint8_t ascii, uint16_t poX, uint16_t poY,uint16_t size, uint16_t fgcolor)
+  {
+!     if((ascii>=32)&&(ascii<=127))
+!     {
+!         ;
+!     }
+!     else
+!     {
+          ascii = '?';
+!     }
+      for (int i =0; i<FONT_X; i++ ) {
+          uint8_t temp = pgm_read_byte(&simpleFont[ascii-0x20][i]);
+          for(uint8_t f=0;f<8;f++)
+--- 251,259 ----
+  
+  void TFT::drawChar( uint8_t ascii, uint16_t poX, uint16_t poY,uint16_t size, uint16_t fgcolor)
+  {
+!     if((ascii<32) || (ascii>127))
+          ascii = '?';
+! 
+      for (int i =0; i<FONT_X; i++ ) {
+          uint8_t temp = pgm_read_byte(&simpleFont[ascii-0x20][i]);
+          for(uint8_t f=0;f<8;f++)
+***************
+*** 274,287 ****
+  }
+  void TFT::drawHChar( uint8_t ascii, uint16_t poX, uint16_t poY,uint16_t size, uint16_t fgcolor)
+  {
+!     if((ascii>=32)&&(ascii<=127))
+!     {
+!         ;
+!     }
+!     else
+!     {
+          ascii = '?';
+!     }
+      for (int i =0; i<FONT_X; i++ ) {
+          uint8_t temp = pgm_read_byte(&simpleFont[ascii-0x20][i]);
+          for(uint8_t f=0;f<8;f++)
+--- 269,277 ----
+  }
+  void TFT::drawHChar( uint8_t ascii, uint16_t poX, uint16_t poY,uint16_t size, uint16_t fgcolor)
+  {
+!     if((ascii<32) || (ascii>127))
+          ascii = '?';
+! 
+      for (int i =0; i<FONT_X; i++ ) {
+          uint8_t temp = pgm_read_byte(&simpleFont[ascii-0x20][i]);
+          for(uint8_t f=0;f<8;f++)
+***************
+*** 455,469 ****
+                     uint16_t hwHeight, //specify the height of the rectangle.
+                     uint16_t hwColor)  //specify the color of rectangle.
+  {
+! 	uint16_t i, j;
+  
+  	if (hwXpos >= LCD_WIDTH || hwYpos >= LCD_HEIGHT) {
+  		return;
+  	}
+! 	
+! 	for(i = 0; i < hwHeight; i ++){
+! 		for(j = 0; j < hwWidth; j ++){
+! 			lcd_draw_point(hwXpos + j, hwYpos + i, hwColor);
+  		}
+  	}
+  }
+--- 445,477 ----
+                     uint16_t hwHeight, //specify the height of the rectangle.
+                     uint16_t hwColor)  //specify the color of rectangle.
+  {
+! 	uint16_t x, y;
+! 	uint8_t xhi = 255, xnow, yhi = 255, ynow;
+  
+  	if (hwXpos >= LCD_WIDTH || hwYpos >= LCD_HEIGHT) {
+  		return;
+  	}
+! 
+! 	for(y = 240 - hwYpos; y >= (240 - hwYpos - hwHeight); y--){
+! 		/* Don't write high byte if unchanged */
+! 		ynow = y >> 8;
+! 		if (ynow != yhi) {
+! 			lcd_write_register(0x02, ynow); //Column Start
+! 			yhi = ynow;
+! 		}
+! 		lcd_write_register(0x03, y & 0xFF); //Column Start
+! 
+! 		for(x = hwXpos; x < hwXpos + hwWidth; x ++){
+! 			/* Don't write high byte if unchanged */
+! 			xnow = x >> 8;
+! 			if (xnow != xhi) {
+! 				lcd_write_register(0x06, xnow);
+! 				xhi = xnow;
+! 			}
+! 			lcd_write_register(0x07, x & 0xFF); //Row Start
+! 
+! 			lcd_write_byte(0x22, LCD_CMD);
+! 			lcd_write_word(hwColor);
+  		}
+  	}
+  }
