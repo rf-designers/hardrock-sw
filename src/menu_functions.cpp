@@ -10,8 +10,8 @@
 extern TFT Tft;
 extern char* workingString;
 extern char* workingString2;
-extern byte ACC_Baud;
-extern byte USB_Baud;
+extern serial_speed ACC_Baud;
+extern serial_speed USB_Baud;
 extern char ATTN_P;
 extern char ATTN_ST;
 extern byte I_alert, V_alert, F_alert, R_alert, D_alert;
@@ -19,7 +19,7 @@ extern byte OI_alert, OV_alert, OF_alert, OR_alert, OD_alert;
 extern long M_CORR;
 extern byte menuSEL;
 extern byte menu_choice;
-extern mode_type oMODE;
+extern mode_type old_mode;
 extern byte Bias_Meter;
 extern int MAX_CUR;
 extern amp_state state;
@@ -37,34 +37,25 @@ void menuFunction(byte item, byte changeDirection) {
             if (state.trxType == xft817) break;
 
             if (changeDirection == 1)
-                ACC_Baud++;
+                ACC_Baud = nextSerialSpeed(ACC_Baud);
             else
-                ACC_Baud--;
+                ACC_Baud = previousSerialSpeed(ACC_Baud);
 
-            if (ACC_Baud == 4)
-                ACC_Baud = 0;
+            if (ACC_Baud == serial_speed::baud_57600)
+                ACC_Baud = serial_speed::baud_4800;
 
-            if (ACC_Baud == 255)
-                ACC_Baud = 3;
-
-            EEPROM.write(eeaccbaud, ACC_Baud);
-            Set_Ser2(ACC_Baud);
+            EEPROM.write(eeaccbaud, speedToEEPROM(ACC_Baud));
+            SetupAccSerial(ACC_Baud);
             break;
 
         case mUSBbaud:
             if (changeDirection == 1)
-                USB_Baud++;
+                USB_Baud = nextSerialSpeed(USB_Baud);
             else
-                USB_Baud--;
+                USB_Baud = previousSerialSpeed(USB_Baud);
 
-            if (USB_Baud == 6)
-                USB_Baud = 0;
-
-            if (USB_Baud == 255)
-                USB_Baud = 5;
-
-            EEPROM.write(eeusbbaud, USB_Baud);
-            Set_Ser(USB_Baud);
+            EEPROM.write(eeusbbaud, speedToEEPROM(USB_Baud));
+            SetupUSBSerial(USB_Baud);
             break;
 
         case mXCVR:
@@ -121,7 +112,7 @@ void menuFunction(byte item, byte changeDirection) {
     Tft.drawString((uint8_t *) item_disp[item], 65, 80, 2, WHITE);
 }
 
-void menuSelect(void) {
+void menuSelect() {
     Tft.LCD_SEL = 1;
 
     if (menuSEL == 0) {
@@ -142,7 +133,7 @@ void menuSelect(void) {
         Tft.drawString((uint8_t *) "OK", 150, 132, 2, GBLUE);
 
         if (menu_choice == mSETbias) {
-            oMODE = state.mode;
+            old_mode = state.mode;
             state.mode = mode_type::ptt;
             MAX_CUR = 3;
             Bias_Meter = 1;
@@ -164,7 +155,7 @@ void menuSelect(void) {
         if (menu_choice == mSETbias) {
             BIAS_OFF
             SendLPFRelayData(state.lpfBoardSerialData);
-            state.mode = oMODE;
+            state.mode = old_mode;
             MAX_CUR = 20;
             Bias_Meter = 0;
             Tft.lcd_fill_rect(62, 70, 196, 40, MGRAY);
@@ -186,64 +177,64 @@ void menuSelect(void) {
     }
 }
 
-void Set_Ser2(byte BR) {
+void SetupAccSerial(const serial_speed speed) {
     Serial2.end();
 
-    switch (BR) {
-        case 0:
+    switch (speed) {
+        case serial_speed::baud_4800:
             Serial2.begin(4800);
             item_disp[mACCbaud] = (char *) "   4800 Baud    ";
             break;
-
-        case 1:
+        case serial_speed::baud_9600:
             Serial2.begin(9600);
             item_disp[mACCbaud] = (char *) "   9600 Baud    ";
             break;
-
-        case 2:
+        case serial_speed::baud_19200:
             Serial2.begin(19200);
             item_disp[mACCbaud] = (char *) "   19200 Baud   ";
             break;
-
-        case 3:
+        case serial_speed::baud_38400:
             Serial2.begin(38400);
             item_disp[mACCbaud] = (char *) "   38400 Baud   ";
+            break;
+        case serial_speed::baud_57600:
+        case serial_speed::baud_115200:
+        default:
+            // TODO: figure out what to do here
             break;
     }
 }
 
-void Set_Ser(byte BR) {
+void SetupUSBSerial(const serial_speed speed) {
     Serial.end();
 
-    switch (BR) {
-        case 0:
+    switch (speed) {
+        case serial_speed::baud_4800:
             Serial.begin(4800);
             item_disp[mUSBbaud] = (char *) "   4800 Baud    ";
             break;
-
-        case 1:
+        case serial_speed::baud_9600:
             Serial.begin(9600);
             item_disp[mUSBbaud] = (char *) "   9600 Baud    ";
             break;
-
-        case 2:
+        case serial_speed::baud_19200:
             Serial.begin(19200);
             item_disp[mUSBbaud] = (char *) "   19200 Baud   ";
             break;
-
-        case 3:
+        case serial_speed::baud_38400:
             Serial.begin(38400);
             item_disp[mUSBbaud] = (char *) "   38400 Baud   ";
             break;
-
-        case 4:
+        case serial_speed::baud_57600:
             Serial.begin(57600);
             item_disp[mUSBbaud] = (char *) "   57600 Baud   ";
             break;
-
-        case 5:
+        case serial_speed::baud_115200:
             Serial.begin(115200);
             item_disp[mUSBbaud] = (char *) "  115200 Baud   ";
+            break;
+        default:
+            // TODO: figure out what to do here
             break;
     }
 }

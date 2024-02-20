@@ -7,6 +7,22 @@ enum class mode_type : uint8_t {
     qrp = 2
 };
 
+enum class power_type : uint8_t {
+    fwd_p = 0,
+    rfl_p = 1,
+    drv_p = 2,
+    vswr = 3
+};
+
+enum class serial_speed : uint8_t {
+    baud_4800 = 0,
+    baud_9600 = 1,
+    baud_19200 = 2,
+    baud_38400 = 3,
+    baud_57600 = 4,
+    baud_115200 = 5
+};
+
 struct amp_state {
     volatile bool isAtuTuning;
     volatile bool atuIsPresent;
@@ -25,6 +41,12 @@ struct amp_state {
 };
 
 mode_type nextMode(mode_type mode);
-mode_type fromEEPROM(uint8_t mode);
-uint8_t toEEPROM(mode_type mode);
+mode_type modeFromEEPROM(uint8_t mode);
+uint8_t modeToEEPROM(mode_type mode);
+
+serial_speed nextSerialSpeed(serial_speed speed);
+serial_speed previousSerialSpeed(serial_speed speed);
+serial_speed speedFromEEPROM(uint8_t speed);
+uint8_t speedToEEPROM(serial_speed speed);
+
 void PrepareForFWUpdate();

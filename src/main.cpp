@@ -32,15 +32,14 @@ void SendLPFRelayData(byte data);
 void SendLPFRelayDataSafe(byte data);
 
 long M_CORR = 100;
-
 byte FAN_SP = 0;
 char ATU_STAT;
 char ATTN_P = 0;
 byte ATTN_ST = 0;
 byte OBAND = 0;
 volatile int timeToTouch = 0; // countdown for TS touching. this gets decremented in timer ISR
-byte ACC_Baud;
-byte USB_Baud;
+serial_speed ACC_Baud;
+serial_speed USB_Baud;
 byte menu_choice = 0;
 byte OMeterSel;
 unsigned int temp_utp, temp_dtp;
@@ -48,7 +47,7 @@ byte menuSEL = 0;
 byte Bias_Meter = 0;
 int MAX_CUR = 20;
 
-mode_type oMODE;
+mode_type old_mode;
 int TICK = 0;
 int RD_ave = 0, FD_ave = 0;
 int FT8CNT = 0;
@@ -87,8 +86,8 @@ byte OI_alert = 0, OV_alert = 0, OF_alert = 0, OR_alert = 0, OD_alert = 0;
 byte ADCvinMSB, ADCvinLSB, curSenseMSB, curSenseLSB;
 unsigned int ADCvin, ADCcur;
 
-unsigned int uartIdx = 0, uart2Idx = 0;
-unsigned int uartMsgs = 0, uartMsgs2 = 0, readStart = 0, readStart2 = 0;
+uint8_t uartIdx = 0, uart2Idx = 0;
+uint8_t readStart = 0, readStart2 = 0;
 char rxbuff[128]; // 128 byte circular Buffer for storing rx data
 char workingString[128];
 char rxbuff2[128]; // 128 byte circular Buffer for storing rx data
@@ -175,8 +174,6 @@ void timerISR() {
 }
 
 char TEMPbuff[16];
-int t_count = 0;
-int a_count = 0;
 int s_count = 0;
 
 unsigned int F_bar = 9, OF_bar = 9;
@@ -460,13 +457,13 @@ void SetTransceiver(byte s_xcvr) {
         strcpy(item_disp[mACCbaud], "  XCVR MODE ON  ");
         Serial2.end();
     } else {
-        Set_Ser2(ACC_Baud);
+        SetupAccSerial(ACC_Baud);
     }
 
     if (s_xcvr == xic705) {
-        ACC_Baud = 2;
-        EEPROM.write(eeaccbaud, ACC_Baud);
-        Set_Ser2(ACC_Baud);
+        ACC_Baud = serial_speed::baud_19200;
+        EEPROM.write(eeaccbaud, speedToEEPROM(ACC_Baud));
+        SetupAccSerial(ACC_Baud);
     }
 }
 
@@ -537,7 +534,7 @@ void setup() {
     state.band = EEPROM.read(eeband);
     if (state.band > 10) state.band = 5;
 
-    state.mode = fromEEPROM(EEPROM.read(eemode));
+    state.mode = modeFromEEPROM(EEPROM.read(eemode));
 
     DisablePTTDetector();
     if (state.mode != mode_type::standby) {
@@ -560,13 +557,11 @@ void setup() {
         }
     }
 
-    ACC_Baud = EEPROM.read(eeaccbaud);
-    if (ACC_Baud < 0 || ACC_Baud > 3) ACC_Baud = 2;
-    Set_Ser2(ACC_Baud);
+    ACC_Baud = speedFromEEPROM(EEPROM.read(eeaccbaud));
+    SetupAccSerial(ACC_Baud);
 
-    USB_Baud = EEPROM.read(eeusbbaud);
-    if (USB_Baud < 0 || USB_Baud > 5) USB_Baud = 2;
-    Set_Ser(USB_Baud);
+    USB_Baud = speedFromEEPROM(EEPROM.read(eeusbbaud));
+    SetupUSBSerial(USB_Baud);
 
     state.tempInCelsius = EEPROM.read(eecelsius) > 0;
 
@@ -675,6 +670,7 @@ ISR(PCINT0_vect) {
 }
 
 void loop() {
+    static int a_count = 0;
     if (++a_count == 10) {
         unsigned int f_yel = 600, f_red = 660;
         a_count = 0;
@@ -800,17 +796,18 @@ void loop() {
         else if (t_ave < temp_dtp) SetFanSpeed(--FAN_SP);
     }
 
+    static int t_count = 0;
     if (++t_count == 3) {
         t_count = 0;
 
         if (state.meterSelection == 1) {
-            unsigned int f_pw = ReadPower(fwd_p);
+            unsigned int f_pw = ReadPower(power_type::fwd_p);
             F_bar = constrain(map(f_pw, 0, 500, 19, 300), 10, 309);
         } else if (state.meterSelection == 2) {
-            unsigned int r_pw = ReadPower(rfl_p);
+            unsigned int r_pw = ReadPower(power_type::rfl_p);
             F_bar = constrain(map(r_pw, 0, 50, 19, 300), 10, 309);
         } else if (state.meterSelection == 3) {
-            unsigned int d_pw = ReadPower(drv_p);
+            unsigned int d_pw = ReadPower(power_type::drv_p);
             F_bar = constrain(map(d_pw, 0, 100, 19, 300), 10, 309);
         } else if (state.meterSelection == 4) {
             F_bar = constrain(map(ReadVoltage(), 0, 2400, 19, 299), 19, 309);
@@ -839,12 +836,10 @@ void loop() {
             }
         }
 
-        if (s_disp++ == 20 && f_tot > 250 && state.txIsOn == 1) {
-            int VSWR = ReadPower(vswr);
-
+        if (s_disp++ == 20 && f_tot > 250 && state.txIsOn) {
+            const auto vswr = ReadPower(power_type::vswr);
             s_disp = 0;
-
-            if (VSWR > 9) sprintf(RL_TXT, "%d.%d", VSWR / 10, VSWR % 10);
+            if (vswr > 9) sprintf(RL_TXT, "%d.%d", vswr / 10, vswr % 10);
 
             if (strcmp(ORL_TXT, RL_TXT) != 0) {
                 Tft.LCD_SEL = 0;
@@ -1032,7 +1027,7 @@ void loop() {
                 case 6:
                     if (!state.txIsOn) {
                         state.mode = nextMode(state.mode);
-                        EEPROM.write(eemode, toEEPROM(state.mode));
+                        EEPROM.write(eemode, modeToEEPROM(state.mode));
                         DrawMode();
                         DisablePTTDetector();
 
@@ -1166,7 +1161,7 @@ void loop() {
                     if (menu_choice == mSETbias) {
                         BIAS_OFF
                         SendLPFRelayDataSafe(state.lpfBoardSerialData);
-                        state.mode = oMODE;
+                        state.mode = old_mode;
                         MAX_CUR = 20;
                         Bias_Meter = 0;
                     }

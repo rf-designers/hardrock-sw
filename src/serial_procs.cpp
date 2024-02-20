@@ -20,7 +20,7 @@ extern char rxbuff[128]; // 128 byte circular Buffer for storing rx data
 extern char workingString[128];
 extern char rxbuff2[128]; // 128 byte circular Buffer for storing rx data
 extern char workingString2[128];
-extern unsigned int uartMsgs, uartMsgs2, readStart, readStart2;
+extern uint8_t readStart, readStart2;
 extern byte OBAND;
 extern char ATU_STAT;
 extern unsigned int t_tot, t_ave;
@@ -153,20 +153,20 @@ void handleSerialMessage(char uart) {
         if (found != nullptr) {
             if (found[4] == ';') {
                 UART_send(uart, "HRMD");
-                UART_send_num(uart, toEEPROM(state.mode));
+                UART_send_num(uart, modeToEEPROM(state.mode));
                 UART_send_line(uart);
             }
 
             if (found[4] == '0') {
                 state.mode = mode_type::standby;
-                EEPROM.write(eemode, toEEPROM(state.mode));
+                EEPROM.write(eemode, modeToEEPROM(state.mode));
                 DrawMode();
                 DisablePTTDetector();
             }
 
             if (found[4] == '1') {
                 state.mode = mode_type::ptt;
-                EEPROM.write(eemode, toEEPROM(state.mode));
+                EEPROM.write(eemode, modeToEEPROM(state.mode));
                 DrawMode();
                 EnablePTTDetector();
             }
@@ -308,26 +308,27 @@ void handleSerialMessage(char uart) {
          HRPWV; = VSWR */
         found = strstr(workStringPtr, "HRPW");
         if (found != nullptr) {
-            byte psel = 0, pwf = 0;
+            auto psel = power_type::fwd_p;
+            byte pwf = 0;
 
             const char schr = found[4];
             if (schr == 'F') {
-                psel = fwd_p;
+                psel = power_type::fwd_p;
                 pwf = 1;
             }
 
             if (schr == 'R') {
-                psel = rfl_p;
+                psel = power_type::rfl_p;
                 pwf = 1;
             }
 
             if (schr == 'D') {
-                psel = drv_p;
+                psel = power_type::drv_p;
                 pwf = 1;
             }
 
             if (schr == 'V') {
-                psel = vswr;
+                psel = power_type::vswr;
                 pwf = 1;
             }
 
@@ -345,10 +346,10 @@ void handleSerialMessage(char uart) {
         if (found != nullptr) {
             char tbuff[80];
 
-            const auto stF = ReadPower(fwd_p);
-            const auto stR = ReadPower(rfl_p);
-            const auto stD = ReadPower(drv_p);
-            const auto stS = ReadPower(vswr);
+            const auto stF = ReadPower(power_type::fwd_p);
+            const auto stR = ReadPower(power_type::rfl_p);
+            const auto stD = ReadPower(power_type::drv_p);
+            const auto stS = ReadPower(power_type::vswr);
             const auto stV = ReadVoltage() / 40;
             const auto stI = ReadCurrent() / 20;
             auto stT = t_ave / 10;
@@ -357,7 +358,7 @@ void handleSerialMessage(char uart) {
             }
 
             sprintf(tbuff, "HRST-%03d-%03d-%03d-%03d-%03d-%03d-%03d-%01d-%02d-%01d-%01d%01d%01d%01d%01d%01d%01d%01d-",
-                    stF, stR, stD, stS, stV, stI, stT, toEEPROM(state.mode), state.band, state.antForBand[state.band],
+                    stF, stR, stD, stS, stV, stI, stT, modeToEEPROM(state.mode), state.band, state.antForBand[state.band],
                     state.txIsOn, F_alert,
                     R_alert, D_alert,
                     V_alert, I_alert, state.isAtuTuning, state.atuActive);
@@ -401,27 +402,27 @@ void handleSerialMessage(char uart) {
     }
 }
 
-void UART_send(char uart, const char* message) {
+void UART_send(const char uart, const char* message) {
     if (uart == 1) Serial.print(message);
     if (uart == 2) Serial2.print(message);
 }
 
-void UART_send_num(char uart, int num) {
+void UART_send_num(const char uart, const int num) {
     if (uart == 1) Serial.print(num);
     if (uart == 2) Serial2.print(num);
 }
 
-void UART_send_char(char uart, char num) {
+void UART_send_char(const char uart, const char num) {
     if (uart == 1) Serial.print(num);
     if (uart == 2) Serial2.print(num);
 }
 
-void UART_send_line(char uart) {
+void UART_send_line(const char uart) {
     if (uart == 1) Serial.println(";");
     if (uart == 2) Serial2.println(";");
 }
 
-void UART_send_cr(char uart) {
+void UART_send_cr(const char uart) {
     if (uart == 1) Serial.println();
     if (uart == 2) Serial2.println();
 }

@@ -1,8 +1,8 @@
 #pragma once
 
-#include <Arduino.h>
+#include <amp_state.h>
 
 void menuFunction(byte item, byte ch_dir);
-void menuSelect(void);
-void Set_Ser2(byte BR);
-void Set_Ser(byte BR);
+void menuSelect();
+void SetupAccSerial(serial_speed speed);
+void SetupUSBSerial(serial_speed speed);
