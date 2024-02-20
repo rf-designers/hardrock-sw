@@ -7,7 +7,7 @@
 #include "hr500_displays.h"
 #include "HR500V1.h"
 
-extern char ATU_buff[40], ATU_cmd[8], ATU_cbuf[32], ATU_ver[8];
+extern char ATU_buff[40], ATU_cbuf[32], ATU_ver[8];
 extern XPT2046_Touchscreen ts1;
 extern XPT2046_Touchscreen ts2;
 extern TFT Tft;

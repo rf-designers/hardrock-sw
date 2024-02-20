@@ -181,19 +181,19 @@ void findBand(char uart) {
         if (found != 0) {
             if (found[4] == ';') {
                 UART_send(uart, (char *) "HRAN");
-                UART_send_num(uart, state.antSelection[state.band]);
+                UART_send_num(uart, state.antForBand[state.band]);
                 UART_send_line(uart);
             }
 
             if (found[4] == '1') {
-                state.antSelection[state.band] = 1;
-                EEPROM.write(eeantsel + state.band, state.antSelection[state.band]);
+                state.antForBand[state.band] = 1;
+                EEPROM.write(eeantsel + state.band, state.antForBand[state.band]);
                 DrawAnt();
             }
 
             if (found[4] == '2') {
-                state.antSelection[state.band] = 2;
-                EEPROM.write(eeantsel + state.band, state.antSelection[state.band]);
+                state.antForBand[state.band] = 2;
+                EEPROM.write(eeantsel + state.band, state.antForBand[state.band]);
                 DrawAnt();
             }
         }
@@ -203,7 +203,7 @@ void findBand(char uart) {
         if (found != nullptr) {
             if (found[4] == ';') {
                 UART_send(uart, "HRTS");
-                if (state.CELSIUS) {
+                if (state.tempInCelsius) {
                     UART_send(uart, "C");
                 } else {
                     UART_send(uart, "F");
@@ -212,13 +212,13 @@ void findBand(char uart) {
             }
 
             if (found[4] == 'F') {
-                state.CELSIUS = false;
-                EEPROM.write(eecelsius, state.CELSIUS ? 1 : 0);
+                state.tempInCelsius = false;
+                EEPROM.write(eecelsius, state.tempInCelsius ? 1 : 0);
             }
 
             if (found[4] == 'C') {
-                state.CELSIUS = true;
-                EEPROM.write(eecelsius, state.CELSIUS ? 1 : 0);
+                state.tempInCelsius = true;
+                EEPROM.write(eecelsius, state.tempInCelsius ? 1 : 0);
             }
         }
 
@@ -294,7 +294,7 @@ void findBand(char uart) {
             char tbuff[4];
             int tread;
 
-            if (state.CELSIUS) {
+            if (state.tempInCelsius) {
                 tread = t_ave;
             } else {
                 tread = ((t_ave * 9) / 5) + 320;
@@ -303,7 +303,7 @@ void findBand(char uart) {
             tread /= 10;
             UART_send(uart, "HRTP");
 
-            if (state.CELSIUS) {
+            if (state.tempInCelsius) {
                 sprintf(tbuff, "%dC", tread);
             } else {
                 sprintf(tbuff, "%dF", tread);
@@ -319,13 +319,10 @@ void findBand(char uart) {
          HRPWD; = Drive
          HRPWV; = VSWR */
         found = strstr(workStringPtr, "HRPW");
+        if (found != nullptr) {
+            byte psel = 0, pwf = 0;
 
-        if (found != 0) {
-            byte psel, pwf = 0;
-            char schr, tbuff[10];
-
-            schr = found[4];
-
+            const char schr = found[4];
             if (schr == 'F') {
                 psel = fwd_p;
                 pwf = 1;
@@ -347,6 +344,7 @@ void findBand(char uart) {
             }
 
             if (pwf == 1) {
+                char tbuff[10];
                 unsigned int reading = ReadPower(psel);
                 sprintf(tbuff, "HRPW%c%03d", schr, reading);
                 UART_send(uart, tbuff);
@@ -354,26 +352,24 @@ void findBand(char uart) {
             }
         }
 
-        //report status
+        // report status
         found = strstr(workStringPtr, "HRST");
-
-        if (found != 0) {
+        if (found != nullptr) {
             char tbuff[80];
 
-            unsigned int stF = ReadPower(fwd_p);
-            unsigned int stR = ReadPower(rfl_p);
-            unsigned int stD = ReadPower(drv_p);
-            unsigned int stS = ReadPower(vswr);
-            unsigned int stV = ReadVoltage() / 40;
-            unsigned int stI = ReadCurrent() / 20;
-            unsigned int stT = t_ave / 10;
-
-            if (!state.CELSIUS) {
+            const auto stF = ReadPower(fwd_p);
+            const auto stR = ReadPower(rfl_p);
+            const auto stD = ReadPower(drv_p);
+            const auto stS = ReadPower(vswr);
+            const auto stV = ReadVoltage() / 40;
+            const auto stI = ReadCurrent() / 20;
+            auto stT = t_ave / 10;
+            if (!state.tempInCelsius) {
                 stT = ((stT * 9) / 5) + 32;
             }
 
             sprintf(tbuff, "HRST-%03d-%03d-%03d-%03d-%03d-%03d-%03d-%01d-%02d-%01d-%01d%01d%01d%01d%01d%01d%01d%01d-",
-                    stF, stR, stD, stS, stV, stI, stT, state.mode, state.band, state.antSelection[state.band],
+                    stF, stR, stD, stS, stV, stI, stT, state.mode, state.band, state.antForBand[state.band],
                     state.txIsOn, F_alert,
                     R_alert, D_alert,
                     V_alert, I_alert, state.isTuning, state.atuActive);
@@ -381,18 +377,16 @@ void findBand(char uart) {
             UART_send_line(uart);
         }
 
-        //respond and acknowlege:
+        // respond and acknowlege:
         found = strstr(workStringPtr, "HRAA");
-
-        if (found != 0) {
-            UART_send(uart, (char *) "HRAA");
+        if (found != nullptr) {
+            UART_send(uart, "HRAA");
             UART_send_line(uart);
         }
 
-        //get new firmware
+        // get new firmware
         found = strstr(workStringPtr, "HRFW");
-
-        if (found != 0) {
+        if (found != nullptr) {
             Serial.end();
             delay(50);
             Serial.begin(115200);
@@ -403,13 +397,11 @@ void findBand(char uart) {
             digitalWrite(8, LOW);
         }
 
-        //communicate with ATU
+        // communicate with ATU
         found = strstr(workStringPtr, "HRTM");
-
-        if (found != 0 && state.atuIsPresent == 1) {
+        if (found != nullptr && state.atuIsPresent) {
             char tm_buff[20];
             byte tmb_p = 0;
-            size_t b_len;
 
             while (found[tmb_p + 4] != ';' && tmb_p < 18) {
                 tm_buff[tmb_p] = found[tmb_p + 4];
@@ -420,11 +412,11 @@ void findBand(char uart) {
             Serial3.setTimeout(75);
             Serial3.print('*');
             Serial3.println(tm_buff);
-            b_len = Serial3.readBytesUntil(13, ATU_buff, 40);
+            const size_t b_len = Serial3.readBytesUntil(13, ATU_buff, 40);
             ATU_buff[b_len] = 0;
 
             if (b_len > 0) {
-                UART_send(uart, (char *) "HRTM");
+                UART_send(uart, "HRTM");
                 UART_send(uart, ATU_buff);
                 UART_send_line(uart);
             }
@@ -432,32 +424,27 @@ void findBand(char uart) {
     }
 }
 
-void UART_send(char uart, char* message) {
+void UART_send(char uart, const char* message) {
     if (uart == 1) Serial.print(message);
-
     if (uart == 2) Serial2.print(message);
 }
 
 void UART_send_num(char uart, int num) {
     if (uart == 1) Serial.print(num);
-
     if (uart == 2) Serial2.print(num);
 }
 
 void UART_send_char(char uart, char num) {
     if (uart == 1) Serial.print(num);
-
     if (uart == 2) Serial2.print(num);
 }
 
 void UART_send_line(char uart) {
     if (uart == 1) Serial.println(";");
-
     if (uart == 2) Serial2.println(";");
 }
 
 void UART_send_cr(char uart) {
     if (uart == 1) Serial.println();
-
     if (uart == 2) Serial2.println();
 }

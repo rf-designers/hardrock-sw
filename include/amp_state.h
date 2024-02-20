@@ -11,8 +11,8 @@ struct amp_state {
     byte meterSelection = 0; // 1 - FWD; 2 - RFL; 3 - DRV; 4 - VDD; 5 - IDD
     volatile byte band = 6;
     byte trxType = 0;
-    byte antSelection[11] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}; // antenna selection for each band
+    byte antForBand[11] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}; // antenna selection for each band
     bool menuDisplayed; // 0 is normal, 1 is menu mode
-    bool CELSIUS = true; // display temperature in Celsius?
+    bool tempInCelsius = true; // display temperature in Celsius?
 
 };

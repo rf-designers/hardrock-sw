@@ -298,13 +298,13 @@ void DrawAnt() {
     Tft.LCD_SEL = 1;
     Tft.lcd_fill_rect(43, 142, 16, 21, MGRAY);
 
-    if (state.antSelection[state.band] == 1) {
+    if (state.antForBand[state.band] == 1) {
         Tft.drawString((char *) "1", 41, 142, 3, LBLUE);
         Serial3.println("*N1");
         SEL_ANT1;
     }
 
-    if (state.antSelection[state.band] == 2) {
+    if (state.antForBand[state.band] == 2) {
         Tft.drawString((char *) "2", 41, 142, 3, LBLUE);
         Serial3.println("*N2");
         SEL_ANT2;

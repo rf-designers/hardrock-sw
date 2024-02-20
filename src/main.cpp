@@ -95,7 +95,7 @@ char workingString[128];
 char rxbuff2[128]; // 128 byte circular Buffer for storing rx data
 char workingString2[128];
 
-char ATU_buff[40], ATU_cmd[8], ATU_cbuf[32], ATU_ver[8];
+char ATU_buff[40], ATU_cbuf[32], ATU_ver[8];
 amp_state state;
 
 
@@ -563,15 +563,15 @@ void setup() {
     state.atuActive = EEPROM.read(eeatub) == 1;
 
     for (byte i = 1; i < 11; i++) {
-        state.antSelection[i] = EEPROM.read(eeantsel + i);
+        state.antForBand[i] = EEPROM.read(eeantsel + i);
 
-        if (state.antSelection[i] == 1) {
+        if (state.antForBand[i] == 1) {
             SEL_ANT1;
-        } else if (state.antSelection[i] == 2) {
+        } else if (state.antForBand[i] == 2) {
             SEL_ANT2;
         } else {
             SEL_ANT1;
-            state.antSelection[i] = 1;
+            state.antForBand[i] = 1;
             EEPROM.write(eeantsel + i, 1);
         }
     }
@@ -584,7 +584,7 @@ void setup() {
     if (USB_Baud < 0 || USB_Baud > 5) USB_Baud = 2;
     Set_Ser(USB_Baud);
 
-    state.CELSIUS = EEPROM.read(eecelsius) > 0;
+    state.tempInCelsius = EEPROM.read(eecelsius) > 0;
 
     state.meterSelection = EEPROM.read(eemetsel);
     if (state.meterSelection < 1 || state.meterSelection > 5)
@@ -897,7 +897,7 @@ void loop() {
                 TripSet();
             }
 
-            if (state.CELSIUS) {
+            if (state.tempInCelsius) {
                 t_read = t_ave;
             } else {
                 t_read = ((t_ave * 9) / 5) + 320;
@@ -909,7 +909,7 @@ void loop() {
                 otemp = t_read;
                 Tft.LCD_SEL = 0;
                 Tft.drawString((uint8_t *) TEMPbuff, 237, 203, 2, DGRAY);
-                if (state.CELSIUS) {
+                if (state.tempInCelsius) {
                     sprintf(TEMPbuff, "%d&C", t_read);
                 } else {
                     sprintf(TEMPbuff, "%d&F", t_read);
@@ -1033,8 +1033,8 @@ void loop() {
 
             case 18:
             case 19:
-                state.CELSIUS = !state.CELSIUS;
-                EEPROM.write(eecelsius, state.CELSIUS ? 1 : 0);
+                state.tempInCelsius = !state.tempInCelsius;
+                EEPROM.write(eecelsius, state.tempInCelsius ? 1 : 0);
                 break;
         }
 
@@ -1088,14 +1088,14 @@ void loop() {
                 case 15:
                 case 16:
                     if (state.txIsOn == 0) {
-                        if (++state.antSelection[state.band] == 3)
-                            state.antSelection[state.band] = 1;
+                        if (++state.antForBand[state.band] == 3)
+                            state.antForBand[state.band] = 1;
 
-                        EEPROM.write(eeantsel + state.band, state.antSelection[state.band]);
+                        EEPROM.write(eeantsel + state.band, state.antForBand[state.band]);
 
-                        if (state.antSelection[state.band] == 1) {
+                        if (state.antForBand[state.band] == 1) {
                             SEL_ANT1;
-                        } else if (state.antSelection[state.band] == 2) {
+                        } else if (state.antForBand[state.band] == 2) {
                             SEL_ANT2;
                         }
                         DrawAnt();
