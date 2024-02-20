@@ -388,7 +388,7 @@ void SetBand() {
             break;
     }
 
-    if (state.atuIsPresent && !state.menuDisplayed) {
+    if (state.atuIsPresent && !state.isMenuActive) {
         Tft.LCD_SEL = 1;
         Tft.lcd_fill_rect(121, 142, 74, 21, MGRAY);
     }
@@ -650,9 +650,9 @@ void setup() {
 
 ISR(PCINT0_vect) {
     if (state.mode == mode_type::standby) return; // Mode is STBY
-    if (state.menuDisplayed) return; // Menu is active
+    if (state.isMenuActive) return; // Menu is active
     if (state.band == 0) return; // Band is undefined
-    if (state.isTuning == 1) return; //ATU is working
+    if (state.isAtuTuning) return; // ATU is working
 
     curPTT = digitalRead(PTT_DET);
     flagPTT = 1;
@@ -1026,7 +1026,7 @@ void loop() {
         const byte pressedKey = getTS(2);
         timeToTouch = 300;
 
-        if (!state.menuDisplayed) {
+        if (!state.isMenuActive) {
             switch (pressedKey) {
                 case 5:
                 case 6:
@@ -1091,7 +1091,7 @@ void loop() {
                         Tft.LCD_SEL = 1;
                         Tft.lcd_clear_screen(GRAY);
                         DrawMenu();
-                        state.menuDisplayed = true;
+                        state.isMenuActive = true;
                     }
                     break;
 
@@ -1100,7 +1100,7 @@ void loop() {
                         Tft.LCD_SEL = 1;
                         Tft.lcd_clear_screen(GRAY);
                         DrawMenu();
-                        state.menuDisplayed = true;
+                        state.isMenuActive = true;
                     }
                     break;
 
@@ -1161,7 +1161,7 @@ void loop() {
                 case 17:
                     Tft.LCD_SEL = 1;
                     Tft.lcd_clear_screen(GRAY);
-                    state.menuDisplayed = false;
+                    state.isMenuActive = false;
 
                     if (menu_choice == mSETbias) {
                         BIAS_OFF
@@ -1181,7 +1181,7 @@ void loop() {
     }
 
     const auto atuBusy = digitalRead(ATU_BUSY) == 1;
-    if (state.isTuning && !atuBusy) {
+    if (state.isAtuTuning && !atuBusy) {
         TuneEnd();
     }
 
@@ -1189,7 +1189,7 @@ void loop() {
         rxbuff2[uart2Idx] = Serial2.read();
         if (rxbuff2[uart2Idx] == ';') {
             uartGrabBuffer2();
-            findBand(2);
+            handleSerialMessage(2);
         }
         if (++uart2Idx > 127) uart2Idx = 0;
     }
@@ -1198,7 +1198,7 @@ void loop() {
         rxbuff[uartIdx] = Serial.read(); // Storing read data
         if (rxbuff[uartIdx] == ';') {
             uartGrabBuffer();
-            findBand(1);
+            handleSerialMessage(1);
         }
 
         if (++uartIdx > 127) uartIdx = 0;

@@ -97,7 +97,7 @@ void DrawMeter() {
 }
 
 void DrawRxButtons(uint16_t bcolor) {
-    if (state.menuDisplayed) return;
+    if (state.isMenuActive) return;
 
     Tft.LCD_SEL = 1;
     Tft.drawString((char *) "MODE", 26, 79, 3, bcolor);
@@ -257,14 +257,14 @@ void DrawPanel(int x, int y, int w, int h) {
 }
 
 void DrawTxPanel(uint16_t pcolor) {
-    if (state.menuDisplayed) return;
+    if (state.isMenuActive) return;
 
     Tft.LCD_SEL = 1;
     Tft.lcd_fill_rect(142, 10, 36, 16, pcolor);
 }
 
 void DrawMode() {
-    if (state.menuDisplayed) return;
+    if (state.isMenuActive) return;
 
     Tft.LCD_SEL = 1;
     Tft.lcd_fill_rect(38, 21, 54, 21, MGRAY);
@@ -283,7 +283,7 @@ void DrawMode() {
 }
 
 void DrawBand(byte Band, uint16_t bcolor) {
-    if (state.menuDisplayed) return;
+    if (state.isMenuActive) return;
 
     if (Band == 0) Tft.drawString((char *) "UNK", 228, 21, 3, bcolor);
     else if (Band == 1) Tft.drawString((char *) "10M", 228, 21, 3, bcolor);
@@ -300,7 +300,7 @@ void DrawBand(byte Band, uint16_t bcolor) {
 }
 
 void DrawAnt() {
-    if (state.menuDisplayed != 0) return;
+    if (state.isMenuActive != 0) return;
 
     Tft.LCD_SEL = 1;
     Tft.lcd_fill_rect(43, 142, 16, 21, MGRAY);
@@ -324,7 +324,7 @@ void DrawAnt() {
 }
 
 void DrawATU() {
-    if (state.menuDisplayed) return;
+    if (state.isMenuActive) return;
 
     Tft.LCD_SEL = 1;
     Tft.lcd_fill_rect(244, 142, 54, 21, MGRAY);

@@ -8,7 +8,7 @@ enum class mode_type : uint8_t {
 };
 
 struct amp_state {
-    volatile bool isTuning;
+    volatile bool isAtuTuning;
     volatile bool atuIsPresent;
     volatile bool txIsOn;
     mode_type mode = mode_type::standby; // 0 - OFF, 1 - PTT
@@ -18,7 +18,7 @@ struct amp_state {
     volatile byte band = 6;
     byte trxType = 0;
     byte antForBand[11] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}; // antenna selection for each band
-    bool menuDisplayed; // 0 is normal, 1 is menu mode
+    bool isMenuActive; // 0 is normal, 1 is menu mode
     bool tempInCelsius = true; // display temperature in Celsius?
     volatile byte lpfBoardSerialData = 0; // serial data to be sent to LPF
     char ATU_ver[8]; // version of ATU

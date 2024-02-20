@@ -13,7 +13,7 @@ unsigned short oldBand;
 unsigned int old_tuner_freq;
 const char crlfsemi[] = ";\r\n";
 const char HRTM[] = "HRTM";
-char freqStr[6];
+char freqStr[7];
 
 
 extern char rxbuff[128]; // 128 byte circular Buffer for storing rx data
@@ -74,7 +74,7 @@ void uartGrabBuffer2() {
 }
 
 
-void findBand(char uart) {
+void handleSerialMessage(char uart) {
     char* workStringPtr;
     int i;
 
@@ -172,7 +172,7 @@ void findBand(char uart) {
             }
         }
 
-        //set antenna:
+        // set antenna:
         found = strstr(workStringPtr, "HRAN");
         if (found != nullptr) {
             if (found[4] == ';') {
@@ -220,67 +220,59 @@ void findBand(char uart) {
 
         // read volts:
         found = strstr(workStringPtr, "HRVT");
-
-        if (found != 0) {
+        if (found != nullptr) {
             char vbuff[4];
-            UART_send(uart, (char *) "HRVT");
+            UART_send(uart, "HRVT");
             sprintf(vbuff, "%2d", ReadVoltage() / 40);
             UART_send(uart, vbuff);
             UART_send_line(uart);
         }
 
-        //read ATU_P:
+        // read ATU_P:
         found = strstr(workStringPtr, "HRAP");
-
-        if (found != 0) {
+        if (found != nullptr) {
             UART_send(uart, "HRAP");
             UART_send_num(uart, state.atuIsPresent);
             UART_send_line(uart);
         }
 
-        //bypass activate the ATU:
+        // bypass activate the ATU:
         found = strstr(workStringPtr, "HRTB");
-
-        if (found != 0) {
+        if (found != nullptr) {
             if (found[4] == ';') {
                 UART_send(uart, "HRTB");
                 UART_send_num(uart, state.atuActive);
                 UART_send_line(uart);
             }
-
             if (found[4] == '1') {
                 state.atuActive = true;
                 DrawATU();
             }
-
             if (found[4] == '0') {
                 state.atuActive = false;
                 DrawATU();
             }
         }
 
-        //Press the TUNE button
+        // Press the TUNE button
         found = strstr(workStringPtr, "HRTU");
-
-        if (found != 0 && state.atuIsPresent == 1) {
+        if (found != nullptr && state.atuIsPresent) {
             TuneButtonPressed();
         }
 
-        //Tune Result
+        // Tune Result
         found = strstr(workStringPtr, "HRTR");
-
-        if (found != 0) {
-            UART_send(uart, (char *) "HRTR");
+        if (found != nullptr) {
+            UART_send(uart, "HRTR");
             UART_send_char(uart, ATU_STAT);
             UART_send_line(uart);
         }
 
-        //Is ATU Tuning?
+        // Is ATU Tuning?
         found = strstr(workStringPtr, "HRTT");
-
-        if (found != 0) {
-            UART_send(uart, (char *) "HRTT");
-            UART_send_num(uart, state.isTuning);
+        if (found != nullptr) {
+            UART_send(uart, "HRTT");
+            UART_send_num(uart, state.isAtuTuning);
             UART_send_line(uart);
         }
 
@@ -368,7 +360,7 @@ void findBand(char uart) {
                     stF, stR, stD, stS, stV, stI, stT, toEEPROM(state.mode), state.band, state.antForBand[state.band],
                     state.txIsOn, F_alert,
                     R_alert, D_alert,
-                    V_alert, I_alert, state.isTuning, state.atuActive);
+                    V_alert, I_alert, state.isAtuTuning, state.atuActive);
             UART_send(uart, tbuff);
             UART_send_line(uart);
         }
