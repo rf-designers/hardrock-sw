@@ -38,8 +38,6 @@ char ATTN_P = 0;
 byte ATTN_ST = 0;
 byte OBAND = 0;
 volatile int timeToTouch = 0; // countdown for TS touching. this gets decremented in timer ISR
-serial_speed ACC_Baud;
-serial_speed USB_Baud;
 byte menu_choice = 0;
 byte OMeterSel;
 unsigned int temp_utp, temp_dtp;
@@ -385,7 +383,7 @@ void SetBand() {
             break;
     }
 
-    if (state.atuIsPresent && !state.isMenuActive) {
+    if (state.isAtuPresent && !state.isMenuActive) {
         Tft.LCD_SEL = 1;
         Tft.lcd_fill_rect(121, 142, 74, 21, MGRAY);
     }
@@ -457,13 +455,13 @@ void SetTransceiver(byte s_xcvr) {
         strcpy(item_disp[mACCbaud], "  XCVR MODE ON  ");
         Serial2.end();
     } else {
-        SetupAccSerial(ACC_Baud);
+        SetupAccSerial(state.accSpeed);
     }
 
     if (s_xcvr == xic705) {
-        ACC_Baud = serial_speed::baud_19200;
-        EEPROM.write(eeaccbaud, speedToEEPROM(ACC_Baud));
-        SetupAccSerial(ACC_Baud);
+        state.accSpeed = serial_speed::baud_19200;
+        EEPROM.write(eeaccbaud, speedToEEPROM(state.accSpeed));
+        SetupAccSerial(state.accSpeed);
     }
 }
 
@@ -541,7 +539,7 @@ void setup() {
         EnablePTTDetector();
     }
 
-    state.atuActive = EEPROM.read(eeatub) == 1;
+    state.isAtuActive = EEPROM.read(eeatub) == 1;
 
     for (byte i = 1; i < 11; i++) {
         state.antForBand[i] = EEPROM.read(eeantsel + i);
@@ -557,11 +555,11 @@ void setup() {
         }
     }
 
-    ACC_Baud = speedFromEEPROM(EEPROM.read(eeaccbaud));
-    SetupAccSerial(ACC_Baud);
+    state.accSpeed = speedFromEEPROM(EEPROM.read(eeaccbaud));
+    SetupAccSerial(state.accSpeed);
 
-    USB_Baud = speedFromEEPROM(EEPROM.read(eeusbbaud));
-    SetupUSBSerial(USB_Baud);
+    state.usbSpeed = speedFromEEPROM(EEPROM.read(eeusbbaud));
+    SetupUSBSerial(state.usbSpeed);
 
     state.tempInCelsius = EEPROM.read(eecelsius) > 0;
 
@@ -1075,14 +1073,14 @@ void loop() {
 
                 case 18:
                 case 19:
-                    if (state.atuIsPresent && !state.txIsOn) {
-                        state.atuActive = !state.atuActive;
+                    if (state.isAtuPresent && !state.txIsOn) {
+                        state.isAtuActive = !state.isAtuActive;
                         DrawATU();
                     }
                     break;
 
                 case 12:
-                    if (!state.atuIsPresent) {
+                    if (!state.isAtuPresent) {
                         Tft.LCD_SEL = 1;
                         Tft.lcd_clear_screen(GRAY);
                         DrawMenu();
@@ -1091,7 +1089,7 @@ void loop() {
                     break;
 
                 case 7:
-                    if (state.atuIsPresent) {
+                    if (state.isAtuPresent) {
                         Tft.LCD_SEL = 1;
                         Tft.lcd_clear_screen(GRAY);
                         DrawMenu();
@@ -1100,7 +1098,7 @@ void loop() {
                     break;
 
                 case 17:
-                    if (state.atuIsPresent) {
+                    if (state.isAtuPresent) {
                         TuneButtonPressed();
                     }
             }

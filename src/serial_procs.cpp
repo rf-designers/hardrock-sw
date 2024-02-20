@@ -232,7 +232,7 @@ void handleSerialMessage(char uart) {
         found = strstr(workStringPtr, "HRAP");
         if (found != nullptr) {
             UART_send(uart, "HRAP");
-            UART_send_num(uart, state.atuIsPresent);
+            UART_send_num(uart, state.isAtuPresent);
             UART_send_line(uart);
         }
 
@@ -241,22 +241,22 @@ void handleSerialMessage(char uart) {
         if (found != nullptr) {
             if (found[4] == ';') {
                 UART_send(uart, "HRTB");
-                UART_send_num(uart, state.atuActive);
+                UART_send_num(uart, state.isAtuActive);
                 UART_send_line(uart);
             }
             if (found[4] == '1') {
-                state.atuActive = true;
+                state.isAtuActive = true;
                 DrawATU();
             }
             if (found[4] == '0') {
-                state.atuActive = false;
+                state.isAtuActive = false;
                 DrawATU();
             }
         }
 
         // Press the TUNE button
         found = strstr(workStringPtr, "HRTU");
-        if (found != nullptr && state.atuIsPresent) {
+        if (found != nullptr && state.isAtuPresent) {
             TuneButtonPressed();
         }
 
@@ -361,7 +361,7 @@ void handleSerialMessage(char uart) {
                     stF, stR, stD, stS, stV, stI, stT, modeToEEPROM(state.mode), state.band, state.antForBand[state.band],
                     state.txIsOn, F_alert,
                     R_alert, D_alert,
-                    V_alert, I_alert, state.isAtuTuning, state.atuActive);
+                    V_alert, I_alert, state.isAtuTuning, state.isAtuActive);
             UART_send(uart, tbuff);
             UART_send_line(uart);
         }
@@ -381,7 +381,7 @@ void handleSerialMessage(char uart) {
 
         // communicate with ATU
         found = strstr(workStringPtr, "HRTM");
-        if (found != nullptr && state.atuIsPresent) {
+        if (found != nullptr && state.isAtuPresent) {
             static char atuCmd[20] = {'*'};
             size_t cmdIdx = 1;
 

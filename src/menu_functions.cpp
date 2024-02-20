@@ -10,8 +10,6 @@
 extern TFT Tft;
 extern char* workingString;
 extern char* workingString2;
-extern serial_speed ACC_Baud;
-extern serial_speed USB_Baud;
 extern char ATTN_P;
 extern char ATTN_ST;
 extern byte I_alert, V_alert, F_alert, R_alert, D_alert;
@@ -37,25 +35,25 @@ void menuFunction(byte item, byte changeDirection) {
             if (state.trxType == xft817) break;
 
             if (changeDirection == 1)
-                ACC_Baud = nextSerialSpeed(ACC_Baud);
+                state.accSpeed = nextSerialSpeed(state.accSpeed);
             else
-                ACC_Baud = previousSerialSpeed(ACC_Baud);
+                state.accSpeed = previousSerialSpeed(state.accSpeed);
 
-            if (ACC_Baud == serial_speed::baud_57600)
-                ACC_Baud = serial_speed::baud_4800;
+            if (state.accSpeed == serial_speed::baud_57600)
+                state.accSpeed = serial_speed::baud_4800;
 
-            EEPROM.write(eeaccbaud, speedToEEPROM(ACC_Baud));
-            SetupAccSerial(ACC_Baud);
+            EEPROM.write(eeaccbaud, speedToEEPROM(state.accSpeed));
+            SetupAccSerial(state.accSpeed);
             break;
 
         case mUSBbaud:
             if (changeDirection == 1)
-                USB_Baud = nextSerialSpeed(USB_Baud);
+                state.usbSpeed = nextSerialSpeed(state.usbSpeed);
             else
-                USB_Baud = previousSerialSpeed(USB_Baud);
+                state.usbSpeed = previousSerialSpeed(state.usbSpeed);
 
-            EEPROM.write(eeusbbaud, speedToEEPROM(USB_Baud));
-            SetupUSBSerial(USB_Baud);
+            EEPROM.write(eeusbbaud, speedToEEPROM(state.usbSpeed));
+            SetupUSBSerial(state.usbSpeed);
             break;
 
         case mXCVR:

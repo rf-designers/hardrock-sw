@@ -30,13 +30,13 @@ size_t ATUQuery(const char* command, char* response, const size_t maxLength) {
 
 void DetectATU() {
     Serial3.println(" ");
-    strcpy(state.ATU_ver, "---");
+    strcpy(state.atuVersion, "---");
 
     if (ATUQuery("*I") > 10) {
         if (strncmp(ATU_buff, "HR500 ATU", 9) == 0) {
-            state.atuIsPresent = true;
+            state.isAtuPresent = true;
             const auto c = ATUQuery("*V");
-            strncpy(state.ATU_ver, ATU_buff, c - 1);
+            strncpy(state.atuVersion, ATU_buff, c - 1);
         }
     }
 }
@@ -53,8 +53,8 @@ void TuneButtonPressed() {
     Tft.lcd_fill_rect(121, 199, 74, 21, GRAY);
 
     if (!state.isAtuTuning) {
-        if (!state.atuActive) {
-            state.atuActive = true;
+        if (!state.isAtuActive) {
+            state.isAtuActive = true;
             DrawATU();
         }
 

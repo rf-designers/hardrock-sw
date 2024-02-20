@@ -24,20 +24,25 @@ enum class serial_speed : uint8_t {
 };
 
 struct amp_state {
-    volatile bool isAtuTuning;
-    volatile bool atuIsPresent;
     volatile bool txIsOn;
     mode_type mode = mode_type::standby; // 0 - OFF, 1 - PTT
-    volatile bool atuActive;
+
+    volatile byte band = 6;
+
+    volatile bool isAtuTuning;
+    volatile bool isAtuPresent;
+    volatile bool isAtuActive;
+    char atuVersion[8]; // version of ATU
 
     byte meterSelection = 0; // 1 - FWD; 2 - RFL; 3 - DRV; 4 - VDD; 5 - IDD
-    volatile byte band = 6;
     byte trxType = 0;
     byte antForBand[11] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}; // antenna selection for each band
     bool isMenuActive; // 0 is normal, 1 is menu mode
     bool tempInCelsius = true; // display temperature in Celsius?
     volatile byte lpfBoardSerialData = 0; // serial data to be sent to LPF
-    char ATU_ver[8]; // version of ATU
+    
+    serial_speed accSpeed;
+    serial_speed usbSpeed;
 };
 
 mode_type nextMode(mode_type mode);

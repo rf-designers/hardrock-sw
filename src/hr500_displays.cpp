@@ -19,7 +19,7 @@ void DrawHome() {
     DrawButton(5, 185, 88, 50);
     DrawButton(227, 185, 88, 50);
 
-    if (state.atuIsPresent == 0) {
+    if (state.isAtuPresent == 0) {
         DrawButton(130, 135, 60, 30);
     } else {
         DrawButton(130, 85, 60, 30);
@@ -61,7 +61,7 @@ void DrawMenu() {
     Tft.drawString((char *) "SELECT", 124, 132, 2, GBLUE);
     menuSEL = 0;
     Tft.drawString((char *) "ATU:", 206, 190, 2, LGRAY);
-    Tft.drawString(state.ATU_ver, 254, 190, 2, LGRAY);
+    Tft.drawString(state.atuVersion, 254, 190, 2, LGRAY);
     Tft.drawString((char *) "FW:", 206, 213, 2, LGRAY);
     Tft.drawString((char *) VERSION, 244, 213, 2, LGRAY);
 }
@@ -105,7 +105,7 @@ void DrawRxButtons(uint16_t bcolor) {
     Tft.drawString((char *) ">", 279, 79, 3, bcolor);
     Tft.drawString((char *) "ANT", 21, 199, 3, bcolor);
 
-    if (state.atuIsPresent == 0) {
+    if (state.isAtuPresent == 0) {
         Tft.drawString((char *) "MENU", 135, 143, 2, bcolor);
     } else {
         Tft.drawString((char *) "MENU", 135, 93, 2, bcolor);
@@ -113,7 +113,7 @@ void DrawRxButtons(uint16_t bcolor) {
         //Tft.drawString((char*)"----", 122, 142,  3, LBLUE);
     }
 
-    if (state.atuIsPresent == 0) bcolor = DGRAY;
+    if (state.isAtuPresent == 0) bcolor = DGRAY;
 
     Tft.drawString((char *) "ATU", 244, 199, 3, bcolor);
 }
@@ -317,7 +317,7 @@ void DrawAnt() {
         SEL_ANT2;
     }
 
-    if (state.atuIsPresent) {
+    if (state.isAtuPresent) {
         Tft.LCD_SEL = 1;
         Tft.lcd_fill_rect(121, 142, 74, 21, MGRAY);
     }
@@ -329,19 +329,19 @@ void DrawATU() {
     Tft.LCD_SEL = 1;
     Tft.lcd_fill_rect(244, 142, 54, 21, MGRAY);
 
-    if (!state.atuIsPresent) {
+    if (!state.isAtuPresent) {
         Tft.drawString((char *) "---", 244, 142, 3, LBLUE);
     } else {
-        if (!state.atuActive) {
+        if (!state.isAtuActive) {
             Tft.drawString((char *) "BYP", 244, 142, 3, LBLUE);
             Serial3.println("*Y1");
         }
 
-        if (state.atuActive) {
+        if (state.isAtuActive) {
             Tft.drawString((char *) "ON", 244, 142, 3, LBLUE);
             Serial3.println("*Y0");
         }
 
-        EEPROM.write(eeatub, state.atuActive);
+        EEPROM.write(eeatub, state.isAtuActive);
     }
 }
