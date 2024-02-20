@@ -37,7 +37,7 @@ volatile byte BAND = 6;
 byte OBAND = 0;
 byte CELSIUS = 1;
 byte ANTSEL[11] = {1,1,1,1,1,1,1,1,1,1,1};
-volatile int flagTCH = 0;
+volatile int flagTCH = 0; // countdown for TS touching. this gets decremented in timer ISR
 byte ACC_Baud;
 byte USB_Baud;
 byte menu_choice = 0;
@@ -77,7 +77,7 @@ byte t_i = 0;
 volatile byte curCOR, curPTT;
 volatile byte flagPTT = 0;
 volatile byte PTT = 0;
-volatile byte flagDIS = 0;
+volatile byte flagDIS = 0; // Countdown timer for re-enabling PTT detector interrupt. This gets updated in the timer ISR
 volatile int RL_off = 0;
 byte OLD_COR = 0;
 
@@ -99,20 +99,23 @@ byte TUNING = 0;
 
 
 
+// Enable interrupt on state change of D11 (PTT)
 void Enable11(void) {
     PCICR |= (1 << PCIE0);
     PCMSK0 |= (1 << PCINT5);  //Set PCINT0 (digital input 11) to trigger an interrupt on state change.
 }
 
+// Disable interrupt for state change of D11 (PTT)
 void Disable11(void) {
     PCMSK0 &= ~(1 << PCINT5);
 }
 
 // This interrupt driven function reads data from the wattmeter
-void intSensor(void) {
+void timerISR(void) {
     long s_calc;
 
     if (TX == 1) {
+        // read forward power
         s_calc = long(analogRead(12)) * M_CORR;
         f_avg[f_i] = s_calc / long(100);
 
@@ -131,6 +134,7 @@ void intSensor(void) {
             else if (f_tot > 0) f_tot--;
         }
 
+        // read reflected power
         s_calc = long(analogRead(13)) * M_CORR;
         unsigned int rtmp = s_calc / long(100);
 
@@ -159,8 +163,10 @@ void intSensor(void) {
     }
 
 
+    // handle touching repeat
     if (flagTCH > 0) --flagTCH;
 
+    // handle reenabling of PTT detection
     if (flagDIS > 0) {
         --flagDIS;
 
@@ -639,7 +645,7 @@ void setup() {
     ADCSRA |= PS_32;
 
     Timer1.initialize(1000);
-    Timer1.attachInterrupt(intSensor);
+    Timer1.attachInterrupt(timerISR);
     interrupts();
 
     SPI.begin();
