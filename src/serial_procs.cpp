@@ -359,9 +359,9 @@ void handleSerialMessage(char uart) {
 
             sprintf(tbuff, "HRST-%03d-%03d-%03d-%03d-%03d-%03d-%03d-%01d-%02d-%01d-%01d%01d%01d%01d%01d%01d%01d%01d-",
                     stF, stR, stD, stS, stV, stI, stT, modeToEEPROM(state.mode), state.band, state.antForBand[state.band],
-                    state.txIsOn, F_alert,
+                    state.txIsOn ? 1 : 0, F_alert,
                     R_alert, D_alert,
-                    V_alert, I_alert, state.isAtuTuning, state.isAtuActive);
+                    V_alert, I_alert, state.isAtuTuning ? 1 : 0, state.isAtuActive ? 1 : 0);
             UART_send(uart, tbuff);
             UART_send_line(uart);
         }

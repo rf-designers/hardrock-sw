@@ -26,10 +26,10 @@ XPT2046_Touchscreen ts1(TP1_CS);
 XPT2046_Touchscreen ts2(TP2_CS);
 
 int AnalogRead(byte pin);
-
 void SendLPFRelayData(byte data);
-
 void SendLPFRelayDataSafe(byte data);
+void handleACCCommunication();
+void handleUSBCommunication();
 
 long M_CORR = 100;
 byte FAN_SP = 0;
@@ -71,11 +71,13 @@ unsigned int t_tot = 0, t_ave;
 byte t_i = 0;
 
 volatile byte curCOR, curPTT;
-volatile byte flagPTT = 0;
+volatile bool pttChanged = false;
 volatile byte PTT = 0;
-volatile byte timeToEnablePTTDetector = 0;
+
+
 // Countdown timer for re-enabling PTT detector interrupt. This gets updated in the timer ISR
-volatile int RL_off = 0;
+volatile byte timeToEnablePTTDetector = 0;
+
 byte OLD_COR = 0;
 
 byte I_alert = 0, V_alert = 0, F_alert = 0, R_alert = 0, D_alert = 0;
@@ -121,8 +123,10 @@ void timerISR() {
             f_tot = ftmp;
             f_pep = 75;
         } else {
-            if (f_pep > 0)f_pep--;
-            else if (f_tot > 0) f_tot--;
+            if (f_pep > 0)
+                f_pep--;
+            else if (f_tot > 0)
+                f_tot--;
         }
 
         // read reflected power
@@ -133,14 +137,17 @@ void timerISR() {
             r_tot = rtmp;
             r_pep = 75;
         } else {
-            if (r_pep > 0)r_pep--;
-            else if (r_tot > 0) r_tot--;
+            if (r_pep > 0)
+                r_pep--;
+            else if (r_tot > 0)
+                r_tot--;
         }
     } else {
         f_tot = 0;
         r_tot = 0;
     }
 
+    // read drive power
     long dtmp = analogRead(15);
     dtmp = (dtmp * static_cast<long>(d_lin[state.band])) / static_cast<long>(100);
 
@@ -148,8 +155,10 @@ void timerISR() {
         d_tot = dtmp;
         d_pep = 75;
     } else {
-        if (d_pep > 0)d_pep--;
-        else if (d_tot > 0) d_tot--;
+        if (d_pep > 0)
+            d_pep--;
+        else if (d_tot > 0)
+            d_tot--;
     }
 
 
@@ -165,10 +174,6 @@ void timerISR() {
             EnablePTTDetector();
         }
     }
-
-    if (RL_off > 0) {
-        RL_off--;
-    }
 }
 
 char TEMPbuff[16];
@@ -181,8 +186,8 @@ char ORL_TXT[] = {"..."};
 int t_disp = 0, t_read;
 int s_disp = 19;
 
-char Bias_buff[] = {"          "};
-int oBcurr = -1;
+char bias_text[] = {"          "};
+int old_bias_current = -1;
 int otemp = -99;
 byte FTband;
 
@@ -414,21 +419,18 @@ void SetFanSpeed(byte FS) {
             temp_utp = 400;
             temp_dtp = 00;
             break;
-
         case 1:
             digitalWrite(FAN1, HIGH);
             digitalWrite(FAN2, LOW);
             temp_utp = 500;
             temp_dtp = 350;
             break;
-
         case 2:
             digitalWrite(FAN1, LOW);
             digitalWrite(FAN2, HIGH);
             temp_utp = 600;
             temp_dtp = 450;
             break;
-
         case 3:
             digitalWrite(FAN1, HIGH);
             digitalWrite(FAN2, HIGH);
@@ -632,7 +634,7 @@ void setup() {
     Tft.lcd_fill_rect(212, 34, 25, 10, GREEN);
     Tft.lcd_fill_rect(276, 34, 25, 10, GREEN);
 
-    flagPTT = 0;
+    pttChanged = false;
 
     while (ts1.touched());
     while (ts2.touched());
@@ -648,7 +650,7 @@ ISR(PCINT0_vect) {
     if (state.isAtuTuning) return; // ATU is working
 
     curPTT = digitalRead(PTT_DET);
-    flagPTT = 1;
+    pttChanged = true; // signal to main thread
     DisablePTTDetector();
     timeToEnablePTTDetector = 20;
 
@@ -670,9 +672,10 @@ ISR(PCINT0_vect) {
 void loop() {
     static int a_count = 0;
     if (++a_count == 10) {
-        unsigned int f_yel = 600, f_red = 660;
         a_count = 0;
 
+        // forward alert
+        unsigned int f_yel = 600, f_red = 660;
         if (state.band == 10) {
             f_yel = 410;
             f_red = 482;
@@ -696,6 +699,7 @@ void loop() {
             Tft.lcd_fill_rect(20, 34, 25, 10, r_col);
         }
 
+        // reflected alert
         if (r_tot > 450 && R_alert == 1) {
             R_alert = 2;
         }
@@ -708,15 +712,14 @@ void loop() {
         if (R_alert != OR_alert) {
             OR_alert = R_alert;
             unsigned int r_col = GREEN;
-
             if (R_alert == 2) r_col = YELLOW;
-
             if (R_alert == 3) r_col = RED;
 
             Tft.LCD_SEL = 0;
             Tft.lcd_fill_rect(84, 34, 25, 10, r_col);
         }
 
+        // drive alert
         if (d_tot > 900 && D_alert == 1) {
             D_alert = 2;
         }
@@ -725,28 +728,27 @@ void loop() {
             D_alert = 3;
         }
 
-        if (ATTN_ST == 1) D_alert = 0;
+        if (ATTN_ST == 1)
+            D_alert = 0;
 
-        if (state.txIsOn == 0) D_alert = 0;
+        if (!state.txIsOn)
+            D_alert = 0;
 
         if (D_alert != OD_alert) {
             OD_alert = D_alert;
             unsigned int r_col = GREEN;
-
             if (ATTN_ST == 1) r_col = DGRAY;
-
             if (D_alert == 2) r_col = YELLOW;
-
             if (D_alert == 3) {
                 r_col = RED;
-
-                if (state.txIsOn == 1) TripSet();
+                if (state.txIsOn) TripSet();
             }
 
             Tft.LCD_SEL = 0;
             Tft.lcd_fill_rect(148, 34, 25, 10, r_col);
         }
 
+        // voltage alert
         int dc_vol = ReadVoltage();
 
         if (dc_vol < 1800) V_alert = 2;
@@ -765,6 +767,7 @@ void loop() {
             Tft.lcd_fill_rect(212, 34, 25, 10, r_col);
         }
 
+        // current alert
         int dc_cur = ReadCurrent();
         int MC1 = 180 * MAX_CUR;
         int MC2 = 200 * MAX_CUR;
@@ -790,8 +793,10 @@ void loop() {
             Tft.lcd_fill_rect(276, 34, 25, 10, r_col);
         }
 
-        if (t_ave > temp_utp) SetFanSpeed(++FAN_SP);
-        else if (t_ave < temp_dtp) SetFanSpeed(--FAN_SP);
+        if (t_ave > temp_utp)
+            SetFanSpeed(++FAN_SP);
+        else if (t_ave < temp_dtp)
+            SetFanSpeed(--FAN_SP);
     }
 
     static int t_count = 0;
@@ -817,20 +822,23 @@ void loop() {
         Tft.LCD_SEL = 0;
 
         while (F_bar != OF_bar) {
-            if (OF_bar < F_bar) Tft.lcd_draw_v_line(OF_bar++, 101, 12, GREEN);
+            if (OF_bar < F_bar)
+                Tft.lcd_draw_v_line(OF_bar++, 101, 12, GREEN);
 
-            if (OF_bar > F_bar) Tft.lcd_draw_v_line(--OF_bar, 101, 12, MGRAY);
+            if (OF_bar > F_bar)
+                Tft.lcd_draw_v_line(--OF_bar, 101, 12, MGRAY);
         }
 
         if (Bias_Meter == 1) {
-            int Bcurr = ReadCurrent() * 5;
+            int bias_current = ReadCurrent() * 5;
 
-            if (Bcurr != oBcurr) {
-                oBcurr = Bcurr;
+            if (bias_current != old_bias_current) {
+                old_bias_current = bias_current;
                 Tft.LCD_SEL = 1;
-                Tft.drawString((uint8_t *) Bias_buff, 65, 80, 2, MGRAY);
-                sprintf(Bias_buff, "  %d mA", Bcurr);
-                Tft.drawString((uint8_t *) Bias_buff, 65, 80, 2, WHITE);
+                Tft.drawString((uint8_t *) bias_text, 65, 80, 2, MGRAY);
+
+                sprintf(bias_text, "  %d mA", bias_current);
+                Tft.drawString((uint8_t *) bias_text, 65, 80, 2, WHITE);
             }
         }
 
@@ -847,6 +855,7 @@ void loop() {
             }
         }
 
+        // temperature display
         if (t_disp++ == 200) {
             t_disp = 0;
             t_avg[t_i] = constrain(AnalogRead(14), 5, 2000);
@@ -888,8 +897,8 @@ void loop() {
     }
 
 
-    if (flagPTT == 1) {
-        flagPTT = 0;
+    if (pttChanged) {
+        pttChanged = false;
 
         if (PTT == 1) {
             if (state.mode != mode_type::standby) {
@@ -1137,13 +1146,13 @@ void loop() {
                 case 5:
                 case 6:
                     if (menuSEL == 1)
-                        menuFunction(menu_choice, 0);
+                        menuUpdate(menu_choice, 0);
                     break;
 
                 case 8:
                 case 9:
                     if (menuSEL == 1)
-                        menuFunction(menu_choice, 1);
+                        menuUpdate(menu_choice, 1);
                     break;
 
                 case 7:
@@ -1178,6 +1187,12 @@ void loop() {
         TuneEnd();
     }
 
+    handleACCCommunication();
+    handleUSBCommunication();
+}
+
+
+void handleACCCommunication() {
     while (Serial2.available()) {
         rxbuff2[uart2Idx] = Serial2.read();
         if (rxbuff2[uart2Idx] == ';') {
@@ -1186,7 +1201,9 @@ void loop() {
         }
         if (++uart2Idx > 127) uart2Idx = 0;
     }
+}
 
+void handleUSBCommunication() {
     while (Serial.available()) {
         rxbuff[uartIdx] = Serial.read(); // Storing read data
         if (rxbuff[uartIdx] == ';') {

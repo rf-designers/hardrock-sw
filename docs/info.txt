@@ -2,3 +2,14 @@ Serial ports:
      - Serial   -> talking to the host PC
      - Serial2  -> talking to the attached transceiver through the serial port at the back
      - Serial3  -> talking to the ATU board
+
+
+uploading new firmare from terminal (suppose device is on /dev/ttyUSB2)
+
+    # build solution
+    pio run -e megaatmega2560
+
+    # make the amp enter firmware update mode
+    echo -n "HRFW;\n\r" >/dev/ttyUSB2
+    # and then immediately paste
+    avrdude -v -patmega2560 -cwiring -P/dev/ttyUSB2 -b115200 -D -Uflash:w:.pio/build/megaatmega2560/firmware.hex:i

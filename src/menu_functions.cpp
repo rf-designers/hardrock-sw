@@ -26,7 +26,7 @@ void SetTransceiver(byte s_xcvr);
 
 void SendLPFRelayData(byte data);
 
-void menuFunction(byte item, byte changeDirection) {
+void menuUpdate(byte item, byte changeDirection) {
     Tft.LCD_SEL = 1;
     Tft.drawString((uint8_t *) item_disp[item], 65, 80, 2, MGRAY);
 
@@ -94,12 +94,19 @@ void menuFunction(byte item, byte changeDirection) {
             break;
 
         case mMCAL:
-            if (changeDirection == 1) M_CORR++;
-            else M_CORR--;
+            if (changeDirection == 1) {
+                M_CORR++;
+            } else {
+                M_CORR--;
+            }
 
-            if (M_CORR > 125) M_CORR = long(125);
+            if (M_CORR > 125) {
+                M_CORR = long(125);
+            }
 
-            if (M_CORR < 75) M_CORR = long(75);
+            if (M_CORR < 75) {
+                M_CORR = long(75);
+            }
 
             byte MCAL = M_CORR;
             EEPROM.write(eemcal, MCAL);

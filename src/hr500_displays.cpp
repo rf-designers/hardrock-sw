@@ -109,7 +109,7 @@ void DrawRxButtons(uint16_t bcolor) {
         Tft.drawString((char *) "MENU", 135, 143, 2, bcolor);
     } else {
         Tft.drawString((char *) "MENU", 135, 93, 2, bcolor);
-        Tft.drawString((char *) "TUNE", 122, 199, 3, GBLUE);
+        Tft.drawString((char *) "TUNA", 122, 199, 3, GBLUE);
         //Tft.drawString((char*)"----", 122, 142,  3, LBLUE);
     }
 
