@@ -48,7 +48,7 @@ byte menuSEL = 0;
 byte Bias_Meter = 0;
 int MAX_CUR = 20;
 
-byte oMODE;
+mode_type oMODE;
 int TICK = 0;
 int RD_ave = 0, FD_ave = 0;
 int FT8CNT = 0;
@@ -165,7 +165,7 @@ void timerISR() {
     // handle reenabling of PTT detection
     if (timeToEnablePTTDetector > 0) {
         timeToEnablePTTDetector--;
-        if (timeToEnablePTTDetector == 0 && state.mode != 0) {
+        if (timeToEnablePTTDetector == 0 && state.mode != mode_type::standby) {
             EnablePTTDetector();
         }
     }
@@ -549,11 +549,10 @@ void setup() {
     state.band = EEPROM.read(eeband);
     if (state.band > 10) state.band = 5;
 
-    state.mode = EEPROM.read(eemode);
-    if (state.mode > 1) state.mode = 0;
+    state.mode = fromEEPROM(EEPROM.read(eemode));
 
     DisablePTTDetector();
-    if (state.mode != 0) {
+    if (state.mode != mode_type::standby) {
         EnablePTTDetector();
     }
 
@@ -672,7 +671,7 @@ void setup() {
 
 
 ISR(PCINT0_vect) {
-    if (state.mode == 0) return; // Mode is STBY
+    if (state.mode == mode_type::standby) return; // Mode is STBY
     if (state.menuDisplayed) return; // Menu is active
     if (state.band == 0) return; // Band is undefined
     if (state.isTuning == 1) return; //ATU is working
@@ -922,16 +921,16 @@ void loop() {
         flagPTT = 0;
 
         if (PTT == 1) {
-            if (state.mode != 0) {
+            if (state.mode != mode_type::standby) {
                 SwitchToTX();
             }
 
             curPTT = digitalRead(PTT_DET);
-            if (curPTT == 0 && state.mode == 1) {
+            if (curPTT == 0 && state.mode == mode_type::ptt) {
                 SwitchToRX();
             }
         } else {
-            if (state.mode != 0) {
+            if (state.mode != mode_type::standby) {
                 SwitchToRX();
             }
 
@@ -1053,38 +1052,40 @@ void loop() {
             switch (pressedKey) {
                 case 5:
                 case 6:
-                    if (state.txIsOn == 0) {
-                        if (++state.mode == 2) state.mode = 0;
-
-                        EEPROM.write(eemode, state.mode);
+                    if (!state.txIsOn) {
+                        state.mode = nextMode(state.mode);
+                        EEPROM.write(eemode, toEEPROM(state.mode));
                         DrawMode();
                         DisablePTTDetector();
 
-                        if (state.mode == 1) EnablePTTDetector();
+                        if (state.mode == mode_type::ptt) {
+                            EnablePTTDetector();
+                        }
                     }
                     break;
 
                 case 8:
-                    if (state.txIsOn == 0) {
-                        if (++state.band >= 11) state.band = 1;
-
+                    if (!state.txIsOn) {
+                        if (++state.band >= 11)
+                            state.band = 1;
                         SetBand();
                     }
                     break;
 
                 case 9:
-                    if (state.txIsOn == 0) {
-                        if (--state.band == 0) state.band = 10;
+                    if (!state.txIsOn) {
+                        if (--state.band == 0)
+                            state.band = 10;
 
-                        if (state.band == 0xff) state.band = 10;
-
+                        if (state.band == 0xff)
+                            state.band = 10;
                         SetBand();
                     }
                     break;
 
                 case 15:
                 case 16:
-                    if (state.txIsOn == 0) {
+                    if (!state.txIsOn) {
                         if (++state.antForBand[state.band] == 3)
                             state.antForBand[state.band] = 1;
 

@@ -19,7 +19,7 @@ extern byte OI_alert, OV_alert, OF_alert, OR_alert, OD_alert;
 extern long M_CORR;
 extern byte menuSEL;
 extern byte menu_choice;
-extern byte oMODE;
+extern mode_type oMODE;
 extern byte Bias_Meter;
 extern int MAX_CUR;
 extern amp_state state;
@@ -143,7 +143,7 @@ void menuSelect(void) {
 
         if (menu_choice == mSETbias) {
             oMODE = state.mode;
-            state.mode = 1;
+            state.mode = mode_type::ptt;
             MAX_CUR = 3;
             Bias_Meter = 1;
             SendLPFRelayData(state.lpfBoardSerialData + 0x02);

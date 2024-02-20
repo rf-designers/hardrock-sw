@@ -28,8 +28,11 @@ extern char ATU_buff[40];
 extern amp_state state;
 
 void SetBand();
+
 void DisablePTTDetector();
+
 void EnablePTTDetector();
+
 void TuneButtonPressed();
 
 void uartGrabBuffer() {
@@ -152,21 +155,21 @@ void findBand(char uart) {
 
         if (found != 0) {
             if (found[4] == ';') {
-                UART_send(uart, (char *) "HRMD");
-                UART_send_num(uart, state.mode);
+                UART_send(uart, "HRMD");
+                UART_send_num(uart, static_cast<int>(state.mode));
                 UART_send_line(uart);
             }
 
             if (found[4] == '0') {
-                state.mode = 0;
-                EEPROM.write(eemode, state.mode);
+                state.mode = mode_type::standby;
+                EEPROM.write(eemode, static_cast<uint8_t>(state.mode));
                 DrawMode();
                 DisablePTTDetector();
             }
 
             if (found[4] == '1') {
-                state.mode = 1;
-                EEPROM.write(eemode, state.mode);
+                state.mode = mode_type::ptt;
+                EEPROM.write(eemode, static_cast<uint8_t>(state.mode));
                 DrawMode();
                 EnablePTTDetector();
             }

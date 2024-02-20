@@ -270,9 +270,17 @@ void DrawMode() {
     Tft.LCD_SEL = 1;
     Tft.lcd_fill_rect(38, 21, 54, 21, MGRAY);
 
-    if (state.mode == 0) Tft.drawString((char *) "OFF", 36, 21, 3, YELLOW);
-    if (state.mode == 1) Tft.drawString((char *) "PTT", 36, 21, 3, GREEN);
-    if (state.mode == 2) Tft.drawString((char *) "QRP", 36, 21, 3, GREEN);
+    switch (state.mode) {
+        case mode_type::standby:
+            Tft.drawString((char *) "OFF", 36, 21, 3, YELLOW);
+            break;
+        case mode_type::ptt:
+            Tft.drawString((char *) "PTT", 36, 21, 3, GREEN);
+            break;
+        case mode_type::qrp:
+            Tft.drawString((char *) "QRP", 36, 21, 3, GREEN);
+            break;
+    }
 }
 
 void DrawBand(byte Band, uint16_t bcolor) {
