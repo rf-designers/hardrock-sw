@@ -1,0 +1,4 @@
+Serial ports:
+     - Serial   -> talking to the host PC
+     - Serial2  -> talking to the attached transceiver through the serial port at the back
+     - Serial3  -> talking to the ATU board

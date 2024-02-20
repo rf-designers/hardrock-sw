@@ -21,8 +21,10 @@ struct amp_state {
     bool menuDisplayed; // 0 is normal, 1 is menu mode
     bool tempInCelsius = true; // display temperature in Celsius?
     volatile byte lpfBoardSerialData = 0; // serial data to be sent to LPF
+    char ATU_ver[8]; // version of ATU
 };
 
 mode_type nextMode(mode_type mode);
 mode_type fromEEPROM(uint8_t mode);
 uint8_t toEEPROM(mode_type mode);
+void PrepareForFWUpdate();

@@ -7,7 +7,7 @@
 #include "hr500_displays.h"
 #include "HR500V1.h"
 
-extern char ATU_buff[40], ATU_cbuf[32], ATU_ver[8];
+char ATU_buff[40];
 extern XPT2046_Touchscreen ts1;
 extern XPT2046_Touchscreen ts2;
 extern TFT Tft;
@@ -26,6 +26,19 @@ size_t ATUQuery(const char* command, char* response, const size_t maxLength) {
     const size_t receivedBytes = Serial3.readBytesUntil(0x13, response, maxLength);
     response[receivedBytes] = 0;
     return receivedBytes;
+}
+
+void DetectATU() {
+    Serial3.println(" ");
+    strcpy(state.ATU_ver, "---");
+
+    if (ATUQuery("*I") > 10) {
+        if (strncmp(ATU_buff, "HR500 ATU", 9) == 0) {
+            state.atuIsPresent = true;
+            const auto c = ATUQuery("*V");
+            strncpy(state.ATU_ver, ATU_buff, c - 1);
+        }
+    }
 }
 
 size_t ATUQuery(const char* command) {

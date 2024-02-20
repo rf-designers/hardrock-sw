@@ -1,5 +1,7 @@
 #include "amp_state.h"
 
+#include <HR500V1.h>
+
 mode_type nextMode(mode_type mode) {
     auto md = toEEPROM(mode) + 1;
     if (md == 2) {
@@ -15,4 +17,15 @@ mode_type fromEEPROM(uint8_t mode) {
 
 uint8_t toEEPROM(mode_type mode) {
     return static_cast<uint8_t>(mode);
+}
+
+void PrepareForFWUpdate() {
+    Serial.end();
+    delay(50);
+    Serial.begin(115200);
+
+    while (!Serial.available());
+
+    delay(50);
+    digitalWrite(RST_OUT, LOW);
 }

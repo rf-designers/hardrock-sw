@@ -87,14 +87,13 @@ byte OI_alert = 0, OV_alert = 0, OF_alert = 0, OR_alert = 0, OD_alert = 0;
 byte ADCvinMSB, ADCvinLSB, curSenseMSB, curSenseLSB;
 unsigned int ADCvin, ADCcur;
 
-unsigned int uartPtr = 0, uartPtr2 = 0;
+unsigned int uartIdx = 0, uart2Idx = 0;
 unsigned int uartMsgs = 0, uartMsgs2 = 0, readStart = 0, readStart2 = 0;
 char rxbuff[128]; // 128 byte circular Buffer for storing rx data
 char workingString[128];
 char rxbuff2[128]; // 128 byte circular Buffer for storing rx data
 char workingString2[128];
 
-char ATU_buff[40], ATU_cbuf[32], ATU_ver[8];
 amp_state state;
 
 
@@ -111,7 +110,7 @@ void DisablePTTDetector() {
 
 // This interrupt driven function reads data from the wattmeter
 void timerISR() {
-    if (state.txIsOn == 1) {
+    if (state.txIsOn) {
         // read forward power
         long s_calc = static_cast<long>(analogRead(12)) * M_CORR;
         f_avg[f_i] = s_calc / static_cast<long>(100);
@@ -193,7 +192,7 @@ int otemp = -99;
 byte FTband;
 
 
-void SwitchToTX(void) {
+void SwitchToTX() {
     F_alert = 1;
     R_alert = 1;
     D_alert = 1;
@@ -257,42 +256,32 @@ byte Eladdet() {
 }
 
 byte Xiegudet() {
-    int ftv = AnalogRead(FT817_V);
+    const int ftv = AnalogRead(FT817_V);
 
     if (ftv < 136) return 10;
-
     if (ftv < 191) return 9;
-
     if (ftv < 246) return 8;
-
     if (ftv < 300) return 7;
-
     if (ftv < 355) return 6;
-
     if (ftv < 410) return 5;
-
     if (ftv < 465) return 4;
-
     if (ftv < 520) return 3;
-
     if (ftv < 574) return 2;
 
     return 1;
 }
 
-void ReadFreq(void) {
-    unsigned long frq;
+void ReadFreq() {
     int cnt = 0;
     byte same_cnt = 0;
-    byte band_read;
     byte last_band = 0;
     FreqCount.begin(1);
 
     while (cnt < 12 && digitalRead(COR_DET)) {
         while (!FreqCount.available());
 
-        frq = FreqCount.read() * 16;
-        band_read = 0;
+        unsigned long frq = FreqCount.read() * 16;
+        byte band_read = 0;
 
         if (frq > 1750 && frq < 2100) band_read = 10;
         else if (frq > 3000 && frq < 4500) band_read = 9;
@@ -328,14 +317,12 @@ byte getTS(byte ts) {
     TS_Point p;
 
     if (ts == 1) p = ts1.getPoint();
-
     if (ts == 2) p = ts2.getPoint();
 
     x = map(p.x, 3850, 400, 0, 5);
     y = map(p.y, 350, 3700, 0, 4);
     //  z = p.z;
     key = x + 5 * y;
-
     return key;
 }
 
@@ -401,7 +388,7 @@ void SetBand() {
             break;
     }
 
-    if (state.atuIsPresent == 1 && !state.menuDisplayed) {
+    if (state.atuIsPresent && !state.menuDisplayed) {
         Tft.LCD_SEL = 1;
         Tft.lcd_fill_rect(121, 142, 74, 21, MGRAY);
     }
@@ -415,7 +402,8 @@ void SetBand() {
         OBAND = state.band;
         int dcolor = ORANGE;
 
-        if (state.band == 0) dcolor = RED;
+        if (state.band == 0)
+            dcolor = RED;
 
         DrawBand(state.band, dcolor);
         EEPROM.write(eeband, state.band);
@@ -639,17 +627,7 @@ void setup() {
     DrawMeter();
 
     Serial3.begin(19200); //ATU
-    Serial3.println(" ");
-    strcpy(ATU_ver, "---");
-
-    if (ATUQuery("*I") > 10) {
-        strncpy(ATU_cbuf, ATU_buff, 9);
-        if (strcmp(ATU_cbuf, "HR500 ATU") == 0) {
-            state.atuIsPresent = true;
-            auto c = ATUQuery("*V");
-            strncpy(ATU_ver, ATU_buff, c - 1);
-        }
-    }
+    DetectATU();
 
     DrawHome();
     Tft.LCD_SEL = 0;
@@ -1208,25 +1186,21 @@ void loop() {
     }
 
     while (Serial2.available()) {
-        unsigned char cx = Serial2.read();
-        rxbuff2[uartPtr2] = cx;
-
-        if (rxbuff2[uartPtr2] == 0x3B) {
+        rxbuff2[uart2Idx] = Serial2.read();
+        if (rxbuff2[uart2Idx] == ';') {
             uartGrabBuffer2();
             findBand(2);
         }
-
-        if (++uartPtr2 > 127) uartPtr2 = 0;
+        if (++uart2Idx > 127) uart2Idx = 0;
     }
 
     while (Serial.available()) {
-        rxbuff[uartPtr] = Serial.read(); // Storing read data
-
-        if (rxbuff[uartPtr] == 0x3B) {
+        rxbuff[uartIdx] = Serial.read(); // Storing read data
+        if (rxbuff[uartIdx] == ';') {
             uartGrabBuffer();
             findBand(1);
         }
 
-        if (++uartPtr > 127) uartPtr = 0;
+        if (++uartIdx > 127) uartIdx = 0;
     }
 }

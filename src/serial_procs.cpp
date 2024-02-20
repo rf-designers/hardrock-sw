@@ -4,6 +4,8 @@
 #include "HR500V1.h"
 #include "hr500_displays.h"
 #include <amp_state.h>
+#include <atu_functions.h>
+
 #include "hr500_sensors.h"
 
 long freqLong = 0;
@@ -73,9 +75,8 @@ void uartGrabBuffer2() {
 
 
 void findBand(char uart) {
-    char* found;
     char* workStringPtr;
-    int i, wsl;
+    int i;
 
     if (uart == 1) {
         workStringPtr = workingString;
@@ -84,17 +85,15 @@ void findBand(char uart) {
     }
 
     // convert working string to uppercase...
-    wsl = strlen(workStringPtr);
+    const int wsl = strlen(workStringPtr);
+    for (i = 0; i <= wsl; i++)
+        workStringPtr[i] = toupper(workStringPtr[i]);
 
-    for (i = 0; i <= wsl; i++) workStringPtr[i] = toupper(workStringPtr[i]);
-
-    found = strstr(workStringPtr, "FA");
-
-    if (found == 0) {
+    char* found = strstr(workStringPtr, "FA");
+    if (found == nullptr) {
         found = strstr(workStringPtr, "IF");
     }
-
-    if (found != 0) {
+    if (found != nullptr) {
         for (i = 0; i <= 5; i++) {
             freqStr[i] = found[i + 4];
         }
@@ -126,16 +125,15 @@ void findBand(char uart) {
             state.band = 0;
         }
 
-        if (state.band != OBAND) SetBand();
+        if (state.band != OBAND)
+            SetBand();
     }
 
     found = strstr(workStringPtr, "HR");
-
-    if (found != 0) {
+    if (found != nullptr) {
         //set band:
         found = strstr(workStringPtr, "HRBN");
-
-        if (found != 0) {
+        if (found != nullptr) {
             if (found[4] == ';') {
                 UART_send(uart, "HRBN");
                 UART_send_num(uart, state.band);
@@ -150,26 +148,25 @@ void findBand(char uart) {
             if (state.band != OBAND) SetBand();
         }
 
-        //set mode:
+        // set mode:
         found = strstr(workStringPtr, "HRMD");
-
-        if (found != 0) {
+        if (found != nullptr) {
             if (found[4] == ';') {
                 UART_send(uart, "HRMD");
-                UART_send_num(uart, static_cast<int>(state.mode));
+                UART_send_num(uart, toEEPROM(state.mode));
                 UART_send_line(uart);
             }
 
             if (found[4] == '0') {
                 state.mode = mode_type::standby;
-                EEPROM.write(eemode, static_cast<uint8_t>(state.mode));
+                EEPROM.write(eemode, toEEPROM(state.mode));
                 DrawMode();
                 DisablePTTDetector();
             }
 
             if (found[4] == '1') {
                 state.mode = mode_type::ptt;
-                EEPROM.write(eemode, static_cast<uint8_t>(state.mode));
+                EEPROM.write(eemode, toEEPROM(state.mode));
                 DrawMode();
                 EnablePTTDetector();
             }
@@ -177,10 +174,9 @@ void findBand(char uart) {
 
         //set antenna:
         found = strstr(workStringPtr, "HRAN");
-
-        if (found != 0) {
+        if (found != nullptr) {
             if (found[4] == ';') {
-                UART_send(uart, (char *) "HRAN");
+                UART_send(uart, "HRAN");
                 UART_send_num(uart, state.antForBand[state.band]);
                 UART_send_line(uart);
             }
@@ -369,7 +365,7 @@ void findBand(char uart) {
             }
 
             sprintf(tbuff, "HRST-%03d-%03d-%03d-%03d-%03d-%03d-%03d-%01d-%02d-%01d-%01d%01d%01d%01d%01d%01d%01d%01d-",
-                    stF, stR, stD, stS, stV, stI, stT, state.mode, state.band, state.antForBand[state.band],
+                    stF, stR, stD, stS, stV, stI, stT, toEEPROM(state.mode), state.band, state.antForBand[state.band],
                     state.txIsOn, F_alert,
                     R_alert, D_alert,
                     V_alert, I_alert, state.isTuning, state.atuActive);
@@ -387,37 +383,26 @@ void findBand(char uart) {
         // get new firmware
         found = strstr(workStringPtr, "HRFW");
         if (found != nullptr) {
-            Serial.end();
-            delay(50);
-            Serial.begin(115200);
-
-            while (!Serial.available());
-
-            delay(50);
-            digitalWrite(8, LOW);
+            PrepareForFWUpdate();
         }
 
         // communicate with ATU
         found = strstr(workStringPtr, "HRTM");
         if (found != nullptr && state.atuIsPresent) {
-            char tm_buff[20];
-            byte tmb_p = 0;
+            static char atuCmd[20] = {'*'};
+            size_t cmdIdx = 1;
 
-            while (found[tmb_p + 4] != ';' && tmb_p < 18) {
-                tm_buff[tmb_p] = found[tmb_p + 4];
-                tmb_p++;
+            while (found[cmdIdx + 3] != ';' && cmdIdx < 18) {
+                atuCmd[cmdIdx] = found[cmdIdx + 3];
+                cmdIdx++;
             }
+            atuCmd[cmdIdx] = 0;
 
-            tm_buff[tmb_p] = 0;
-            Serial3.setTimeout(75);
-            Serial3.print('*');
-            Serial3.println(tm_buff);
-            const size_t b_len = Serial3.readBytesUntil(13, ATU_buff, 40);
-            ATU_buff[b_len] = 0;
-
-            if (b_len > 0) {
+            static char atuResponse[40];
+            auto readBytes = ATUQuery(atuCmd, atuResponse, 40);
+            if (readBytes > 0) {
                 UART_send(uart, "HRTM");
-                UART_send(uart, ATU_buff);
+                UART_send(uart, atuResponse);
                 UART_send_line(uart);
             }
         }

@@ -9,7 +9,6 @@
 extern TFT Tft;
 extern byte menu_choice;
 extern byte menuSEL;
-extern char ATU_ver[8];
 extern amp_state state;
 
 void DrawHome() {
@@ -62,7 +61,7 @@ void DrawMenu() {
     Tft.drawString((char *) "SELECT", 124, 132, 2, GBLUE);
     menuSEL = 0;
     Tft.drawString((char *) "ATU:", 206, 190, 2, LGRAY);
-    Tft.drawString((char *) ATU_ver, 254, 190, 2, LGRAY);
+    Tft.drawString(state.ATU_ver, 254, 190, 2, LGRAY);
     Tft.drawString((char *) "FW:", 206, 213, 2, LGRAY);
     Tft.drawString((char *) VERSION, 244, 213, 2, LGRAY);
 }
@@ -318,7 +317,7 @@ void DrawAnt() {
         SEL_ANT2;
     }
 
-    if (state.atuIsPresent == 1) {
+    if (state.atuIsPresent) {
         Tft.LCD_SEL = 1;
         Tft.lcd_fill_rect(121, 142, 74, 21, MGRAY);
     }
