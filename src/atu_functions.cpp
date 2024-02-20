@@ -12,7 +12,6 @@ extern XPT2046_Touchscreen ts1;
 extern XPT2046_Touchscreen ts2;
 extern TFT Tft;
 extern volatile byte PTT;
-extern volatile byte SR_DATA;
 extern char RL_TXT[];
 extern char ORL_TXT[];
 extern char ATU_STAT;
@@ -55,7 +54,7 @@ void TuneButtonPressed() {
             PTT = 0;
             BIAS_OFF
             state.txIsOn = false;
-            SendLPFRelayData(SR_DATA);
+            SendLPFRelayData(state.lpfBoardSerialData);
             RF_BYPASS
         }
 

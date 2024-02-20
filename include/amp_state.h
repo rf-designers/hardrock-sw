@@ -14,5 +14,5 @@ struct amp_state {
     byte antForBand[11] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}; // antenna selection for each band
     bool menuDisplayed; // 0 is normal, 1 is menu mode
     bool tempInCelsius = true; // display temperature in Celsius?
-
+    volatile byte lpfBoardSerialData = 0; // serial data to be sent to LPF
 };

@@ -27,13 +27,10 @@ extern byte OI_alert, OV_alert, OF_alert, OR_alert, OD_alert;
 extern char ATU_buff[40];
 extern amp_state state;
 
-void SetBand(void);
-
-void DisablePTTDetector(void);
-
-void EnablePTTDetector(void);
-
-void TuneButtonPressed(void);
+void SetBand();
+void DisablePTTDetector();
+void EnablePTTDetector();
+void TuneButtonPressed();
 
 void uartGrabBuffer() {
     int z = 0;

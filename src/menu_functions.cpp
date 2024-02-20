@@ -22,7 +22,6 @@ extern byte menu_choice;
 extern byte oMODE;
 extern byte Bias_Meter;
 extern int MAX_CUR;
-extern volatile byte SR_DATA;
 extern amp_state state;
 
 void SetTransceiver(byte s_xcvr);
@@ -147,7 +146,7 @@ void menuSelect(void) {
             state.mode = 1;
             MAX_CUR = 3;
             Bias_Meter = 1;
-            SendLPFRelayData(SR_DATA + 0x02);
+            SendLPFRelayData(state.lpfBoardSerialData + 0x02);
             BIAS_ON
         }
     } else {
@@ -164,7 +163,7 @@ void menuSelect(void) {
 
         if (menu_choice == mSETbias) {
             BIAS_OFF
-            SendLPFRelayData(SR_DATA);
+            SendLPFRelayData(state.lpfBoardSerialData);
             state.mode = oMODE;
             MAX_CUR = 20;
             Bias_Meter = 0;

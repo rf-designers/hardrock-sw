@@ -49,7 +49,6 @@ byte Bias_Meter = 0;
 int MAX_CUR = 20;
 
 byte oMODE;
-volatile byte SR_DATA = 0;
 int TICK = 0;
 int RD_ave = 0, FD_ave = 0;
 int FT8CNT = 0;
@@ -342,10 +341,8 @@ byte getTS(byte ts) {
 
 void SetBand() {
     byte sr_data = 0;
-
     if (state.band > 10) return;
-
-    if (state.txIsOn == 1) return;
+    if (state.txIsOn) return;
 
     switch (state.band) {
         case 0:
@@ -409,10 +406,10 @@ void SetBand() {
         Tft.lcd_fill_rect(121, 142, 74, 21, MGRAY);
     }
 
-    SR_DATA = sr_data;
+    state.lpfBoardSerialData = sr_data;
 
     if (state.band != OBAND) {
-        SendLPFRelayData(SR_DATA);
+        SendLPFRelayData(state.lpfBoardSerialData);
         Tft.LCD_SEL = 1;
         DrawBand(OBAND, MGRAY);
         OBAND = state.band;
@@ -688,14 +685,14 @@ ISR(PCINT0_vect) {
     if (curPTT == 1 && PTT == 0) {
         PTT = 1;
         RF_ACTIVE
-        SendLPFRelayData(SR_DATA + 0x10);
+        SendLPFRelayData(state.lpfBoardSerialData + 0x10);
         BIAS_ON
         state.txIsOn = true;
     } else {
         PTT = 0;
         BIAS_OFF
         state.txIsOn = false;
-        SendLPFRelayData(SR_DATA);
+        SendLPFRelayData(state.lpfBoardSerialData);
         RF_BYPASS
     }
 }
@@ -1189,7 +1186,7 @@ void loop() {
 
                     if (menu_choice == mSETbias) {
                         BIAS_OFF
-                        SendLPFRelayDataSafe(SR_DATA);
+                        SendLPFRelayDataSafe(state.lpfBoardSerialData);
                         state.mode = oMODE;
                         MAX_CUR = 20;
                         Bias_Meter = 0;

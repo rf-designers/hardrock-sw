@@ -1,11 +1,13 @@
 #include "hr500_sensors.h"
+
+#include <amp_state.h>
 #include <Wire.h>
 #include "HR500V1.h"
 
 extern volatile unsigned int f_tot, f_ave;
 extern volatile unsigned int r_tot;
 extern volatile unsigned int d_tot;
-extern volatile byte SR_DATA;
+extern amp_state state;
 
 void SendLPFRelayData(byte data);
 
@@ -104,6 +106,6 @@ void TripSet() {
     Wire.requestFrom(LTCADDR, 2, true);
     delay(1);
     BIAS_OFF
-    SendLPFRelayData(SR_DATA);
+    SendLPFRelayData(state.lpfBoardSerialData);
     RF_BYPASS
 }
