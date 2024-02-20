@@ -1,4 +1,6 @@
 #include "atu_functions.h"
+
+#include <amp_state.h>
 #include <Arduino.h>
 #include "HR500X.h"
 #include "HR500.h"
@@ -9,116 +11,111 @@ extern char ATU_buff[40], ATU_cmd[8], ATU_cbuf[32], ATU_ver[8];
 extern XPT2046_Touchscreen ts1;
 extern XPT2046_Touchscreen ts2;
 extern TFT Tft;
-extern byte TUNING;
-extern byte ATU;
-extern byte TX;
 extern volatile byte PTT;
 extern volatile byte SR_DATA;
 extern char RL_TXT[];
 extern char ORL_TXT[];
 extern char ATU_STAT;
+extern amp_state state;
 
-void Switch_to_RX();
+void SwitchToRX();
+void SendLPFRelayData(byte data);
 
-int ATU_exch(void) {
-    size_t b_len;
-
+size_t ATUQuery(const char* command, char* response, const size_t maxLength) {
     Serial3.setTimeout(50);
-    Serial3.println(ATU_cmd);
-    b_len = Serial3.readBytesUntil(0x13, ATU_buff, 28);
-    ATU_buff[b_len] = 0;
-    return b_len;
+    Serial3.println(command);
+    const size_t receivedBytes = Serial3.readBytesUntil(0x13, response, maxLength);
+    response[receivedBytes] = 0;
+    return receivedBytes;
 }
 
-void Tune_button(void) {
+size_t ATUQuery(const char* command) {
+    return ATUQuery(command, ATU_buff, 28);
+}
+
+void TuneButtonPressed() {
     while (ts2.touched());
 
     Tft.LCD_SEL = 1;
     Tft.lcd_fill_rect(121, 142, 74, 21, MGRAY);
     Tft.lcd_fill_rect(121, 199, 74, 21, GRAY);
 
-
-    if (TUNING == 0) {
-        if (ATU == 0) {
-            ATU = 1;
+    if (!state.isTuning) {
+        if (!state.atuActive) {
+            state.atuActive = true;
             DrawATU();
         }
 
-        Tft.drawString((uint8_t *)"STOP", 122, 199,  3, GBLUE);
-        Tft.drawString((uint8_t *)"TUNING", 122, 142,  2, LBLUE);
-        TUNING = 1;
+        Tft.drawString((uint8_t *) "STOP", 122, 199, 3, GBLUE);
+        Tft.drawString((uint8_t *) "TUNING", 122, 142, 2, LBLUE);
+        state.isTuning = true;
 
-        if (TX == 1) { //If the TX is on, turn it off
+        // If the TX is on, turn it off
+        if (state.txIsOn) {
             PTT = 0;
             BIAS_OFF
-            TX = 0;
-            byte SRSend_RLY = SR_DATA;
-            RELAY_CS_LOW
-            SPI.beginTransaction(SPISettings(2000000, MSBFIRST, SPI_MODE3));
-            SPI.transfer(SRSend_RLY);
-            SPI.endTransaction();
-            RELAY_CS_HIGH
+            state.txIsOn = false;
+            SendLPFRelayData(SR_DATA);
             RF_BYPASS
         }
 
         ATU_TUNE_LOW // activate the tune line
         delay(5);
-    } else Tune_End();
+    } else {
+        TuneEnd();
+    }
 }
 
-void Tune_End(void) {
+void TuneEnd() {
     Tft.LCD_SEL = 1;
     Tft.lcd_fill_rect(121, 142, 74, 21, MGRAY);
     Tft.lcd_fill_rect(121, 199, 74, 21, GRAY);
-    Tft.drawString((uint8_t *)"TUNE", 122, 199,  3, GBLUE);
-    TUNING = 0;
+    Tft.drawString((uint8_t *) "TUNE", 122, 199, 3, GBLUE);
+    state.isTuning = false;
     ATU_TUNE_HIGH
     delay(10);
-    ATU_buff[0] = 0;
-    Serial3.setTimeout(50);
-    Serial3.println("*S");
-    Serial3.readBytesUntil(0x13, ATU_buff, 5);
 
-    strcpy(RL_TXT,"   ");
+
+    ATUQuery("*S", ATU_buff, 5);
+    strcpy(RL_TXT, "   ");
     ATU_STAT = ATU_buff[0];
 
     switch (ATU_STAT) {
         case 'F':
-            Tft.drawString((uint8_t *)"FAILED", 122, 142,  2, RED);
+            Tft.drawString((uint8_t *) "FAILED", 122, 142, 2, RED);
             break;
-
         case 'E':
-            Tft.drawString((uint8_t *)"HI SWR", 122, 142,  2, RED);
+            Tft.drawString((uint8_t *) "HI SWR", 122, 142, 2, RED);
             break;
-
         case 'H':
-            Tft.drawString((uint8_t *)"HI PWR", 122, 142,  2, YELLOW);
+            Tft.drawString((uint8_t *) "HI PWR", 122, 142, 2, YELLOW);
             break;
-
         case 'L':
-            Tft.drawString((uint8_t *)"LO PWR", 122, 142,  2, YELLOW);
+            Tft.drawString((uint8_t *) "LO PWR", 122, 142, 2, YELLOW);
             break;
-
         case 'A':
-            Tft.drawString((uint8_t *)"CANCEL", 122, 142,  2, GREEN);
+            Tft.drawString((uint8_t *) "CANCEL", 122, 142, 2, GREEN);
             break;
-
         case 'T':
-        case 'S':
-            Tft.drawString((uint8_t *)"TUNED", 128, 142,  2, GREEN);
-            Serial3.setTimeout(50);
-            Serial3.println("*F");
-            Serial3.readBytesUntil(0x13, ATU_buff, 8);
+        case 'S': {
+            Tft.drawString((uint8_t *) "TUNED", 128, 142, 2, GREEN);
+
+            ATUQuery("*F", ATU_buff, 8);
+
             unsigned char RL_CH = (ATU_buff[0] - 48) * 100 + (ATU_buff[1] - 48) * 10 + (ATU_buff[2] - 48);
-            int SWR = swr[RL_CH]/10;
-            sprintf(RL_TXT, "%d.%d", SWR/10, SWR % 10);
+            int SWR = swr[RL_CH] / 10;
+            sprintf(RL_TXT, "%d.%d", SWR / 10, SWR % 10);
             Tft.LCD_SEL = 0;
             Tft.lcd_fill_rect(70, 203, 36, 16, MGRAY);
-            Tft.drawString((uint8_t *)RL_TXT, 70, 203, 2, GRAY);
+            Tft.drawString((uint8_t *) RL_TXT, 70, 203, 2, GRAY);
             strcpy(ORL_TXT, RL_TXT);
+            break;
+        }
+
+        default:
+            // TODO: figure out what to do
             break;
     }
 
-    Switch_to_RX(); //redraw the RX screen
-
+    SwitchToRX(); //redraw the RX screen
 }

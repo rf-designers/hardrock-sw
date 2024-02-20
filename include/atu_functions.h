@@ -1,5 +1,8 @@
 #pragma once
+#include <Arduino.h>
 
-int ATU_exch(void);
-void Tune_button(void);
-void Tune_End(void);
+// Sends content to ATU and returns the number of received bytes
+size_t ATUQuery(const char* command);
+
+void TuneButtonPressed(void);
+void TuneEnd(void);

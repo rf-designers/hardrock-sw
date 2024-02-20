@@ -3,7 +3,7 @@
 #include <EEPROM.h>
 #include "HR500V1.h"
 #include "hr500_displays.h"
-#include "serial_procs.h"
+#include <amp_state.h>
 #include "hr500_sensors.h"
 
 long freqLong = 0;
@@ -14,30 +14,26 @@ const char HRTM[] = "HRTM";
 char freqStr[6];
 
 
-extern byte ANTSEL[11];
-extern volatile byte BAND;
-extern char rxbuff[128];          // 128 byte circular Buffer for storing rx data
+extern char rxbuff[128]; // 128 byte circular Buffer for storing rx data
 extern char workingString[128];
-extern char rxbuff2[128];         // 128 byte circular Buffer for storing rx data
+extern char rxbuff2[128]; // 128 byte circular Buffer for storing rx data
 extern char workingString2[128];
 extern unsigned int uartMsgs, uartMsgs2, readStart, readStart2;
 extern byte OBAND;
-extern volatile byte MODE; // 0 - OFF, 1 - PTT
-extern byte CELSIUS;
-extern byte ATU_P;
-extern byte ATU;
 extern char ATU_STAT;
-extern byte TUNING;
 extern unsigned int t_tot, t_ave;
-extern byte TX;
 extern byte I_alert, V_alert, F_alert, R_alert, D_alert;
 extern byte OI_alert, OV_alert, OF_alert, OR_alert, OD_alert;
 extern char ATU_buff[40];
+extern amp_state state;
 
 void SetBand(void);
-void Disable11(void);
-void Enable11(void);
-void Tune_button(void);
+
+void DisablePTTDetector(void);
+
+void EnablePTTDetector(void);
+
+void TuneButtonPressed(void);
 
 void uartGrabBuffer() {
     int z = 0;
@@ -48,14 +44,13 @@ void uartGrabBuffer() {
         workingString[z] = rxbuff[readStart];
         rxbuff[readStart] = 0x00;
         readStart++;
-        lastChar[0] =  workingString[z];
+        lastChar[0] = workingString[z];
         z++;
 
         if (readStart > 127)readStart = 0;
-    }//endwhile
+    } //endwhile
 
     workingString[z] = 0x00;
-
 }
 
 void uartGrabBuffer2() {
@@ -67,19 +62,19 @@ void uartGrabBuffer2() {
         workingString2[z] = rxbuff2[readStart2];
         rxbuff2[readStart2] = 0x00;
         readStart2++;
-        lastChar[0] =  workingString2[z];
+        lastChar[0] = workingString2[z];
         z++;
 
         if (readStart2 > 127) readStart2 = 0;
-    }//endwhile
+    } //endwhile
 
     workingString2[z] = 0x00;
 }
 
 
-void findBand(short uart) {
-    char *found;
-    char *workStringPtr;
+void findBand(char uart) {
+    char* found;
+    char* workStringPtr;
     int i, wsl;
 
     if (uart == 1) {
@@ -93,10 +88,10 @@ void findBand(short uart) {
 
     for (i = 0; i <= wsl; i++) workStringPtr[i] = toupper(workStringPtr[i]);
 
-    found = strstr(workStringPtr,"FA");
+    found = strstr(workStringPtr, "FA");
 
     if (found == 0) {
-        found = strstr(workStringPtr,"IF");
+        found = strstr(workStringPtr, "IF");
     }
 
     if (found != 0) {
@@ -108,205 +103,211 @@ void findBand(short uart) {
         freqLong = atol(freqStr);
 
         if (freqLong >= 1750 && freqLong <= 2100) {
-            BAND = 10;
+            state.band = 10;
         } else if (freqLong >= 3200 && freqLong <= 4200) {
-            BAND = 9;
+            state.band = 9;
         } else if (freqLong >= 5000 && freqLong <= 5500) {
-            BAND = 8;
+            state.band = 8;
         } else if (freqLong >= 6900 && freqLong <= 7500) {
-            BAND = 7;
+            state.band = 7;
         } else if (freqLong >= 10000 && freqLong <= 10200) {
-            BAND = 6;
+            state.band = 6;
         } else if (freqLong >= 13900 && freqLong <= 14500) {
-            BAND = 5;
+            state.band = 5;
         } else if (freqLong >= 18000 && freqLong <= 18200) {
-            BAND = 4;
+            state.band = 4;
         } else if (freqLong >= 20900 && freqLong <= 21500) {
-            BAND = 3;
+            state.band = 3;
         } else if (freqLong >= 24840 && freqLong <= 25100) {
-            BAND = 2;
+            state.band = 2;
         } else if (freqLong >= 27900 && freqLong <= 29800) {
-            BAND = 1;
+            state.band = 1;
         } else {
-            BAND = 0;
-        }//endif
+            state.band = 0;
+        }
 
-        if (BAND != OBAND) SetBand();
+        if (state.band != OBAND) SetBand();
     }
 
-    found = strstr(workStringPtr,"HR");
+    found = strstr(workStringPtr, "HR");
 
     if (found != 0) {
-
         //set band:
-        found = strstr(workStringPtr,"HRBN");
+        found = strstr(workStringPtr, "HRBN");
 
         if (found != 0) {
             if (found[4] == ';') {
-                UART_send(uart, (char *)"HRBN");
-                UART_send_num(uart, BAND);
+                UART_send(uart, "HRBN");
+                UART_send_num(uart, state.band);
                 UART_send_line(uart);
-            } else if (found[5] == ';') BAND = found[4] - 0x30;
-            else BAND = (found[4] - 0x30) * 10 + (found[5] - 0x30);
+            } else if (found[5] == ';') {
+                state.band = found[4] - 0x30;
+            } else {
+                state.band = (found[4] - 0x30) * 10 + (found[5] - 0x30);
+            }
 
-            if (BAND > 10) BAND = 0;
-
-            if (BAND != OBAND) SetBand();
+            if (state.band > 10) state.band = 0;
+            if (state.band != OBAND) SetBand();
         }
 
         //set mode:
-        found = strstr(workStringPtr,"HRMD");
+        found = strstr(workStringPtr, "HRMD");
 
         if (found != 0) {
             if (found[4] == ';') {
-                UART_send(uart, (char *)"HRMD");
-                UART_send_num(uart, MODE);
+                UART_send(uart, (char *) "HRMD");
+                UART_send_num(uart, state.mode);
                 UART_send_line(uart);
             }
 
             if (found[4] == '0') {
-                MODE = 0;
-                EEPROM.write(eemode, MODE);
+                state.mode = 0;
+                EEPROM.write(eemode, state.mode);
                 DrawMode();
-                Disable11();
+                DisablePTTDetector();
             }
 
             if (found[4] == '1') {
-                MODE = 1;
-                EEPROM.write(eemode, MODE);
+                state.mode = 1;
+                EEPROM.write(eemode, state.mode);
                 DrawMode();
-                Enable11();
+                EnablePTTDetector();
             }
         }
 
         //set antenna:
-        found = strstr(workStringPtr,"HRAN");
+        found = strstr(workStringPtr, "HRAN");
 
         if (found != 0) {
             if (found[4] == ';') {
-                UART_send(uart, (char *)"HRAN");
-                UART_send_num(uart, ANTSEL[BAND]);
+                UART_send(uart, (char *) "HRAN");
+                UART_send_num(uart, state.antSelection[state.band]);
                 UART_send_line(uart);
             }
 
             if (found[4] == '1') {
-                ANTSEL[BAND] = 1;
-                EEPROM.write(eeantsel+BAND, ANTSEL[BAND]);
+                state.antSelection[state.band] = 1;
+                EEPROM.write(eeantsel + state.band, state.antSelection[state.band]);
                 DrawAnt();
             }
 
             if (found[4] == '2') {
-                ANTSEL[BAND] = 2;
-                EEPROM.write(eeantsel+BAND, ANTSEL[BAND]);
+                state.antSelection[state.band] = 2;
+                EEPROM.write(eeantsel + state.band, state.antSelection[state.band]);
                 DrawAnt();
             }
         }
 
-        //set temp F or C:
-        found = strstr(workStringPtr,"HRTS");
-
-        if (found != 0) {
+        // set temp F or C:
+        found = strstr(workStringPtr, "HRTS");
+        if (found != nullptr) {
             if (found[4] == ';') {
-                UART_send(uart, (char *)"HRTS");
-
-                if (CELSIUS == 0) UART_send(uart, (char *)"F");
-                else UART_send(uart, (char *)"C");
-
+                UART_send(uart, "HRTS");
+                if (state.CELSIUS) {
+                    UART_send(uart, "C");
+                } else {
+                    UART_send(uart, "F");
+                }
                 UART_send_line(uart);
             }
 
             if (found[4] == 'F') {
-                CELSIUS = 0;
-                EEPROM.write(eecelsius, CELSIUS);
+                state.CELSIUS = false;
+                EEPROM.write(eecelsius, state.CELSIUS ? 1 : 0);
             }
 
             if (found[4] == 'C') {
-                CELSIUS = 1;
-                EEPROM.write(eecelsius, CELSIUS);
+                state.CELSIUS = true;
+                EEPROM.write(eecelsius, state.CELSIUS ? 1 : 0);
             }
         }
 
-        //read volts:
-        found = strstr(workStringPtr,"HRVT");
+        // read volts:
+        found = strstr(workStringPtr, "HRVT");
 
         if (found != 0) {
             char vbuff[4];
-            UART_send(uart, (char *)"HRVT");
-            sprintf(vbuff, "%2d", Read_Voltage()/40);
+            UART_send(uart, (char *) "HRVT");
+            sprintf(vbuff, "%2d", ReadVoltage() / 40);
             UART_send(uart, vbuff);
             UART_send_line(uart);
         }
 
         //read ATU_P:
-        found = strstr(workStringPtr,"HRAP");
+        found = strstr(workStringPtr, "HRAP");
 
         if (found != 0) {
-            UART_send(uart, (char *)"HRAP");
-            UART_send_num(uart, ATU_P);
+            UART_send(uart, "HRAP");
+            UART_send_num(uart, state.atuIsPresent);
             UART_send_line(uart);
         }
 
         //bypass activate the ATU:
-        found = strstr(workStringPtr,"HRTB");
+        found = strstr(workStringPtr, "HRTB");
 
         if (found != 0) {
             if (found[4] == ';') {
-                UART_send(uart, (char *)"HRTB");
-                UART_send_num(uart, ATU);
+                UART_send(uart, "HRTB");
+                UART_send_num(uart, state.atuActive);
                 UART_send_line(uart);
             }
 
             if (found[4] == '1') {
-                ATU = 1;
+                state.atuActive = true;
                 DrawATU();
             }
 
             if (found[4] == '0') {
-                ATU = 0;
+                state.atuActive = false;
                 DrawATU();
             }
         }
 
         //Press the TUNE button
-        found = strstr(workStringPtr,"HRTU");
+        found = strstr(workStringPtr, "HRTU");
 
-        if (found != 0 && ATU_P == 1) {
-            Tune_button();
+        if (found != 0 && state.atuIsPresent == 1) {
+            TuneButtonPressed();
         }
 
         //Tune Result
-        found = strstr(workStringPtr,"HRTR");
+        found = strstr(workStringPtr, "HRTR");
 
         if (found != 0) {
-            UART_send(uart, (char *)"HRTR");
+            UART_send(uart, (char *) "HRTR");
             UART_send_char(uart, ATU_STAT);
             UART_send_line(uart);
         }
 
         //Is ATU Tuning?
-        found = strstr(workStringPtr,"HRTT");
+        found = strstr(workStringPtr, "HRTT");
 
         if (found != 0) {
-            UART_send(uart, (char *)"HRTT");
-            UART_send_num(uart, TUNING);
+            UART_send(uart, (char *) "HRTT");
+            UART_send_num(uart, state.isTuning);
             UART_send_line(uart);
         }
 
-        //read temp:
-        found = strstr(workStringPtr,"HRTP");
-
-        if (found != 0) {
+        // read temp:
+        found = strstr(workStringPtr, "HRTP");
+        if (found != nullptr) {
             char tbuff[4];
             int tread;
 
-            if (CELSIUS == 0) tread = ((t_ave * 9) / 5) + 320;
-            else tread = t_ave;
+            if (state.CELSIUS) {
+                tread = t_ave;
+            } else {
+                tread = ((t_ave * 9) / 5) + 320;
+            }
 
             tread /= 10;
-            UART_send(uart, (char *)"HRTP");
+            UART_send(uart, "HRTP");
 
-            if (CELSIUS == 0) sprintf(tbuff, "%dF", tread);
-            else sprintf(tbuff, "%dC", tread);
+            if (state.CELSIUS) {
+                sprintf(tbuff, "%dC", tread);
+            } else {
+                sprintf(tbuff, "%dF", tread);
+            }
 
             UART_send(uart, tbuff);
             UART_send_line(uart);
@@ -317,7 +318,7 @@ void findBand(short uart) {
          HRPWR; = Reverse
          HRPWD; = Drive
          HRPWV; = VSWR */
-        found = strstr(workStringPtr,"HRPW");
+        found = strstr(workStringPtr, "HRPW");
 
         if (found != 0) {
             byte psel, pwf = 0;
@@ -346,7 +347,7 @@ void findBand(short uart) {
             }
 
             if (pwf == 1) {
-                unsigned int reading = Read_Power(psel);
+                unsigned int reading = ReadPower(psel);
                 sprintf(tbuff, "HRPW%c%03d", schr, reading);
                 UART_send(uart, tbuff);
                 UART_send_line(uart);
@@ -354,37 +355,42 @@ void findBand(short uart) {
         }
 
         //report status
-        found = strstr(workStringPtr,"HRST");
+        found = strstr(workStringPtr, "HRST");
 
         if (found != 0) {
             char tbuff[80];
 
-            unsigned int stF = Read_Power(fwd_p);
-            unsigned int stR = Read_Power(rfl_p);
-            unsigned int stD = Read_Power(drv_p);
-            unsigned int stS = Read_Power(vswr);
-            unsigned int stV = Read_Voltage()/40;
-            unsigned int stI = Read_Current()/20;
-            unsigned int stT = t_ave/10;
+            unsigned int stF = ReadPower(fwd_p);
+            unsigned int stR = ReadPower(rfl_p);
+            unsigned int stD = ReadPower(drv_p);
+            unsigned int stS = ReadPower(vswr);
+            unsigned int stV = ReadVoltage() / 40;
+            unsigned int stI = ReadCurrent() / 20;
+            unsigned int stT = t_ave / 10;
 
-            if (CELSIUS == 0) stT = ((stT * 9) / 5) + 32;
+            if (!state.CELSIUS) {
+                stT = ((stT * 9) / 5) + 32;
+            }
 
             sprintf(tbuff, "HRST-%03d-%03d-%03d-%03d-%03d-%03d-%03d-%01d-%02d-%01d-%01d%01d%01d%01d%01d%01d%01d%01d-",
-                    stF, stR, stD, stS, stV, stI, stT, MODE, BAND, ANTSEL[BAND], TX, F_alert, R_alert, D_alert, V_alert, I_alert, TUNING, ATU);
+                    stF, stR, stD, stS, stV, stI, stT, state.mode, state.band, state.antSelection[state.band],
+                    state.txIsOn, F_alert,
+                    R_alert, D_alert,
+                    V_alert, I_alert, state.isTuning, state.atuActive);
             UART_send(uart, tbuff);
             UART_send_line(uart);
         }
 
         //respond and acknowlege:
-        found = strstr(workStringPtr,"HRAA");
+        found = strstr(workStringPtr, "HRAA");
 
         if (found != 0) {
-            UART_send(uart, (char *)"HRAA");
+            UART_send(uart, (char *) "HRAA");
             UART_send_line(uart);
         }
 
         //get new firmware
-        found = strstr(workStringPtr,"HRFW");
+        found = strstr(workStringPtr, "HRFW");
 
         if (found != 0) {
             Serial.end();
@@ -398,9 +404,9 @@ void findBand(short uart) {
         }
 
         //communicate with ATU
-        found = strstr(workStringPtr,"HRTM");
+        found = strstr(workStringPtr, "HRTM");
 
-        if (found != 0 && ATU_P == 1) {
+        if (found != 0 && state.atuIsPresent == 1) {
             char tm_buff[20];
             byte tmb_p = 0;
             size_t b_len;
@@ -418,7 +424,7 @@ void findBand(short uart) {
             ATU_buff[b_len] = 0;
 
             if (b_len > 0) {
-                UART_send(uart, (char *)"HRTM");
+                UART_send(uart, (char *) "HRTM");
                 UART_send(uart, ATU_buff);
                 UART_send_line(uart);
             }
@@ -426,7 +432,7 @@ void findBand(short uart) {
     }
 }
 
-void UART_send(char uart, char *message) {
+void UART_send(char uart, char* message) {
     if (uart == 1) Serial.print(message);
 
     if (uart == 2) Serial2.print(message);

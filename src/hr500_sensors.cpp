@@ -7,35 +7,34 @@ extern volatile unsigned int r_tot;
 extern volatile unsigned int d_tot;
 extern volatile byte SR_DATA;
 
-void Send_RLY(byte data);
+void SendLPFRelayData(byte data);
 
-unsigned int Read_Power(byte pType) {
+unsigned int ReadPower(byte powerType) {
     long pCalc, tCalc, bCalc;
-    long pResult;
+    long pResult{0};
 
-    if (pType == fwd_p) {
+    if (powerType == fwd_p) {
         if (f_tot == 0) return 0;
 
         pCalc = long(f_tot) + long(30);
         pResult = (pCalc * pCalc) / long(809);
     }
 
-    if (pType == rfl_p) {
+    if (powerType == rfl_p) {
         if (r_tot == 0) return 0;
 
         pCalc = long(r_tot) + long(140);
         pResult = (pCalc * pCalc) / long(10716);
     }
 
-    if (pType == drv_p) {
+    if (powerType == drv_p) {
         if (d_tot == 0) return 0;
 
         pCalc = long(d_tot) + long(30);
         pResult = (pCalc * pCalc) / long(10860);
     }
 
-    if (pType == vswr) {
-
+    if (powerType == vswr) {
         if (f_tot < 205) return 0;
 
         if (r_tot < 33) return 10;
@@ -53,24 +52,24 @@ unsigned int Read_Power(byte pType) {
 }
 
 
-unsigned int Read_Voltage(void) { //returns the voltage in 25mV steps
-
+// returns the voltage in 25mV steps
+unsigned int ReadVoltage() {
     byte ADCvinMSB, ADCvinLSB;
 
-    Wire.beginTransmission(LTCADDR);//first get Input Voltage - 80V max
+    Wire.beginTransmission(LTCADDR); //first get Input Voltage - 80V max
     Wire.write(0x1e);
     Wire.endTransmission(false);
     Wire.requestFrom(LTCADDR, 2, true);
     delay(1);
     ADCvinMSB = Wire.read();
     ADCvinLSB = Wire.read();
-    return ((unsigned int)(ADCvinMSB) << 4) + ((ADCvinLSB >> 4) & 0x0F); //formats into 12bit integer
+    return ((unsigned int) (ADCvinMSB) << 4) + ((ADCvinLSB >> 4) & 0x0F); //formats into 12bit integer
 }
 
-unsigned int Read_Current(void) { //returns the current in 5mA steps
-
+//returns the current in 5mA steps
+unsigned int ReadCurrent() {
     byte curSenseMSB, curSenseLSB;
-    Wire.beginTransmission(LTCADDR);//get sense current
+    Wire.beginTransmission(LTCADDR); //get sense current
     Wire.write(0x14);
     Wire.endTransmission(false);
     Wire.requestFrom(LTCADDR, 2, true);
@@ -78,19 +77,18 @@ unsigned int Read_Current(void) { //returns the current in 5mA steps
     curSenseMSB = Wire.read();
     curSenseLSB = Wire.read();
 
-    return ((unsigned int)(curSenseMSB) << 4) + ((curSenseLSB >> 4) & 0x0F);//12 bit format
-
+    return (curSenseMSB << 4) + ((curSenseLSB >> 4) & 0x0F); //12 bit format
 }
 
-void trip_clear(void) {
-    Wire.beginTransmission(LTCADDR);//clear any existing faults
+void TripClear() {
+    Wire.beginTransmission(LTCADDR); //clear any existing faults
     Wire.write(0x04);
     Wire.endTransmission(false);
     Wire.requestFrom(LTCADDR, 2, true);
     delay(1);
     Wire.read();
     delay(10);
-    Wire.beginTransmission(LTCADDR);//set alert register
+    Wire.beginTransmission(LTCADDR); //set alert register
     Wire.write(0x01);
     Wire.write(0x02);
     Wire.endTransmission();
@@ -98,14 +96,14 @@ void trip_clear(void) {
     delay(1);
 }
 
-void trip_set(void) {
-    Wire.beginTransmission(LTCADDR);//establish a fault condition
+void TripSet() {
+    Wire.beginTransmission(LTCADDR); //establish a fault condition
     Wire.write(0x03);
     Wire.write(0x02);
     Wire.endTransmission();
     Wire.requestFrom(LTCADDR, 2, true);
     delay(1);
     BIAS_OFF
-    Send_RLY(SR_DATA);
+    SendLPFRelayData(SR_DATA);
     RF_BYPASS
 }
