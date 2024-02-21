@@ -5,6 +5,6 @@
 size_t ATUQuery(const char* command);
 size_t ATUQuery(const char* command, char* response, size_t maxLength);
 
-void DetectATU();
+void detectATU();
 void TuneButtonPressed();
 void TuneEnd();

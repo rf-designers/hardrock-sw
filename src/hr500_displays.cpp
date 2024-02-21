@@ -11,7 +11,7 @@ extern byte menu_choice;
 extern byte menuSEL;
 extern amp_state state;
 
-void DrawHome() {
+void drawHome() {
     Tft.LCD_SEL = 1;
     DrawButton(5, 65, 118, 50);
     DrawButton(197, 65, 58, 50);
@@ -66,7 +66,7 @@ void DrawMenu() {
     Tft.drawString((char *) VERSION, 244, 213, 2, LGRAY);
 }
 
-void DrawMeter() {
+void drawMeter() {
     Tft.LCD_SEL = 0;
     Tft.drawString((char *) "FWD", 14, 8, 2, GBLUE);
     DrawPanel(18, 32, 29, 14);

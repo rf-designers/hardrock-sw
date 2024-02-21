@@ -29,9 +29,9 @@ extern byte OI_alert, OV_alert, OF_alert, OR_alert, OD_alert;
 extern char ATU_buff[40];
 extern amp_state state;
 
-void SetBand();
+void setBand();
 
-void DisablePTTDetector();
+void disablePTTDetector();
 
 void EnablePTTDetector();
 
@@ -126,7 +126,7 @@ void handleSerialMessage(char uart) {
         }
 
         if (state.band != OBAND)
-            SetBand();
+            setBand();
     }
 
     found = strstr(workStringPtr, "HR");
@@ -145,7 +145,7 @@ void handleSerialMessage(char uart) {
             }
 
             if (state.band > 10) state.band = 0;
-            if (state.band != OBAND) SetBand();
+            if (state.band != OBAND) setBand();
         }
 
         // set mode:
@@ -161,7 +161,7 @@ void handleSerialMessage(char uart) {
                 state.mode = mode_type::standby;
                 EEPROM.write(eemode, modeToEEPROM(state.mode));
                 DrawMode();
-                DisablePTTDetector();
+                disablePTTDetector();
             }
 
             if (found[4] == '1') {

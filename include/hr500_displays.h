@@ -2,9 +2,9 @@
 
 #include <Arduino.h>
 
-void DrawHome();
+void drawHome();
 void DrawMenu();
-void DrawMeter();
+void drawMeter();
 void DrawRxButtons(uint16_t bcolor);
 void DrawButton(int x, int y, int w, int h);
 void DrawButtonDn(int button);

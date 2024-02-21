@@ -22,7 +22,7 @@ extern byte Bias_Meter;
 extern int MAX_CUR;
 extern amp_state state;
 
-void SetTransceiver(byte s_xcvr);
+void setTransceiver(byte s_xcvr);
 
 void SendLPFRelayData(byte data);
 
@@ -70,7 +70,7 @@ void menuUpdate(byte item, byte changeDirection) {
 
             strcpy(item_disp[mXCVR], xcvr_disp[state.trxType]);
             EEPROM.write(eexcvr, state.trxType);
-            SetTransceiver(state.trxType);
+            setTransceiver(state.trxType);
             break;
 
         case mATTN:

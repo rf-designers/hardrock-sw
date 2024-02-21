@@ -34,6 +34,8 @@ struct amp_state {
     volatile bool isAtuActive;
     char atuVersion[8]; // version of ATU
 
+    volatile bool pttEnabled;
+
     byte meterSelection = 0; // 1 - FWD; 2 - RFL; 3 - DRV; 4 - VDD; 5 - IDD
     byte trxType = 0;
     byte antForBand[11] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}; // antenna selection for each band

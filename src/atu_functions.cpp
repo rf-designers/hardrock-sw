@@ -11,7 +11,6 @@ char ATU_buff[40];
 extern XPT2046_Touchscreen ts1;
 extern XPT2046_Touchscreen ts2;
 extern TFT Tft;
-extern volatile byte PTT;
 extern char RL_TXT[];
 extern char ORL_TXT[];
 extern char ATU_STAT;
@@ -28,7 +27,7 @@ size_t ATUQuery(const char* command, char* response, const size_t maxLength) {
     return receivedBytes;
 }
 
-void DetectATU() {
+void detectATU() {
     Serial3.println(" ");
     strcpy(state.atuVersion, "---");
 
@@ -64,7 +63,7 @@ void TuneButtonPressed() {
 
         // If the TX is on, turn it off
         if (state.txIsOn) {
-            PTT = 0;
+            state.pttEnabled = false;
             BIAS_OFF
             state.txIsOn = false;
             SendLPFRelayData(state.lpfBoardSerialData);
