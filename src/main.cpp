@@ -45,7 +45,6 @@ byte menuSEL = 0;
 byte Bias_Meter = 0;
 int MAX_CUR = 20;
 
-mode_type old_mode;
 int TICK = 0;
 int RD_ave = 0, FD_ave = 0;
 int FT8CNT = 0;
@@ -1104,7 +1103,7 @@ void handleTouchScreen2() {
                 if (menu_choice == mSETbias) {
                     BIAS_OFF
                     SendLPFRelayDataSafe(state.lpfBoardSerialData);
-                    state.mode = old_mode;
+                    state.mode = state.old_mode;
                     MAX_CUR = 20;
                     Bias_Meter = 0;
                 }

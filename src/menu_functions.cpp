@@ -15,7 +15,6 @@ extern char ATTN_ST;
 extern long M_CORR;
 extern byte menuSEL;
 extern byte menu_choice;
-extern mode_type old_mode;
 extern byte Bias_Meter;
 extern int MAX_CUR;
 extern amp_state state;
@@ -136,7 +135,7 @@ void menuSelect() {
         Tft.drawString((uint8_t *) "OK", 150, 132, 2, GBLUE);
 
         if (menu_choice == mSETbias) {
-            old_mode = state.mode;
+            state.old_mode = state.mode;
             state.mode = mode_type::ptt;
             MAX_CUR = 3;
             Bias_Meter = 1;
@@ -158,7 +157,7 @@ void menuSelect() {
         if (menu_choice == mSETbias) {
             BIAS_OFF
             SendLPFRelayData(state.lpfBoardSerialData);
-            state.mode = old_mode;
+            state.mode = state.old_mode;
             MAX_CUR = 20;
             Bias_Meter = 0;
             Tft.lcd_fill_rect(62, 70, 196, 40, MGRAY);

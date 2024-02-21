@@ -26,6 +26,7 @@ enum class serial_speed : uint8_t {
 struct amp_state {
     volatile bool txIsOn;
     mode_type mode = mode_type::standby; // 0 - OFF, 1 - PTT
+    mode_type old_mode;
 
     volatile byte band = 6;
     byte oldBand = 0;
