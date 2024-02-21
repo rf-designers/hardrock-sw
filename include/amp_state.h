@@ -28,6 +28,7 @@ struct amp_state {
     mode_type mode = mode_type::standby; // 0 - OFF, 1 - PTT
 
     volatile byte band = 6;
+    byte oldBand = 0;
 
     volatile bool isAtuTuning;
     volatile bool isAtuPresent;

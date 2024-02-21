@@ -27,6 +27,10 @@ size_t ATUQuery(const char* command, char* response, const size_t maxLength) {
     return receivedBytes;
 }
 
+void ATUPrintln(const char* command) {
+    Serial3.println(command);
+}
+
 void detectATU() {
     Serial3.println(" ");
     strcpy(state.atuVersion, "---");

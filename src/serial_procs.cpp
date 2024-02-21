@@ -21,7 +21,6 @@ extern char workingString[128];
 extern char rxbuff2[128]; // 128 byte circular Buffer for storing rx data
 extern char workingString2[128];
 extern uint8_t readStart, readStart2;
-extern byte OBAND;
 extern char ATU_STAT;
 extern unsigned int t_tot, t_ave;
 extern byte I_alert, V_alert, F_alert, R_alert, D_alert;
@@ -125,7 +124,7 @@ void handleSerialMessage(char uart) {
             state.band = 0;
         }
 
-        if (state.band != OBAND)
+        if (state.band != state.oldBand)
             setBand();
     }
 
@@ -145,7 +144,7 @@ void handleSerialMessage(char uart) {
             }
 
             if (state.band > 10) state.band = 0;
-            if (state.band != OBAND) setBand();
+            if (state.band != state.oldBand) setBand();
         }
 
         // set mode:

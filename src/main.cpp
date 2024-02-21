@@ -38,7 +38,6 @@ byte FAN_SP = 0;
 char ATU_STAT;
 char ATTN_P = 0;
 byte ATTN_ST = 0;
-byte OBAND = 0;
 volatile int timeToTouch =
     0; // countdown for TS touching. this gets decremented in timer ISR
 byte menu_choice = 0;
@@ -273,6 +272,7 @@ byte Xiegudet() {
     return 1;
 }
 
+// Reads input frequency and sets state.band accordingly
 void ReadInputFrequency() {
     int cnt = 0;
     byte same_cnt = 0;
@@ -282,7 +282,7 @@ void ReadInputFrequency() {
     while (cnt < 12 && digitalRead(COR_DET)) {
         while (!FreqCountClass::available());
 
-        unsigned long frequency = FreqCountClass::read() * 16;
+        const unsigned long frequency = FreqCountClass::read() * 16;
         byte band_read = 0;
 
         if (frequency > 1750 && frequency < 2100) band_read = 10;
@@ -330,56 +330,56 @@ byte getTouchedRectangle(byte touch_screen) {
 }
 
 void setBand() {
-    byte sr_data = 0;
     if (state.band > 10)
         return;
     if (state.txIsOn)
         return;
 
+    byte lpfSerialData = 0;
     switch (state.band) {
     case 0:
-        sr_data = 0x00;
-        Serial3.println("*B0");
+        lpfSerialData = 0x00;
+        ATUPrintln("*B0");
         break;
     case 1:
-        sr_data = 0x20;
-        Serial3.println("*B1");
+        lpfSerialData = 0x20;
+        ATUPrintln("*B1");
         break;
     case 2:
-        sr_data = 0x20;
-        Serial3.println("*B2");
+        lpfSerialData = 0x20;
+        ATUPrintln("*B2");
         break;
     case 3:
-        sr_data = 0x20;
-        Serial3.println("*B3");
+        lpfSerialData = 0x20;
+        ATUPrintln("*B3");
         break;
     case 4:
-        sr_data = 0x08;
-        Serial3.println("*B4");
+        lpfSerialData = 0x08;
+        ATUPrintln("*B4");
         break;
     case 5:
-        sr_data = 0x08;
-        Serial3.println("*B5");
+        lpfSerialData = 0x08;
+        ATUPrintln("*B5");
         break;
     case 6:
-        sr_data = 0x04;
-        Serial3.println("*B6");
+        lpfSerialData = 0x04;
+        ATUPrintln("*B6");
         break;
     case 7:
-        sr_data = 0x04;
-        Serial3.println("*B7");
+        lpfSerialData = 0x04;
+        ATUPrintln("*B7");
         break;
     case 8:
-        sr_data = 0x02;
-        Serial3.println("*B8");
+        lpfSerialData = 0x02;
+        ATUPrintln("*B8");
         break;
     case 9:
-        sr_data = 0x01;
-        Serial3.println("*B9");
+        lpfSerialData = 0x01;
+        ATUPrintln("*B9");
         break;
     case 10:
-        sr_data = 0x00;
-        Serial3.println("*B10");
+        lpfSerialData = 0x00;
+        ATUPrintln("*B10");
         break;
     }
 
@@ -388,16 +388,17 @@ void setBand() {
         Tft.lcd_fill_rect(121, 142, 74, 21, MGRAY);
     }
 
-    state.lpfBoardSerialData = sr_data;
-
-    if (state.band != OBAND) {
+    state.lpfBoardSerialData = lpfSerialData;
+    if (state.band != state.oldBand) {
         SendLPFRelayData(state.lpfBoardSerialData);
 
+        // delete old band (dirty rectangles)
         Tft.LCD_SEL = 1;
-        DrawBand(OBAND, MGRAY);
+        DrawBand(state.oldBand, MGRAY);
 
-        OBAND = state.band;
+        state.oldBand = state.band;
 
+        // draw the new band
         const uint16_t dcolor = state.band == 0 ? RED : ORANGE;
         DrawBand(state.band, dcolor);
 
@@ -774,10 +775,11 @@ void loop() {
         OLD_COR = sampCOR;
 
         if (sampCOR == 1) {
-            if (state.trxType != xft817 && state.txIsOn)
+            if (state.trxType != xft817 && state.txIsOn) {
                 ReadInputFrequency();
+            }
 
-            if (state.band != OBAND) {
+            if (state.band != state.oldBand) {
                 BIAS_OFF
                 RF_BYPASS
                 state.txIsOn = false;
@@ -786,10 +788,7 @@ void loop() {
         }
     }
 
-    if (!state.txIsOn) {
-        handleTrxBandDetection();
-    }
-
+    handleTrxBandDetection();
     handleTouchScreen1();
     handleTouchScreen2();
 
@@ -1211,6 +1210,8 @@ void handleTouchScreen2() {
 }
 
 void handleTrxBandDetection() {
+    if (state.txIsOn) return;
+
     if (state.trxType == xft817) {
         byte nFT817 = FT817det();
         while (nFT817 != FT817det()) {

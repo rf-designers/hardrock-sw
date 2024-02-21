@@ -4,6 +4,7 @@
 // Sends content to ATU and returns the number of received bytes
 size_t ATUQuery(const char* command);
 size_t ATUQuery(const char* command, char* response, size_t maxLength);
+void ATUPrintln(const char* command);
 
 void detectATU();
 void TuneButtonPressed();
