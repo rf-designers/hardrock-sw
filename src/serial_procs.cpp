@@ -23,8 +23,6 @@ extern char workingString2[128];
 extern uint8_t readStart, readStart2;
 extern char ATU_STAT;
 extern unsigned int t_tot, t_ave;
-extern byte I_alert, V_alert, F_alert, R_alert, D_alert;
-extern byte OI_alert, OV_alert, OF_alert, OR_alert, OD_alert;
 extern char ATU_buff[40];
 extern amp_state state;
 
@@ -358,9 +356,9 @@ void handleSerialMessage(char uart) {
 
             sprintf(tbuff, "HRST-%03d-%03d-%03d-%03d-%03d-%03d-%03d-%01d-%02d-%01d-%01d%01d%01d%01d%01d%01d%01d%01d-",
                     stF, stR, stD, stS, stV, stI, stT, modeToEEPROM(state.mode), state.band, state.antForBand[state.band],
-                    state.txIsOn ? 1 : 0, F_alert,
-                    R_alert, D_alert,
-                    V_alert, I_alert, state.isAtuTuning ? 1 : 0, state.isAtuActive ? 1 : 0);
+                    state.txIsOn ? 1 : 0, state.F_alert,
+                    state.R_alert, state.D_alert,
+                    state.V_alert, state.I_alert, state.isAtuTuning ? 1 : 0, state.isAtuActive ? 1 : 0);
             UART_send(uart, tbuff);
             UART_send_line(uart);
         }

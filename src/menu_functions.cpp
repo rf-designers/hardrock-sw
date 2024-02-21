@@ -12,8 +12,6 @@ extern char* workingString;
 extern char* workingString2;
 extern char ATTN_P;
 extern char ATTN_ST;
-extern byte I_alert, V_alert, F_alert, R_alert, D_alert;
-extern byte OI_alert, OV_alert, OF_alert, OR_alert, OD_alert;
 extern long M_CORR;
 extern byte menuSEL;
 extern byte menu_choice;
@@ -88,7 +86,7 @@ void menuUpdate(byte item, byte changeDirection) {
                 }
 
                 EEPROM.write(eeattn, ATTN_ST);
-                OD_alert = 5;
+                state.OD_alert = 5;
             }
 
             break;

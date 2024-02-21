@@ -56,3 +56,9 @@ void PrepareForFWUpdate() {
     delay(50);
     digitalWrite(RST_OUT, LOW);
 }
+
+void amplifier::setup() {
+}
+
+void amplifier::update() {
+}

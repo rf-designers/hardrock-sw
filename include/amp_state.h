@@ -37,6 +37,10 @@ struct amp_state {
 
     volatile bool pttEnabled;
 
+    // alerts
+    byte I_alert = 0, V_alert = 0, F_alert = 0, R_alert = 0, D_alert = 0;
+    byte OI_alert = 0, OV_alert = 0, OF_alert = 0, OR_alert = 0, OD_alert = 0;
+
     byte meterSelection = 0; // 1 - FWD; 2 - RFL; 3 - DRV; 4 - VDD; 5 - IDD
     byte trxType = 0;
     byte antForBand[11] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}; // antenna selection for each band
@@ -58,3 +62,28 @@ serial_speed speedFromEEPROM(uint8_t speed);
 uint8_t speedToEEPROM(serial_speed speed);
 
 void PrepareForFWUpdate();
+
+struct lpf_board {
+};
+
+struct atu_board {
+};
+
+struct display {
+};
+
+struct touchscreen {
+};
+
+struct amplifier {
+
+    void setup();
+    void update();
+
+    amp_state state;
+    atu_board atu;
+    lpf_board lpf;
+    display tft1, tft2;
+    touchscreen ts1, ts2;
+};
+

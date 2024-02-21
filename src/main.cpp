@@ -82,8 +82,6 @@ volatile byte timeToEnablePTTDetector = 0;
 
 byte OLD_COR = 0;
 
-byte I_alert = 0, V_alert = 0, F_alert = 0, R_alert = 0, D_alert = 0;
-byte OI_alert = 0, OV_alert = 0, OF_alert = 0, OR_alert = 0, OD_alert = 0;
 
 byte ADCvinMSB, ADCvinLSB, curSenseMSB, curSenseLSB;
 unsigned int ADCvin, ADCcur;
@@ -194,16 +192,16 @@ int otemp = -99;
 byte FTband;
 
 void SwitchToTX() {
-    F_alert = 1;
-    R_alert = 1;
-    D_alert = 1;
-    V_alert = 1;
-    I_alert = 1;
-    OF_alert = 0;
-    OR_alert = 0;
-    OD_alert = 0;
-    OV_alert = 0;
-    OI_alert = 0;
+    state.F_alert = 1;
+    state.R_alert = 1;
+    state.D_alert = 1;
+    state.V_alert = 1;
+    state.I_alert = 1;
+    state.OF_alert = 0;
+    state.OR_alert = 0;
+    state.OD_alert = 0;
+    state.OV_alert = 0;
+    state.OI_alert = 0;
 
     delay(20);
     RESET_PULSE
@@ -834,42 +832,42 @@ void updateAlarms() {
         f_red = 482;
     }
 
-    if (f_tot > f_yel && F_alert == 1) {
-        F_alert = 2;
+    if (f_tot > f_yel && state.F_alert == 1) {
+        state.F_alert = 2;
     }
 
     if (f_tot > f_red) {
-        F_alert = 3;
+        state.F_alert = 3;
         TripSet();
     }
 
-    if (F_alert != OF_alert) {
-        OF_alert = F_alert;
+    if (state.F_alert != state.OF_alert) {
+        state.OF_alert = state.F_alert;
         int r_col = GREEN;
-        if (F_alert == 2)
+        if (state.F_alert == 2)
             r_col = YELLOW;
-        if (F_alert == 3)
+        if (state.F_alert == 3)
             r_col = RED;
         Tft.LCD_SEL = 0;
         Tft.lcd_fill_rect(20, 34, 25, 10, r_col);
     }
 
     // reflected alert
-    if (r_tot > 450 && R_alert == 1) {
-        R_alert = 2;
+    if (r_tot > 450 && state.R_alert == 1) {
+        state.R_alert = 2;
     }
 
     if (r_tot > 590) {
-        R_alert = 3;
+        state.R_alert = 3;
         TripSet();
     }
 
-    if (R_alert != OR_alert) {
-        OR_alert = R_alert;
+    if (state.R_alert != state.OR_alert) {
+        state.OR_alert = state.R_alert;
         unsigned int r_col = GREEN;
-        if (R_alert == 2)
+        if (state.R_alert == 2)
             r_col = YELLOW;
-        if (R_alert == 3)
+        if (state.R_alert == 3)
             r_col = RED;
 
         Tft.LCD_SEL = 0;
@@ -877,28 +875,28 @@ void updateAlarms() {
     }
 
     // drive alert
-    if (d_tot > 900 && D_alert == 1) {
-        D_alert = 2;
+    if (d_tot > 900 && state.D_alert == 1) {
+        state.D_alert = 2;
     }
 
     if (d_tot > 1100) {
-        D_alert = 3;
+        state.D_alert = 3;
     }
 
     if (ATTN_ST == 1)
-        D_alert = 0;
+        state.D_alert = 0;
 
     if (!state.txIsOn)
-        D_alert = 0;
+        state.D_alert = 0;
 
-    if (D_alert != OD_alert) {
-        OD_alert = D_alert;
+    if (state.D_alert != state.OD_alert) {
+        state.OD_alert = state.D_alert;
         unsigned int r_col = GREEN;
         if (ATTN_ST == 1)
             r_col = DGRAY;
-        if (D_alert == 2)
+        if (state.D_alert == 2)
             r_col = YELLOW;
-        if (D_alert == 3) {
+        if (state.D_alert == 3) {
             r_col = RED;
             if (state.txIsOn)
                 TripSet();
@@ -912,17 +910,17 @@ void updateAlarms() {
     int dc_vol = ReadVoltage();
 
     if (dc_vol < 1800)
-        V_alert = 2;
+        state.V_alert = 2;
     else if (dc_vol > 3000)
-        V_alert = 2;
+        state.V_alert = 2;
     else
-        V_alert = 1;
+        state.V_alert = 1;
 
-    if (V_alert != OV_alert) {
-        OV_alert = V_alert;
+    if (state.V_alert != state.OV_alert) {
+        state.OV_alert = state.V_alert;
         unsigned int r_col = GREEN;
 
-        if (V_alert == 2) {
+        if (state.V_alert == 2) {
             r_col = YELLOW;
         }
 
@@ -935,23 +933,23 @@ void updateAlarms() {
     int MC1 = 180 * MAX_CUR;
     int MC2 = 200 * MAX_CUR;
 
-    if (dc_cur > MC1 && I_alert == 1) {
-        I_alert = 2;;
+    if (dc_cur > MC1 && state.I_alert == 1) {
+        state.I_alert = 2;
     }
 
     if (dc_cur > MC2) {
-        I_alert = 3;
+        state.I_alert = 3;
         TripSet();
     }
 
-    if (I_alert != OI_alert) {
-        OI_alert = I_alert;
+    if (state.I_alert != state.OI_alert) {
+        state.OI_alert = state.I_alert;
         unsigned int r_col = GREEN;
 
-        if (I_alert == 2)
+        if (state.I_alert == 2)
             r_col = YELLOW;
 
-        if (I_alert == 3)
+        if (state.I_alert == 3)
             r_col = RED;
 
         Tft.LCD_SEL = 0;
