@@ -1,5 +1,7 @@
 #pragma once
 #include <Arduino.h>
+#include <HR500V1.h>
+#include <HR500X.h>
 
 enum class mode_type : uint8_t {
     standby = 0,
@@ -37,6 +39,12 @@ struct amp_state {
     char atuVersion[8]; // version of ATU
 
     volatile bool pttEnabled;
+
+    volatile int timeToTouch = 0; // countdown for TS touching. this gets decremented in timer ISR
+    byte menu_choice = 0;
+    byte menuSEL = 0;
+    byte Bias_Meter = 0;
+    int MAX_CUR = 20;
 
     // alerts
     byte I_alert = 0, V_alert = 0, F_alert = 0, R_alert = 0, D_alert = 0;
@@ -87,11 +95,20 @@ struct amplifier {
     void tripSet();
     void SendLPFRelayData(byte data);
     void SendLPFRelayDataSafe(byte data);
+    void readInputFrequency();
+    void handleTouchScreen1();
+    void handleTouchScreen2();
+    byte getTouchedRectangle(byte touch_screen);
+    void enablePTTDetector();
+    void disablePTTDetector();
+    void setBand();
 
     amp_state state;
     atu_board atu;
     lpf_board lpf;
     display tft1, tft2;
-    touchscreen ts1, ts2;
+    // touchscreen ts1, ts2;
+    XPT2046_Touchscreen ts1{TP1_CS};
+    XPT2046_Touchscreen ts2{TP2_CS};
 };
 

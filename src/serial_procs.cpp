@@ -9,10 +9,6 @@
 #include "hr500_sensors.h"
 
 long freqLong = 0;
-unsigned short oldBand;
-unsigned int old_tuner_freq;
-const char crlfsemi[] = ";\r\n";
-const char HRTM[] = "HRTM";
 char freqStr[7];
 
 
@@ -25,14 +21,6 @@ extern char ATU_STAT;
 extern unsigned int t_tot, t_ave;
 extern char ATU_buff[40];
 extern amplifier amp;
-
-void setBand();
-
-void disablePTTDetector();
-
-void enablePTTDetector();
-
-void TuneButtonPressed();
 
 void uartGrabBuffer() {
     int z = 0;
@@ -123,7 +111,7 @@ void handleSerialMessage(char uart) {
         }
 
         if (amp.state.band != amp.state.oldBand)
-            setBand();
+            amp.setBand();
     }
 
     found = strstr(workStringPtr, "HR");
@@ -142,7 +130,7 @@ void handleSerialMessage(char uart) {
             }
 
             if (amp.state.band > 10) amp.state.band = 0;
-            if (amp.state.band != amp.state.oldBand) setBand();
+            if (amp.state.band != amp.state.oldBand) amp.setBand();
         }
 
         // set mode:
@@ -158,14 +146,14 @@ void handleSerialMessage(char uart) {
                 amp.state.mode = mode_type::standby;
                 EEPROM.write(eemode, modeToEEPROM(amp.state.mode));
                 DrawMode();
-                disablePTTDetector();
+                amp.disablePTTDetector();
             }
 
             if (found[4] == '1') {
                 amp.state.mode = mode_type::ptt;
                 EEPROM.write(eemode, modeToEEPROM(amp.state.mode));
                 DrawMode();
-                enablePTTDetector();
+                amp.enablePTTDetector();
             }
         }
 

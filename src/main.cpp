@@ -21,16 +21,12 @@ Version 3.5
 
 amplifier amp;
 
-XPT2046_Touchscreen ts1(TP1_CS);
-XPT2046_Touchscreen ts2(TP2_CS);
 
 int AnalogRead(byte pin);
 void handleACCCommunication();
 void handleUSBCommunication();
 void updateAlarms();
 void updateTemperatureDisplay();
-void handleTouchScreen1();
-void handleTouchScreen2();
 void handleTrxBandDetection();
 
 long M_CORR = 100;
@@ -38,12 +34,7 @@ byte FAN_SP = 0;
 char ATU_STAT;
 char ATTN_P = 0;
 byte ATTN_ST = 0;
-volatile int timeToTouch = 0; // countdown for TS touching. this gets decremented in timer ISR
-byte menu_choice = 0;
 unsigned int temp_utp, temp_dtp;
-byte menuSEL = 0;
-byte Bias_Meter = 0;
-int MAX_CUR = 20;
 
 int TICK = 0;
 int RD_ave = 0, FD_ave = 0;
@@ -86,20 +77,6 @@ char rxbuff[128]; // 128 byte circular Buffer for storing rx data
 char workingString[128];
 char rxbuff2[128]; // 128 byte circular Buffer for storing rx data
 char workingString2[128];
-
-// amp_state state;
-
-// Enable interrupt on state change of D11 (PTT)
-void enablePTTDetector() {
-    PCICR |= (1 << PCIE0);
-    PCMSK0 |= (1 << PCINT5); // Set PCINT0 (digital input 11) to trigger an
-    // interrupt on state change.
-}
-
-// Disable interrupt for state change of D11 (PTT)
-void disablePTTDetector() {
-    PCMSK0 &= ~(1 << PCINT5);
-}
 
 // This interrupt driven function reads data from the wattmeter
 void timerISR() {
@@ -157,15 +134,15 @@ void timerISR() {
     }
 
     // handle touching repeat
-    if (timeToTouch > 0) {
-        timeToTouch--;
+    if (amp.state.timeToTouch > 0) {
+        amp.state.timeToTouch--;
     }
 
     // handle reenabling of PTT detection
     if (timeToEnablePTTDetector > 0) {
         timeToEnablePTTDetector--;
         if (timeToEnablePTTDetector == 0 && amp.state.mode != mode_type::standby) {
-            enablePTTDetector();
+            amp.enablePTTDetector();
         }
     }
 }
@@ -264,140 +241,7 @@ byte Xiegudet() {
     return 1;
 }
 
-// Reads input frequency and sets state.band accordingly
-void ReadInputFrequency() {
-    int cnt = 0;
-    byte same_cnt = 0;
-    byte last_band = 0;
-    FreqCountClass::begin(1);
 
-    while (cnt < 12 && digitalRead(COR_DET)) {
-        while (!FreqCountClass::available());
-
-        const unsigned long frequency = FreqCountClass::read() * 16;
-        byte band_read = 0;
-
-        if (frequency > 1750 && frequency < 2100) band_read = 10;
-        else if (frequency > 3000 && frequency < 4500) band_read = 9;
-        else if (frequency > 4900 && frequency < 5700) band_read = 8;
-        else if (frequency > 6800 && frequency < 7500) band_read = 7;
-        else if (frequency > 9800 && frequency < 11000) band_read = 6;
-        else if (frequency > 13500 && frequency < 15000) band_read = 5;
-        else if (frequency > 17000 && frequency < 19000) band_read = 4;
-        else if (frequency > 20500 && frequency < 22000) band_read = 3;
-        else if (frequency > 23500 && frequency < 25400) band_read = 2;
-        else if (frequency > 27500 && frequency < 30000) band_read = 1;
-
-        if (band_read == last_band && last_band != 0) {
-            same_cnt++;
-        }
-
-        if (same_cnt > 2) {
-            amp.state.band = last_band;
-            cnt = 99;
-        }
-
-        last_band = band_read;
-        cnt++;
-    }
-
-    FreqCountClass::end();
-}
-
-byte getTouchedRectangle(byte touch_screen) {
-    uint16_t x, y;
-    uint8_t key;
-    TS_Point p;
-
-    if (touch_screen == 1)
-        p = ts1.getPoint();
-    if (touch_screen == 2)
-        p = ts2.getPoint();
-
-    x = map(p.x, 3850, 400, 0, 5);
-    y = map(p.y, 350, 3700, 0, 4);
-    //  z = p.z;
-    key = x + 5 * y;
-    return key;
-}
-
-void setBand() {
-    if (amp.state.band > 10)
-        return;
-    if (amp.state.txIsOn)
-        return;
-
-    byte lpfSerialData = 0;
-    switch (amp.state.band) {
-    case 0:
-        lpfSerialData = 0x00;
-        ATUPrintln("*B0");
-        break;
-    case 1:
-        lpfSerialData = 0x20;
-        ATUPrintln("*B1");
-        break;
-    case 2:
-        lpfSerialData = 0x20;
-        ATUPrintln("*B2");
-        break;
-    case 3:
-        lpfSerialData = 0x20;
-        ATUPrintln("*B3");
-        break;
-    case 4:
-        lpfSerialData = 0x08;
-        ATUPrintln("*B4");
-        break;
-    case 5:
-        lpfSerialData = 0x08;
-        ATUPrintln("*B5");
-        break;
-    case 6:
-        lpfSerialData = 0x04;
-        ATUPrintln("*B6");
-        break;
-    case 7:
-        lpfSerialData = 0x04;
-        ATUPrintln("*B7");
-        break;
-    case 8:
-        lpfSerialData = 0x02;
-        ATUPrintln("*B8");
-        break;
-    case 9:
-        lpfSerialData = 0x01;
-        ATUPrintln("*B9");
-        break;
-    case 10:
-        lpfSerialData = 0x00;
-        ATUPrintln("*B10");
-        break;
-    }
-
-    if (amp.state.isAtuPresent && !amp.state.isMenuActive) {
-        Tft.LCD_SEL = 1;
-        Tft.lcd_fill_rect(121, 142, 74, 21, MGRAY);
-    }
-
-    amp.state.lpfBoardSerialData = lpfSerialData;
-    if (amp.state.band != amp.state.oldBand) {
-        amp.SendLPFRelayData(amp.state.lpfBoardSerialData);
-
-        // delete old band (dirty rectangles)
-        Tft.LCD_SEL = 1;
-        DrawBand(amp.state.oldBand, MGRAY);
-
-        amp.state.oldBand = amp.state.band;
-
-        // draw the new band
-        const uint16_t dcolor = amp.state.band == 0 ? RED : ORANGE;
-        DrawBand(amp.state.band, dcolor);
-
-        EEPROM.write(eeband, amp.state.band);
-        DrawAnt();
-    }
-}
 
 // speed = [0,3]
 void setFanSpeed(byte speed) {
@@ -474,9 +318,9 @@ void setup() {
 
     amp.state.mode = modeFromEEPROM(EEPROM.read(eemode));
 
-    disablePTTDetector();
+    amp.disablePTTDetector();
     if (amp.state.mode != mode_type::standby) {
-        enablePTTDetector();
+        amp.enablePTTDetector();
     }
 
     amp.state.isAtuActive = EEPROM.read(eeatub) == 1;
@@ -580,10 +424,10 @@ void setup() {
 
     shouldHandlePttChange = false;
 
-    while (ts1.touched());
-    while (ts2.touched());
+    while (amp.ts1.touched());
+    while (amp.ts2.touched());
 
-    setBand();
+    amp.setBand();
 }
 
 ISR(PCINT0_vect) {
@@ -593,7 +437,7 @@ ISR(PCINT0_vect) {
     if (amp.state.isAtuTuning) return; // ATU is working
 
     timeToEnablePTTDetector = 20;
-    disablePTTDetector();
+    amp.disablePTTDetector();
 
     shouldHandlePttChange = true; // signal to main thread
 
@@ -650,7 +494,7 @@ void loop() {
                 Tft.lcd_draw_v_line(--OF_bar, 101, 12, MGRAY);
         }
 
-        if (Bias_Meter == 1) {
+        if (amp.state.Bias_Meter == 1) {
             int bias_current = ReadCurrent() * 5;
 
             if (bias_current != old_bias_current) {
@@ -715,21 +559,21 @@ void loop() {
 
         if (sampCOR == 1) {
             if (amp.state.trxType != xft817 && amp.state.txIsOn) {
-                ReadInputFrequency();
+                amp.readInputFrequency();
             }
 
             if (amp.state.band != amp.state.oldBand) {
                 BIAS_OFF
                 RF_BYPASS
                 amp.state.txIsOn = false;
-                setBand();
+                amp.setBand();
             }
         }
     }
 
     handleTrxBandDetection();
-    handleTouchScreen1();
-    handleTouchScreen2();
+    amp.handleTouchScreen1();
+    amp.handleTouchScreen2();
 
     const auto atuBusy = digitalRead(ATU_BUSY) == 1;
     if (amp.state.isAtuTuning && !atuBusy) {
@@ -871,8 +715,8 @@ void updateAlarms() {
 
     // current alert
     int dc_cur = ReadCurrent();
-    int MC1 = 180 * MAX_CUR;
-    int MC2 = 200 * MAX_CUR;
+    int MC1 = 180 * amp.state.MAX_CUR;
+    int MC2 = 200 * amp.state.MAX_CUR;
 
     if (dc_cur > MC1 && amp.state.I_alert == 1) {
         amp.state.I_alert = 2;
@@ -944,209 +788,6 @@ void updateTemperatureDisplay() {
     }
 }
 
-void handleTouchScreen1() {
-    if (ts1.touched()) {
-        const byte pressedKey = getTouchedRectangle(1);
-        switch (pressedKey) {
-        case 10:
-            amp.state.meterSelection = 1;
-            break;
-
-        case 11:
-            amp.state.meterSelection = 2;
-            break;
-
-        case 12:
-            amp.state.meterSelection = 3;
-            break;
-
-        case 13:
-            amp.state.meterSelection = 4;
-            break;
-
-        case 14:
-            amp.state.meterSelection = 5;
-            break;
-
-        case 18:
-        case 19:
-            amp.state.tempInCelsius = !amp.state.tempInCelsius;
-            EEPROM.write(eecelsius, amp.state.tempInCelsius ? 1 : 0);
-            break;
-        }
-
-        if (amp.state.oldMeterSelection != amp.state.meterSelection) {
-            DrawButtonUp(amp.state.oldMeterSelection);
-            DrawButtonDn(amp.state.meterSelection);
-            amp.state.oldMeterSelection = amp.state.meterSelection;
-            EEPROM.write(eemetsel, amp.state.meterSelection);
-        }
-
-        while (ts1.touched());
-    }
-}
-
-void handleTouchScreen2() {
-    if (ts2.touched() && timeToTouch == 0) {
-        const byte pressedKey = getTouchedRectangle(2);
-        timeToTouch = 300;
-
-        if (amp.state.isMenuActive) {
-            switch (pressedKey) {
-            case 0:
-            case 1:
-                if (menuSEL == 0) {
-                    Tft.LCD_SEL = 1;
-                    Tft.drawString((uint8_t*)menu_items[menu_choice], 65, 20, 2, MGRAY);
-                    Tft.drawString((uint8_t*)item_disp[menu_choice], 65, 80, 2, MGRAY);
-
-                    if (menu_choice-- == 0)
-                        menu_choice = menu_max;
-
-                    Tft.drawString((uint8_t*)menu_items[menu_choice], 65, 20, 2, WHITE);
-                    Tft.drawString((uint8_t*)item_disp[menu_choice], 65, 80, 2, LGRAY);
-                }
-
-                break;
-
-            case 3:
-            case 4:
-                if (menuSEL == 0) {
-                    Tft.LCD_SEL = 1;
-                    Tft.drawString((uint8_t*)menu_items[menu_choice], 65, 20, 2, MGRAY);
-                    Tft.drawString((uint8_t*)item_disp[menu_choice], 65, 80, 2, MGRAY);
-
-                    if (++menu_choice > menu_max)
-                        menu_choice = 0;
-
-                    Tft.drawString((uint8_t*)menu_items[menu_choice], 65, 20, 2, WHITE);
-                    Tft.drawString((uint8_t*)item_disp[menu_choice], 65, 80, 2, LGRAY);
-                }
-
-                break;
-
-            case 5:
-            case 6:
-                if (menuSEL == 1)
-                    menuUpdate(menu_choice, 0);
-                break;
-
-            case 8:
-            case 9:
-                if (menuSEL == 1)
-                    menuUpdate(menu_choice, 1);
-                break;
-
-            case 7:
-            case 12:
-                menuSelect();
-                break;
-
-            case 17:
-                Tft.LCD_SEL = 1;
-                Tft.lcd_clear_screen(GRAY);
-                amp.state.isMenuActive = false;
-
-                if (menu_choice == mSETbias) {
-                    BIAS_OFF
-                    amp.SendLPFRelayDataSafe(amp.state.lpfBoardSerialData);
-                    amp.state.mode = amp.state.old_mode;
-                    MAX_CUR = 20;
-                    Bias_Meter = 0;
-                }
-
-                drawHome();
-                Tft.LCD_SEL = 0;
-                Tft.lcd_reset();
-            }
-        } else {
-            switch (pressedKey) {
-            case 5:
-            case 6:
-                if (!amp.state.txIsOn) {
-                    amp.state.mode = nextMode(amp.state.mode);
-                    EEPROM.write(eemode, modeToEEPROM(amp.state.mode));
-                    DrawMode();
-                    disablePTTDetector();
-
-                    if (amp.state.mode == mode_type::ptt) {
-                        enablePTTDetector();
-                    }
-                }
-                break;
-
-            case 8:
-                if (!amp.state.txIsOn) {
-                    if (++amp.state.band >= 11)
-                        amp.state.band = 1;
-                    setBand();
-                }
-                break;
-
-            case 9:
-                if (!amp.state.txIsOn) {
-                    if (--amp.state.band == 0)
-                        amp.state.band = 10;
-
-                    if (amp.state.band == 0xff)
-                        amp.state.band = 10;
-                    setBand();
-                }
-                break;
-
-            case 15:
-            case 16:
-                if (!amp.state.txIsOn) {
-                    if (++amp.state.antForBand[amp.state.band] == 3)
-                        amp.state.antForBand[amp.state.band] = 1;
-
-                    EEPROM.write(eeantsel + amp.state.band, amp.state.antForBand[amp.state.band]);
-
-                    if (amp.state.antForBand[amp.state.band] == 1) {
-                        SEL_ANT1;
-                    } else if (amp.state.antForBand[amp.state.band] == 2) {
-                        SEL_ANT2;
-                    }
-                    DrawAnt();
-                }
-                break;
-
-            case 18:
-            case 19:
-                if (amp.state.isAtuPresent && !amp.state.txIsOn) {
-                    amp.state.isAtuActive = !amp.state.isAtuActive;
-                    DrawATU();
-                }
-                break;
-
-            case 12:
-                if (!amp.state.isAtuPresent) {
-                    Tft.LCD_SEL = 1;
-                    Tft.lcd_clear_screen(GRAY);
-                    DrawMenu();
-                    amp.state.isMenuActive = true;
-                }
-                break;
-
-            case 7:
-                if (amp.state.isAtuPresent) {
-                    Tft.LCD_SEL = 1;
-                    Tft.lcd_clear_screen(GRAY);
-                    DrawMenu();
-                    amp.state.isMenuActive = true;
-                }
-                break;
-
-            case 17:
-                if (amp.state.isAtuPresent) {
-                    TuneButtonPressed();
-                }
-            }
-        }
-
-        while (ts2.touched());
-    }
-}
 
 void handleTrxBandDetection() {
     if (amp.state.txIsOn) return;
@@ -1163,7 +804,7 @@ void handleTrxBandDetection() {
 
         if (FTband != amp.state.band) {
             amp.state.band = FTband;
-            setBand();
+            amp.setBand();
         }
     } else if (amp.state.trxType == xxieg) {
         byte nXieg = Xiegudet();
@@ -1177,7 +818,7 @@ void handleTrxBandDetection() {
 
         if (FTband != amp.state.band) {
             amp.state.band = FTband;
-            setBand();
+            amp.setBand();
         }
     } else if (amp.state.trxType == xelad) {
         byte nElad = Eladdet();
@@ -1190,7 +831,7 @@ void handleTrxBandDetection() {
 
         if (FTband != amp.state.band) {
             amp.state.band = FTband;
-            setBand();
+            amp.setBand();
         }
     }
 }

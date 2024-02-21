@@ -8,8 +8,6 @@
 #include "HR500V1.h"
 
 char ATU_buff[40];
-extern XPT2046_Touchscreen ts1;
-extern XPT2046_Touchscreen ts2;
 extern TFT Tft;
 extern char RL_TXT[];
 extern char ORL_TXT[];
@@ -48,7 +46,7 @@ size_t ATUQuery(const char* command) {
 }
 
 void TuneButtonPressed() {
-    while (ts2.touched());
+    while (amp.ts2.touched());
 
     Tft.LCD_SEL = 1;
     Tft.lcd_fill_rect(121, 142, 74, 21, MGRAY);

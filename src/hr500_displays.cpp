@@ -7,8 +7,6 @@
 #include <EEPROM.h>
 
 extern TFT Tft;
-extern byte menu_choice;
-extern byte menuSEL;
 extern amplifier amp;
 
 void drawHome() {
@@ -55,11 +53,11 @@ void DrawMenu() {
     Tft.drawString((char *) ">", 274, 18, 4, GBLUE);
     DrawPanel(60, 8, 200, 44);
     DrawPanel(60, 68, 200, 44);
-    Tft.drawString((char *) menu_items[menu_choice], 65, 20, 2, WHITE);
-    Tft.drawString((char *) item_disp[menu_choice], 65, 80, 2, LGRAY);
+    Tft.drawString((char *) menu_items[amp.state.menu_choice], 65, 20, 2, WHITE);
+    Tft.drawString((char *) item_disp[amp.state.menu_choice], 65, 80, 2, LGRAY);
     DrawButton(120, 125, 80, 30);
     Tft.drawString((char *) "SELECT", 124, 132, 2, GBLUE);
-    menuSEL = 0;
+    amp.state.menuSEL = 0;
     Tft.drawString((char *) "ATU:", 206, 190, 2, LGRAY);
     Tft.drawString(amp.state.atuVersion, 254, 190, 2, LGRAY);
     Tft.drawString((char *) "FW:", 206, 213, 2, LGRAY);
