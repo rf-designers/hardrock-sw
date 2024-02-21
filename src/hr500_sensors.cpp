@@ -6,9 +6,6 @@
 extern volatile unsigned int f_tot, f_ave;
 extern volatile unsigned int r_tot;
 extern volatile unsigned int d_tot;
-extern amp_state state;
-
-void SendLPFRelayData(byte data);
 
 unsigned int ReadPower(power_type powerType) {
     long pCalc, tCalc, bCalc;
@@ -74,33 +71,3 @@ unsigned int ReadCurrent() {
     return (curSenseMSB << 4) + ((curSenseLSB >> 4) & 0x0F); // 12 bit format
 }
 
-void TripClear() {
-    Wire.beginTransmission(LTCADDR); //clear any existing faults
-    Wire.write(0x04);
-    Wire.endTransmission(false);
-    Wire.requestFrom(LTCADDR, 2, true);
-    delay(1);
-
-    Wire.read();
-    delay(10);
-
-    Wire.beginTransmission(LTCADDR); //set alert register
-    Wire.write(0x01);
-    Wire.write(0x02);
-    Wire.endTransmission();
-    Wire.requestFrom(LTCADDR, 2, true);
-    delay(1);
-}
-
-void TripSet() {
-    Wire.beginTransmission(LTCADDR); //establish a fault condition
-    Wire.write(0x03);
-    Wire.write(0x02);
-    Wire.endTransmission();
-    Wire.requestFrom(LTCADDR, 2, true);
-    delay(1);
-
-    BIAS_OFF
-    SendLPFRelayData(state.lpfBoardSerialData);
-    RF_BYPASS
-}

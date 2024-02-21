@@ -14,10 +14,9 @@ extern TFT Tft;
 extern char RL_TXT[];
 extern char ORL_TXT[];
 extern char ATU_STAT;
-extern amp_state state;
+extern amplifier amp;
 
 void SwitchToRX();
-void SendLPFRelayData(byte data);
 
 size_t ATUQuery(const char* command, char* response, const size_t maxLength) {
     Serial3.setTimeout(50);
@@ -33,13 +32,13 @@ void ATUPrintln(const char* command) {
 
 void detectATU() {
     Serial3.println(" ");
-    strcpy(state.atuVersion, "---");
+    strcpy(amp.state.atuVersion, "---");
 
     if (ATUQuery("*I") > 10) {
         if (strncmp(ATU_buff, "HR500 ATU", 9) == 0) {
-            state.isAtuPresent = true;
+            amp.state.isAtuPresent = true;
             const auto c = ATUQuery("*V");
-            strncpy(state.atuVersion, ATU_buff, c - 1);
+            strncpy(amp.state.atuVersion, ATU_buff, c - 1);
         }
     }
 }
@@ -55,22 +54,22 @@ void TuneButtonPressed() {
     Tft.lcd_fill_rect(121, 142, 74, 21, MGRAY);
     Tft.lcd_fill_rect(121, 199, 74, 21, GRAY);
 
-    if (!state.isAtuTuning) {
-        if (!state.isAtuActive) {
-            state.isAtuActive = true;
+    if (!amp.state.isAtuTuning) {
+        if (!amp.state.isAtuActive) {
+            amp.state.isAtuActive = true;
             DrawATU();
         }
 
         Tft.drawString((uint8_t *) "STOP", 122, 199, 3, GBLUE);
         Tft.drawString((uint8_t *) "TUNING", 122, 142, 2, LBLUE);
-        state.isAtuTuning = true;
+        amp.state.isAtuTuning = true;
 
         // If the TX is on, turn it off
-        if (state.txIsOn) {
-            state.pttEnabled = false;
+        if (amp.state.txIsOn) {
+            amp.state.pttEnabled = false;
             BIAS_OFF
-            state.txIsOn = false;
-            SendLPFRelayData(state.lpfBoardSerialData);
+            amp.state.txIsOn = false;
+            amp.SendLPFRelayData(amp.state.lpfBoardSerialData);
             RF_BYPASS
         }
 
@@ -86,7 +85,7 @@ void TuneEnd() {
     Tft.lcd_fill_rect(121, 142, 74, 21, MGRAY);
     Tft.lcd_fill_rect(121, 199, 74, 21, GRAY);
     Tft.drawString((uint8_t *) "TUNE", 122, 199, 3, GBLUE);
-    state.isAtuTuning = false;
+    amp.state.isAtuTuning = false;
     ATU_TUNE_HIGH
     delay(10);
 

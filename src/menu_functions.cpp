@@ -17,11 +17,9 @@ extern byte menuSEL;
 extern byte menu_choice;
 extern byte Bias_Meter;
 extern int MAX_CUR;
-extern amp_state state;
+extern amplifier amp;
 
 void setTransceiver(byte s_xcvr);
-
-void SendLPFRelayData(byte data);
 
 void menuUpdate(byte item, byte changeDirection) {
     Tft.LCD_SEL = 1;
@@ -29,45 +27,45 @@ void menuUpdate(byte item, byte changeDirection) {
 
     switch (item) {
         case mACCbaud:
-            if (state.trxType == xft817) break;
+            if (amp.state.trxType == xft817) break;
 
             if (changeDirection == 1)
-                state.accSpeed = nextSerialSpeed(state.accSpeed);
+                amp.state.accSpeed = nextSerialSpeed(amp.state.accSpeed);
             else
-                state.accSpeed = previousSerialSpeed(state.accSpeed);
+                amp.state.accSpeed = previousSerialSpeed(amp.state.accSpeed);
 
-            if (state.accSpeed == serial_speed::baud_57600)
-                state.accSpeed = serial_speed::baud_4800;
+            if (amp.state.accSpeed == serial_speed::baud_57600)
+                amp.state.accSpeed = serial_speed::baud_4800;
 
-            EEPROM.write(eeaccbaud, speedToEEPROM(state.accSpeed));
-            SetupAccSerial(state.accSpeed);
+            EEPROM.write(eeaccbaud, speedToEEPROM(amp.state.accSpeed));
+            SetupAccSerial(amp.state.accSpeed);
             break;
 
         case mUSBbaud:
             if (changeDirection == 1)
-                state.usbSpeed = nextSerialSpeed(state.usbSpeed);
+                amp.state.usbSpeed = nextSerialSpeed(amp.state.usbSpeed);
             else
-                state.usbSpeed = previousSerialSpeed(state.usbSpeed);
+                amp.state.usbSpeed = previousSerialSpeed(amp.state.usbSpeed);
 
-            EEPROM.write(eeusbbaud, speedToEEPROM(state.usbSpeed));
-            SetupUSBSerial(state.usbSpeed);
+            EEPROM.write(eeusbbaud, speedToEEPROM(amp.state.usbSpeed));
+            SetupUSBSerial(amp.state.usbSpeed);
             break;
 
         case mXCVR:
             if (changeDirection == 1)
-                state.trxType++;
+                amp.state.trxType++;
             else
-                state.trxType--;
+                amp.state.trxType--;
 
-            if (state.trxType == xcvr_max + 1)
-                state.trxType = 0;
+            if (amp.state.trxType == xcvr_max + 1)
+                amp.state.trxType = 0;
 
-            if (state.trxType == 255)
-                state.trxType = xcvr_max;
+            if (amp.state.trxType == 255)
+                amp.state.trxType = xcvr_max;
 
-            strcpy(item_disp[mXCVR], xcvr_disp[state.trxType]);
-            EEPROM.write(eexcvr, state.trxType);
-            setTransceiver(state.trxType);
+            strcpy(item_disp[mXCVR], xcvr_disp[amp.state.trxType]);
+            EEPROM.write(eexcvr, amp.state.trxType);
+            setTransceiver(amp.state.trxType);
             break;
 
         case mATTN:
@@ -85,7 +83,7 @@ void menuUpdate(byte item, byte changeDirection) {
                 }
 
                 EEPROM.write(eeattn, ATTN_ST);
-                state.OD_alert = 5;
+                amp.state.OD_alert = 5;
             }
 
             break;
@@ -135,11 +133,11 @@ void menuSelect() {
         Tft.drawString((uint8_t *) "OK", 150, 132, 2, GBLUE);
 
         if (menu_choice == mSETbias) {
-            state.old_mode = state.mode;
-            state.mode = mode_type::ptt;
+            amp.state.old_mode = amp.state.mode;
+            amp.state.mode = mode_type::ptt;
             MAX_CUR = 3;
             Bias_Meter = 1;
-            SendLPFRelayData(state.lpfBoardSerialData + 0x02);
+            amp.SendLPFRelayData(amp.state.lpfBoardSerialData + 0x02);
             BIAS_ON
         }
     } else {
@@ -156,8 +154,8 @@ void menuSelect() {
 
         if (menu_choice == mSETbias) {
             BIAS_OFF
-            SendLPFRelayData(state.lpfBoardSerialData);
-            state.mode = state.old_mode;
+            amp.SendLPFRelayData(amp.state.lpfBoardSerialData);
+            amp.state.mode = amp.state.old_mode;
             MAX_CUR = 20;
             Bias_Meter = 0;
             Tft.lcd_fill_rect(62, 70, 196, 40, MGRAY);
@@ -188,7 +186,7 @@ void SetupAccSerial(const serial_speed speed) {
             item_disp[mACCbaud] = (char *) "   4800 Baud    ";
             break;
         case serial_speed::baud_9600:
-            Serial2.begin(9600);
+            Serial2.begin(00);
             item_disp[mACCbaud] = (char *) "   9600 Baud    ";
             break;
         case serial_speed::baud_19200:

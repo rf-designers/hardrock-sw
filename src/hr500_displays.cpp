@@ -9,7 +9,7 @@
 extern TFT Tft;
 extern byte menu_choice;
 extern byte menuSEL;
-extern amp_state state;
+extern amplifier amp;
 
 void drawHome() {
     Tft.LCD_SEL = 1;
@@ -19,7 +19,7 @@ void drawHome() {
     DrawButton(5, 185, 88, 50);
     DrawButton(227, 185, 88, 50);
 
-    if (state.isAtuPresent == 0) {
+    if (amp.state.isAtuPresent == 0) {
         DrawButton(130, 135, 60, 30);
     } else {
         DrawButton(130, 85, 60, 30);
@@ -36,10 +36,10 @@ void drawHome() {
     DrawRxButtons(GBLUE);
     DrawMode();
 
-    if (state.band != 0)
-        DrawBand(state.band, ORANGE);
+    if (amp.state.band != 0)
+        DrawBand(amp.state.band, ORANGE);
     else
-        DrawBand(state.band, RED);
+        DrawBand(amp.state.band, RED);
 
     DrawAnt();
     DrawATU();
@@ -61,7 +61,7 @@ void DrawMenu() {
     Tft.drawString((char *) "SELECT", 124, 132, 2, GBLUE);
     menuSEL = 0;
     Tft.drawString((char *) "ATU:", 206, 190, 2, LGRAY);
-    Tft.drawString(state.atuVersion, 254, 190, 2, LGRAY);
+    Tft.drawString(amp.state.atuVersion, 254, 190, 2, LGRAY);
     Tft.drawString((char *) "FW:", 206, 213, 2, LGRAY);
     Tft.drawString((char *) VERSION, 244, 213, 2, LGRAY);
 }
@@ -89,7 +89,7 @@ void drawMeter() {
     Tft.drawString((char *) "VDD", 205, 150, 2, GBLUE);
     DrawButton(266, 141, 44, 30);
     Tft.drawString((char *) "IDD", 269, 150, 2, GBLUE);
-    DrawButtonDn(state.meterSelection);
+    DrawButtonDn(amp.state.meterSelection);
     Tft.drawString((char *) "SWR:", 10, 205, 2, GBLUE);
     DrawPanel(63, 196, 80, 30);
     Tft.drawString((char *) "TEMP:", 165, 205, 2, GBLUE);
@@ -97,7 +97,7 @@ void drawMeter() {
 }
 
 void DrawRxButtons(uint16_t bcolor) {
-    if (state.isMenuActive) return;
+    if (amp.state.isMenuActive) return;
 
     Tft.LCD_SEL = 1;
     Tft.drawString((char *) "MODE", 26, 79, 3, bcolor);
@@ -105,7 +105,7 @@ void DrawRxButtons(uint16_t bcolor) {
     Tft.drawString((char *) ">", 279, 79, 3, bcolor);
     Tft.drawString((char *) "ANT", 21, 199, 3, bcolor);
 
-    if (state.isAtuPresent == 0) {
+    if (amp.state.isAtuPresent == 0) {
         Tft.drawString((char *) "MENU", 135, 143, 2, bcolor);
     } else {
         Tft.drawString((char *) "MENU", 135, 93, 2, bcolor);
@@ -113,7 +113,7 @@ void DrawRxButtons(uint16_t bcolor) {
         //Tft.drawString((char*)"----", 122, 142,  3, LBLUE);
     }
 
-    if (state.isAtuPresent == 0) bcolor = DGRAY;
+    if (amp.state.isAtuPresent == 0) bcolor = DGRAY;
 
     Tft.drawString((char *) "ATU", 244, 199, 3, bcolor);
 }
@@ -257,19 +257,19 @@ void DrawPanel(int x, int y, int w, int h) {
 }
 
 void DrawTxPanel(uint16_t pcolor) {
-    if (state.isMenuActive) return;
+    if (amp.state.isMenuActive) return;
 
     Tft.LCD_SEL = 1;
     Tft.lcd_fill_rect(142, 10, 36, 16, pcolor);
 }
 
 void DrawMode() {
-    if (state.isMenuActive) return;
+    if (amp.state.isMenuActive) return;
 
     Tft.LCD_SEL = 1;
     Tft.lcd_fill_rect(38, 21, 54, 21, MGRAY);
 
-    switch (state.mode) {
+    switch (amp.state.mode) {
         case mode_type::standby:
             Tft.drawString((char *) "OFF", 36, 21, 3, YELLOW);
             break;
@@ -283,7 +283,7 @@ void DrawMode() {
 }
 
 void DrawBand(byte Band, uint16_t bcolor) {
-    if (state.isMenuActive) return;
+    if (amp.state.isMenuActive) return;
 
     if (Band == 0) Tft.drawString((char *) "UNK", 228, 21, 3, bcolor);
     else if (Band == 1) Tft.drawString((char *) "10M", 228, 21, 3, bcolor);
@@ -300,48 +300,48 @@ void DrawBand(byte Band, uint16_t bcolor) {
 }
 
 void DrawAnt() {
-    if (state.isMenuActive != 0) return;
+    if (amp.state.isMenuActive != 0) return;
 
     Tft.LCD_SEL = 1;
     Tft.lcd_fill_rect(43, 142, 16, 21, MGRAY);
 
-    if (state.antForBand[state.band] == 1) {
+    if (amp.state.antForBand[amp.state.band] == 1) {
         Tft.drawString((char *) "1", 41, 142, 3, LBLUE);
         Serial3.println("*N1");
         SEL_ANT1;
     }
 
-    if (state.antForBand[state.band] == 2) {
+    if (amp.state.antForBand[amp.state.band] == 2) {
         Tft.drawString((char *) "2", 41, 142, 3, LBLUE);
         Serial3.println("*N2");
         SEL_ANT2;
     }
 
-    if (state.isAtuPresent) {
+    if (amp.state.isAtuPresent) {
         Tft.LCD_SEL = 1;
         Tft.lcd_fill_rect(121, 142, 74, 21, MGRAY);
     }
 }
 
 void DrawATU() {
-    if (state.isMenuActive) return;
+    if (amp.state.isMenuActive) return;
 
     Tft.LCD_SEL = 1;
     Tft.lcd_fill_rect(244, 142, 54, 21, MGRAY);
 
-    if (!state.isAtuPresent) {
+    if (!amp.state.isAtuPresent) {
         Tft.drawString((char *) "---", 244, 142, 3, LBLUE);
     } else {
-        if (!state.isAtuActive) {
+        if (!amp.state.isAtuActive) {
             Tft.drawString((char *) "BYP", 244, 142, 3, LBLUE);
             Serial3.println("*Y1");
         }
 
-        if (state.isAtuActive) {
+        if (amp.state.isAtuActive) {
             Tft.drawString((char *) "ON", 244, 142, 3, LBLUE);
             Serial3.println("*Y0");
         }
 
-        EEPROM.write(eeatub, state.isAtuActive);
+        EEPROM.write(eeatub, amp.state.isAtuActive);
     }
 }

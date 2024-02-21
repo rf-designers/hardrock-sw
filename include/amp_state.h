@@ -83,6 +83,11 @@ struct amplifier {
     void setup();
     void update();
 
+    void tripClear();
+    void tripSet();
+    void SendLPFRelayData(byte data);
+    void SendLPFRelayDataSafe(byte data);
+
     amp_state state;
     atu_board atu;
     lpf_board lpf;
