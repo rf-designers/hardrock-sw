@@ -38,10 +38,8 @@ byte FAN_SP = 0;
 char ATU_STAT;
 char ATTN_P = 0;
 byte ATTN_ST = 0;
-volatile int timeToTouch =
-    0; // countdown for TS touching. this gets decremented in timer ISR
+volatile int timeToTouch = 0; // countdown for TS touching. this gets decremented in timer ISR
 byte menu_choice = 0;
-byte OMeterSel;
 unsigned int temp_utp, temp_dtp;
 byte menuSEL = 0;
 byte Bias_Meter = 0;
@@ -82,9 +80,6 @@ volatile byte timeToEnablePTTDetector = 0;
 
 byte OLD_COR = 0;
 
-
-byte ADCvinMSB, ADCvinLSB, curSenseMSB, curSenseLSB;
-unsigned int ADCvin, ADCcur;
 
 uint8_t uartIdx = 0, uart2Idx = 0;
 uint8_t readStart = 0, readStart2 = 0;
@@ -566,7 +561,7 @@ void setup() {
     if (state.meterSelection < 1 || state.meterSelection > 5)
         state.meterSelection = 1;
 
-    OMeterSel = state.meterSelection;
+    state.oldMeterSelection = state.meterSelection;
 
     state.trxType = EEPROM.read(eexcvr);
     if (state.trxType < 0 || state.trxType > xcvr_max)
@@ -1034,10 +1029,10 @@ void handleTouchScreen1() {
             break;
         }
 
-        if (OMeterSel != state.meterSelection) {
-            DrawButtonUp(OMeterSel);
+        if (state.oldMeterSelection != state.meterSelection) {
+            DrawButtonUp(state.oldMeterSelection);
             DrawButtonDn(state.meterSelection);
-            OMeterSel = state.meterSelection;
+            state.oldMeterSelection = state.meterSelection;
             EEPROM.write(eemetsel, state.meterSelection);
         }
 

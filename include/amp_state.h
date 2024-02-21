@@ -42,6 +42,8 @@ struct amp_state {
     byte OI_alert = 0, OV_alert = 0, OF_alert = 0, OR_alert = 0, OD_alert = 0;
 
     byte meterSelection = 0; // 1 - FWD; 2 - RFL; 3 - DRV; 4 - VDD; 5 - IDD
+    byte oldMeterSelection;
+
     byte trxType = 0;
     byte antForBand[11] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}; // antenna selection for each band
     bool isMenuActive; // 0 is normal, 1 is menu mode
