@@ -285,7 +285,7 @@ void setup() {
         amp.enablePTTDetector();
     }
 
-    amp.state.isAtuActive = EEPROM.read(eeatub) == 1;
+    amp.atu.setActive(EEPROM.read(eeatub) == 1);
 
     for (byte i = 1; i < 11; i++) {
         amp.state.antForBand[i] = EEPROM.read(eeantsel + i);
@@ -396,7 +396,7 @@ ISR(PCINT0_vect) {
     if (amp.state.mode == mode_type::standby) return; // Mode is STBY
     if (amp.state.isMenuActive) return; // Menu is active
     if (amp.state.band == 0) return; // Band is undefined
-    if (amp.state.isAtuTuning) return; // ATU is working
+    if (amp.atu.isTuning()) return; // ATU is working
 
     timeToEnablePTTDetector = 20;
     amp.disablePTTDetector();
@@ -538,7 +538,7 @@ void loop() {
     amp.handleTouchScreen2();
 
     const auto atuBusy = digitalRead(ATU_BUSY) == 1;
-    if (amp.state.isAtuTuning && !atuBusy) {
+    if (amp.atu.isTuning() && !atuBusy) {
         TuneEnd();
     }
 

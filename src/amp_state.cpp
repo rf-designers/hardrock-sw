@@ -101,6 +101,22 @@ void atu_board::println(const char* command) {
     Serial3.println(command);
 }
 
+void atu_board::setTuning(bool enabled) {
+    tuning = enabled;
+}
+
+void atu_board::setActive(bool a) {
+    active = a;
+}
+
+bool atu_board::isTuning() const {
+    return tuning;
+}
+
+bool atu_board::isActive() const {
+    return active;
+}
+
 void amplifier::setup() {
     SETUP_RELAY_CS
     RELAY_CS_HIGH
@@ -404,7 +420,7 @@ void amplifier::handleTouchScreen2() {
             case 18:
             case 19:
                 if (atu.isPresent() && !state.txIsOn) {
-                    state.isAtuActive = !state.isAtuActive;
+                    atu.setActive(!atu.isActive());
                     DrawATU();
                 }
                 break;

@@ -19,15 +19,15 @@ void TuneButtonPressed() {
     Tft.lcd_fill_rect(121, 142, 74, 21, MGRAY);
     Tft.lcd_fill_rect(121, 199, 74, 21, GRAY);
 
-    if (!amp.state.isAtuTuning) {
-        if (!amp.state.isAtuActive) {
-            amp.state.isAtuActive = true;
+    if (!amp.atu.isTuning()) {
+        if (!amp.atu.isActive()) {
+            amp.atu.setActive(true);
             DrawATU();
         }
 
         Tft.drawString((uint8_t*)"STOP", 122, 199, 3, GBLUE);
         Tft.drawString((uint8_t*)"TUNING", 122, 142, 2, LBLUE);
-        amp.state.isAtuTuning = true;
+        amp.atu.setTuning(true);
 
         // If the TX is on, turn it off
         if (amp.state.txIsOn) {
@@ -50,7 +50,7 @@ void TuneEnd() {
     Tft.lcd_fill_rect(121, 142, 74, 21, MGRAY);
     Tft.lcd_fill_rect(121, 199, 74, 21, GRAY);
     Tft.drawString((uint8_t*)"TUNE", 122, 199, 3, GBLUE);
-    amp.state.isAtuTuning = false;
+    amp.atu.setTuning(false);
     ATU_TUNE_HIGH
     delay(10);
 

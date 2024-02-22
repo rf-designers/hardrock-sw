@@ -33,8 +33,6 @@ struct amp_state {
     volatile byte band = 6;
     byte oldBand = 0;
 
-    volatile bool isAtuTuning;
-    volatile bool isAtuActive;
 
     volatile bool pttEnabled;
 
@@ -85,9 +83,15 @@ struct atu_board {
     const char* getVersion() const;
     size_t query(const char* command, char* response, size_t maxLength);
     void println(const char* command);
+    void setTuning(bool enabled);
+    void setActive(bool active);
+    bool isTuning() const;
+    bool isActive() const;
 
     bool present = false;
     char version[8] = {};
+    volatile bool tuning;
+    volatile bool active;
 };
 
 struct display {

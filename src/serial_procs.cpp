@@ -225,15 +225,15 @@ void handleSerialMessage(char uart) {
         if (found != nullptr) {
             if (found[4] == ';') {
                 UART_send(uart, "HRTB");
-                UART_send_num(uart, amp.state.isAtuActive);
+                UART_send_num(uart, amp.atu.isActive());
                 UART_send_line(uart);
             }
             if (found[4] == '1') {
-                amp.state.isAtuActive = true;
+                amp.atu.setActive(true);
                 DrawATU();
             }
             if (found[4] == '0') {
-                amp.state.isAtuActive = false;
+                amp.atu.setActive(false);
                 DrawATU();
             }
         }
@@ -256,7 +256,7 @@ void handleSerialMessage(char uart) {
         found = strstr(workStringPtr, "HRTT");
         if (found != nullptr) {
             UART_send(uart, "HRTT");
-            UART_send_num(uart, amp.state.isAtuTuning);
+            UART_send_num(uart, amp.atu.isTuning());
             UART_send_line(uart);
         }
 
@@ -346,7 +346,7 @@ void handleSerialMessage(char uart) {
                     amp.state.antForBand[amp.state.band],
                     amp.state.txIsOn ? 1 : 0, amp.state.F_alert,
                     amp.state.R_alert, amp.state.D_alert,
-                    amp.state.V_alert, amp.state.I_alert, amp.state.isAtuTuning ? 1 : 0, amp.state.isAtuActive ? 1 : 0);
+                    amp.state.V_alert, amp.state.I_alert, amp.atu.isTuning() ? 1 : 0, amp.atu.isActive() ? 1 : 0);
             UART_send(uart, tbuff);
             UART_send_line(uart);
         }
