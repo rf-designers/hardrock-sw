@@ -11,7 +11,6 @@
 long freqLong = 0;
 char freqStr[7];
 
-
 extern char rxbuff[128]; // 128 byte circular Buffer for storing rx data
 extern char workingString[128];
 extern char rxbuff2[128]; // 128 byte circular Buffer for storing rx data
@@ -217,7 +216,7 @@ void handleSerialMessage(char uart) {
         found = strstr(workStringPtr, "HRAP");
         if (found != nullptr) {
             UART_send(uart, "HRAP");
-            UART_send_num(uart, amp.state.isAtuPresent);
+            UART_send_num(uart, amp.atu.isPresent());
             UART_send_line(uart);
         }
 
@@ -241,7 +240,7 @@ void handleSerialMessage(char uart) {
 
         // Press the TUNE button
         found = strstr(workStringPtr, "HRTU");
-        if (found != nullptr && amp.state.isAtuPresent) {
+        if (found != nullptr && amp.atu.isPresent()) {
             TuneButtonPressed();
         }
 
@@ -343,7 +342,8 @@ void handleSerialMessage(char uart) {
             }
 
             sprintf(tbuff, "HRST-%03d-%03d-%03d-%03d-%03d-%03d-%03d-%01d-%02d-%01d-%01d%01d%01d%01d%01d%01d%01d%01d-",
-                    stF, stR, stD, stS, stV, stI, stT, modeToEEPROM(amp.state.mode), amp.state.band, amp.state.antForBand[amp.state.band],
+                    stF, stR, stD, stS, stV, stI, stT, modeToEEPROM(amp.state.mode), amp.state.band,
+                    amp.state.antForBand[amp.state.band],
                     amp.state.txIsOn ? 1 : 0, amp.state.F_alert,
                     amp.state.R_alert, amp.state.D_alert,
                     amp.state.V_alert, amp.state.I_alert, amp.state.isAtuTuning ? 1 : 0, amp.state.isAtuActive ? 1 : 0);
@@ -366,7 +366,7 @@ void handleSerialMessage(char uart) {
 
         // communicate with ATU
         found = strstr(workStringPtr, "HRTM");
-        if (found != nullptr && amp.state.isAtuPresent) {
+        if (found != nullptr && amp.atu.isPresent()) {
             static char atuCmd[20] = {'*'};
             size_t cmdIdx = 1;
 
@@ -377,7 +377,7 @@ void handleSerialMessage(char uart) {
             atuCmd[cmdIdx] = 0;
 
             static char atuResponse[40];
-            auto readBytes = ATUQuery(atuCmd, atuResponse, 40);
+            auto readBytes = amp.atu.query(atuCmd, atuResponse, 40);
             if (readBytes > 0) {
                 UART_send(uart, "HRTM");
                 UART_send(uart, atuResponse);

@@ -65,6 +65,42 @@ void PrepareForFWUpdate() {
     digitalWrite(RST_OUT, LOW);
 }
 
+void atu_board::detect() {
+    Serial3.println(" ");
+    strcpy(version, "---");
+
+    char response[20] = {};
+
+    if (query("*I", response, 20) > 10) {
+        if (strncmp(response, "HR500 ATU", 9) == 0) {
+            present = true;
+
+            const auto versionSize = query("*V", response, 20);
+            strncpy(version, response, versionSize - 1);
+        }
+    }
+}
+
+bool atu_board::isPresent() const {
+    return present;
+}
+
+const char* atu_board::getVersion() const {
+    return version;
+}
+
+size_t atu_board::query(const char* command, char* response, size_t maxLength) {
+    Serial3.setTimeout(50);
+    Serial3.println(command);
+    const size_t receivedBytes = Serial3.readBytesUntil(0x13, response, maxLength);
+    response[receivedBytes] = 0;
+    return receivedBytes;
+}
+
+void atu_board::println(const char* command) {
+    Serial3.println(command);
+}
+
 void amplifier::setup() {
     SETUP_RELAY_CS
     RELAY_CS_HIGH
@@ -139,11 +175,11 @@ void amplifier::tripSet() {
     delay(1);
 
     BIAS_OFF
-    SendLPFRelayData(state.lpfBoardSerialData);
+    sendLPFRelayData(state.lpfBoardSerialData);
     RF_BYPASS
 }
 
-void amplifier::SendLPFRelayData(const byte data) {
+void amplifier::sendLPFRelayData(const byte data) {
     RELAY_CS_LOW
     SPI.beginTransaction(SPISettings(2000000, MSBFIRST, SPI_MODE3));
     SPI.transfer(data);
@@ -151,9 +187,9 @@ void amplifier::SendLPFRelayData(const byte data) {
     RELAY_CS_HIGH
 }
 
-void amplifier::SendLPFRelayDataSafe(byte data) {
+void amplifier::sendLPFRelayDataSafe(byte data) {
     noInterrupts();
-    SendLPFRelayData(data);
+    sendLPFRelayData(data);
     interrupts();
 }
 
@@ -303,7 +339,7 @@ void amplifier::handleTouchScreen2() {
 
                 if (state.menu_choice == mSETbias) {
                     BIAS_OFF
-                    SendLPFRelayDataSafe(state.lpfBoardSerialData);
+                    sendLPFRelayDataSafe(state.lpfBoardSerialData);
                     state.mode = state.old_mode;
                     state.MAX_CUR = 20;
                     state.Bias_Meter = 0;
@@ -367,14 +403,14 @@ void amplifier::handleTouchScreen2() {
 
             case 18:
             case 19:
-                if (state.isAtuPresent && !state.txIsOn) {
+                if (atu.isPresent() && !state.txIsOn) {
                     state.isAtuActive = !state.isAtuActive;
                     DrawATU();
                 }
                 break;
 
             case 12:
-                if (!state.isAtuPresent) {
+                if (!atu.isPresent()) {
                     Tft.LCD_SEL = 1;
                     Tft.lcd_clear_screen(GRAY);
                     DrawMenu();
@@ -383,7 +419,7 @@ void amplifier::handleTouchScreen2() {
                 break;
 
             case 7:
-                if (state.isAtuPresent) {
+                if (atu.isPresent()) {
                     Tft.LCD_SEL = 1;
                     Tft.lcd_clear_screen(GRAY);
                     DrawMenu();
@@ -392,7 +428,7 @@ void amplifier::handleTouchScreen2() {
                 break;
 
             case 17:
-                if (state.isAtuPresent) {
+                if (atu.isPresent()) {
                     TuneButtonPressed();
                 }
             }
@@ -439,58 +475,58 @@ void amplifier::setBand() {
     switch (state.band) {
     case 0:
         lpfSerialData = 0x00;
-        ATUPrintln("*B0");
+        atu.println("*B0");
         break;
     case 1:
         lpfSerialData = 0x20;
-        ATUPrintln("*B1");
+        atu.println("*B1");
         break;
     case 2:
         lpfSerialData = 0x20;
-        ATUPrintln("*B2");
+        atu.println("*B2");
         break;
     case 3:
         lpfSerialData = 0x20;
-        ATUPrintln("*B3");
+        atu.println("*B3");
         break;
     case 4:
         lpfSerialData = 0x08;
-        ATUPrintln("*B4");
+        atu.println("*B4");
         break;
     case 5:
         lpfSerialData = 0x08;
-        ATUPrintln("*B5");
+        atu.println("*B5");
         break;
     case 6:
         lpfSerialData = 0x04;
-        ATUPrintln("*B6");
+        atu.println("*B6");
         break;
     case 7:
         lpfSerialData = 0x04;
-        ATUPrintln("*B7");
+        atu.println("*B7");
         break;
     case 8:
         lpfSerialData = 0x02;
-        ATUPrintln("*B8");
+        atu.println("*B8");
         break;
     case 9:
         lpfSerialData = 0x01;
-        ATUPrintln("*B9");
+        atu.println("*B9");
         break;
     case 10:
         lpfSerialData = 0x00;
-        ATUPrintln("*B10");
+        atu.println("*B10");
         break;
     }
 
-    if (state.isAtuPresent && !state.isMenuActive) {
+    if (atu.isPresent() && !state.isMenuActive) {
         Tft.LCD_SEL = 1;
         Tft.lcd_fill_rect(121, 142, 74, 21, MGRAY);
     }
 
     state.lpfBoardSerialData = lpfSerialData;
     if (state.band != state.oldBand) {
-        SendLPFRelayData(state.lpfBoardSerialData);
+        sendLPFRelayData(state.lpfBoardSerialData);
 
         // delete old band (dirty rectangles)
         Tft.LCD_SEL = 1;
@@ -505,4 +541,35 @@ void amplifier::setBand() {
         EEPROM.write(eeband, state.band);
         DrawAnt();
     }
+}
+
+void amplifier::switchToTX() {
+    state.F_alert = 1;
+    state.R_alert = 1;
+    state.D_alert = 1;
+    state.V_alert = 1;
+    state.I_alert = 1;
+    state.OF_alert = 0;
+    state.OR_alert = 0;
+    state.OD_alert = 0;
+    state.OV_alert = 0;
+    state.OI_alert = 0;
+
+    delay(20);
+    RESET_PULSE
+    state.s_disp = 19;
+
+    DrawRxButtons(DGRAY);
+    DrawTxPanel(RED);
+}
+
+void amplifier::switchToRX() {
+    DrawRxButtons(GBLUE);
+    DrawTxPanel(GREEN);
+    tripClear();
+    RESET_PULSE
+    Tft.LCD_SEL = 0;
+    Tft.lcd_fill_rect(70, 203, 36, 16, MGRAY);
+    Tft.drawString((uint8_t*)state.RL_TXT, 70, 203, 2, LGRAY);
+    strcpy(state.ORL_TXT, "   ");
 }

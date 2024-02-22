@@ -34,11 +34,13 @@ struct amp_state {
     byte oldBand = 0;
 
     volatile bool isAtuTuning;
-    volatile bool isAtuPresent;
     volatile bool isAtuActive;
-    char atuVersion[8]; // version of ATU
 
     volatile bool pttEnabled;
+
+    int s_disp = 19;
+    char RL_TXT[4] = {"-.-"};
+    char ORL_TXT[4] = {"..."};
 
     volatile int timeToTouch = 0; // countdown for TS touching. this gets decremented in timer ISR
     byte menu_choice = 0;
@@ -78,6 +80,14 @@ struct lpf_board {
 };
 
 struct atu_board {
+    void detect();
+    bool isPresent() const;
+    const char* getVersion() const;
+    size_t query(const char* command, char* response, size_t maxLength);
+    void println(const char* command);
+
+    bool present = false;
+    char version[8] = {};
 };
 
 struct display {
@@ -93,8 +103,8 @@ struct amplifier {
 
     void tripClear();
     void tripSet();
-    void SendLPFRelayData(byte data);
-    void SendLPFRelayDataSafe(byte data);
+    void sendLPFRelayData(byte data);
+    void sendLPFRelayDataSafe(byte data);
     void readInputFrequency();
     void handleTouchScreen1();
     void handleTouchScreen2();
@@ -102,6 +112,8 @@ struct amplifier {
     void enablePTTDetector();
     void disablePTTDetector();
     void setBand();
+    void switchToTX();
+    void switchToRX();
 
     amp_state state;
     atu_board atu;

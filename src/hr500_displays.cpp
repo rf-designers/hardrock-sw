@@ -17,12 +17,12 @@ void drawHome() {
     DrawButton(5, 185, 88, 50);
     DrawButton(227, 185, 88, 50);
 
-    if (amp.state.isAtuPresent == 0) {
-        DrawButton(130, 135, 60, 30);
-    } else {
+    if (amp.atu.isPresent()) {
         DrawButton(130, 85, 60, 30);
         DrawButton(116, 185, 88, 50);
         DrawPanel(116, 128, 88, 50);
+    } else {
+        DrawButton(130, 135, 60, 30);
     }
 
     DrawPanel(5, 8, 118, 50);
@@ -59,7 +59,7 @@ void DrawMenu() {
     Tft.drawString((char *) "SELECT", 124, 132, 2, GBLUE);
     amp.state.menuSEL = 0;
     Tft.drawString((char *) "ATU:", 206, 190, 2, LGRAY);
-    Tft.drawString(amp.state.atuVersion, 254, 190, 2, LGRAY);
+    Tft.drawString(amp.atu.getVersion(), 254, 190, 2, LGRAY);
     Tft.drawString((char *) "FW:", 206, 213, 2, LGRAY);
     Tft.drawString((char *) VERSION, 244, 213, 2, LGRAY);
 }
@@ -103,15 +103,15 @@ void DrawRxButtons(uint16_t bcolor) {
     Tft.drawString((char *) ">", 279, 79, 3, bcolor);
     Tft.drawString((char *) "ANT", 21, 199, 3, bcolor);
 
-    if (amp.state.isAtuPresent == 0) {
-        Tft.drawString((char *) "MENU", 135, 143, 2, bcolor);
-    } else {
+    if (amp.atu.isPresent()) {
         Tft.drawString((char *) "MENU", 135, 93, 2, bcolor);
         Tft.drawString((char *) "TUNA", 122, 199, 3, GBLUE);
         //Tft.drawString((char*)"----", 122, 142,  3, LBLUE);
+    } else {
+        Tft.drawString((char *) "MENU", 135, 143, 2, bcolor);
     }
 
-    if (amp.state.isAtuPresent == 0) bcolor = DGRAY;
+    if (!amp.atu.isPresent()) bcolor = DGRAY;
 
     Tft.drawString((char *) "ATU", 244, 199, 3, bcolor);
 }
@@ -315,7 +315,7 @@ void DrawAnt() {
         SEL_ANT2;
     }
 
-    if (amp.state.isAtuPresent) {
+    if (amp.atu.isPresent()) {
         Tft.LCD_SEL = 1;
         Tft.lcd_fill_rect(121, 142, 74, 21, MGRAY);
     }
@@ -327,9 +327,7 @@ void DrawATU() {
     Tft.LCD_SEL = 1;
     Tft.lcd_fill_rect(244, 142, 54, 21, MGRAY);
 
-    if (!amp.state.isAtuPresent) {
-        Tft.drawString((char *) "---", 244, 142, 3, LBLUE);
-    } else {
+    if (amp.atu.isPresent()) {
         if (!amp.state.isAtuActive) {
             Tft.drawString((char *) "BYP", 244, 142, 3, LBLUE);
             Serial3.println("*Y1");
@@ -341,5 +339,7 @@ void DrawATU() {
         }
 
         EEPROM.write(eeatub, amp.state.isAtuActive);
+    } else {
+        Tft.drawString((char *) "---", 244, 142, 3, LBLUE);
     }
 }

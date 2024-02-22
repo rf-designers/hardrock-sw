@@ -9,41 +9,8 @@
 
 char ATU_buff[40];
 extern TFT Tft;
-extern char RL_TXT[];
-extern char ORL_TXT[];
 extern char ATU_STAT;
 extern amplifier amp;
-
-void SwitchToRX();
-
-size_t ATUQuery(const char* command, char* response, const size_t maxLength) {
-    Serial3.setTimeout(50);
-    Serial3.println(command);
-    const size_t receivedBytes = Serial3.readBytesUntil(0x13, response, maxLength);
-    response[receivedBytes] = 0;
-    return receivedBytes;
-}
-
-void ATUPrintln(const char* command) {
-    Serial3.println(command);
-}
-
-void detectATU() {
-    Serial3.println(" ");
-    strcpy(amp.state.atuVersion, "---");
-
-    if (ATUQuery("*I") > 10) {
-        if (strncmp(ATU_buff, "HR500 ATU", 9) == 0) {
-            amp.state.isAtuPresent = true;
-            const auto c = ATUQuery("*V");
-            strncpy(amp.state.atuVersion, ATU_buff, c - 1);
-        }
-    }
-}
-
-size_t ATUQuery(const char* command) {
-    return ATUQuery(command, ATU_buff, 28);
-}
 
 void TuneButtonPressed() {
     while (amp.ts2.touched());
@@ -58,8 +25,8 @@ void TuneButtonPressed() {
             DrawATU();
         }
 
-        Tft.drawString((uint8_t *) "STOP", 122, 199, 3, GBLUE);
-        Tft.drawString((uint8_t *) "TUNING", 122, 142, 2, LBLUE);
+        Tft.drawString((uint8_t*)"STOP", 122, 199, 3, GBLUE);
+        Tft.drawString((uint8_t*)"TUNING", 122, 142, 2, LBLUE);
         amp.state.isAtuTuning = true;
 
         // If the TX is on, turn it off
@@ -67,7 +34,7 @@ void TuneButtonPressed() {
             amp.state.pttEnabled = false;
             BIAS_OFF
             amp.state.txIsOn = false;
-            amp.SendLPFRelayData(amp.state.lpfBoardSerialData);
+            amp.sendLPFRelayData(amp.state.lpfBoardSerialData);
             RF_BYPASS
         }
 
@@ -82,52 +49,53 @@ void TuneEnd() {
     Tft.LCD_SEL = 1;
     Tft.lcd_fill_rect(121, 142, 74, 21, MGRAY);
     Tft.lcd_fill_rect(121, 199, 74, 21, GRAY);
-    Tft.drawString((uint8_t *) "TUNE", 122, 199, 3, GBLUE);
+    Tft.drawString((uint8_t*)"TUNE", 122, 199, 3, GBLUE);
     amp.state.isAtuTuning = false;
     ATU_TUNE_HIGH
     delay(10);
 
 
-    ATUQuery("*S", ATU_buff, 5);
-    strcpy(RL_TXT, "   ");
+    amp.atu.query("*S", ATU_buff, 5);
+    strcpy(amp.state.RL_TXT, "   ");
     ATU_STAT = ATU_buff[0];
 
     switch (ATU_STAT) {
-        case 'F':
-            Tft.drawString((uint8_t *) "FAILED", 122, 142, 2, RED);
-            break;
-        case 'E':
-            Tft.drawString((uint8_t *) "HI SWR", 122, 142, 2, RED);
-            break;
-        case 'H':
-            Tft.drawString((uint8_t *) "HI PWR", 122, 142, 2, YELLOW);
-            break;
-        case 'L':
-            Tft.drawString((uint8_t *) "LO PWR", 122, 142, 2, YELLOW);
-            break;
-        case 'A':
-            Tft.drawString((uint8_t *) "CANCEL", 122, 142, 2, GREEN);
-            break;
-        case 'T':
-        case 'S': {
-            Tft.drawString((uint8_t *) "TUNED", 128, 142, 2, GREEN);
+    case 'F':
+        Tft.drawString((uint8_t*)"FAILED", 122, 142, 2, RED);
+        break;
+    case 'E':
+        Tft.drawString((uint8_t*)"HI SWR", 122, 142, 2, RED);
+        break;
+    case 'H':
+        Tft.drawString((uint8_t*)"HI PWR", 122, 142, 2, YELLOW);
+        break;
+    case 'L':
+        Tft.drawString((uint8_t*)"LO PWR", 122, 142, 2, YELLOW);
+        break;
+    case 'A':
+        Tft.drawString((uint8_t*)"CANCEL", 122, 142, 2, GREEN);
+        break;
+    case 'T':
+    case 'S':
+        {
+            Tft.drawString((uint8_t*)"TUNED", 128, 142, 2, GREEN);
 
-            ATUQuery("*F", ATU_buff, 8);
+            amp.atu.query("*F", ATU_buff, 8);
 
             unsigned char RL_CH = (ATU_buff[0] - 48) * 100 + (ATU_buff[1] - 48) * 10 + (ATU_buff[2] - 48);
             int SWR = swr[RL_CH] / 10;
-            sprintf(RL_TXT, "%d.%d", SWR / 10, SWR % 10);
+            sprintf(amp.state.RL_TXT, "%d.%d", SWR / 10, SWR % 10);
             Tft.LCD_SEL = 0;
             Tft.lcd_fill_rect(70, 203, 36, 16, MGRAY);
-            Tft.drawString((uint8_t *) RL_TXT, 70, 203, 2, GRAY);
-            strcpy(ORL_TXT, RL_TXT);
+            Tft.drawString((uint8_t*)amp.state.RL_TXT, 70, 203, 2, GRAY);
+            strcpy(amp.state.ORL_TXT, amp.state.RL_TXT);
             break;
         }
 
-        default:
-            // TODO: figure out what to do
-            break;
+    default:
+        // TODO: figure out what to do
+        break;
     }
 
-    SwitchToRX(); //redraw the RX screen
+    amp.switchToRX(); // redraw the RX screen
 }

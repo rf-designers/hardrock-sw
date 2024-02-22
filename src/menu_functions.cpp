@@ -133,7 +133,7 @@ void menuSelect() {
             amp.state.mode = mode_type::ptt;
             amp.state.MAX_CUR = 3;
             amp.state.Bias_Meter = 1;
-            amp.SendLPFRelayData(amp.state.lpfBoardSerialData + 0x02);
+            amp.sendLPFRelayData(amp.state.lpfBoardSerialData + 0x02);
             BIAS_ON
         }
     } else {
@@ -150,7 +150,7 @@ void menuSelect() {
 
         if (amp.state.menu_choice == mSETbias) {
             BIAS_OFF
-            amp.SendLPFRelayData(amp.state.lpfBoardSerialData);
+            amp.sendLPFRelayData(amp.state.lpfBoardSerialData);
             amp.state.mode = amp.state.old_mode;
             amp.state.MAX_CUR = 20;
             amp.state.Bias_Meter = 0;

@@ -11,13 +11,10 @@ Version 3.5
 #include "menu_functions.h"
 #include "serial_procs.h"
 #include <EEPROM.h>
-#include <FreqCount.h>
 #include <HR500.h>
 #include <HR500X.h>
-#include <SPI.h>
 #include <TimerOne.h>
 #include <Wire.h>
-#include <stdint.h>
 
 amplifier amp;
 
@@ -151,47 +148,13 @@ char TEMPbuff[16];
 int s_count = 0;
 
 unsigned int F_bar = 9, OF_bar = 9;
-char RL_TXT[] = {"-.-"};
-char ORL_TXT[] = {"..."};
 
 int t_read;
-int s_disp = 19;
 
 char bias_text[] = {"          "};
 int old_bias_current = -1;
 int otemp = -99;
 byte FTband;
-
-void SwitchToTX() {
-    amp.state.F_alert = 1;
-    amp.state.R_alert = 1;
-    amp.state.D_alert = 1;
-    amp.state.V_alert = 1;
-    amp.state.I_alert = 1;
-    amp.state.OF_alert = 0;
-    amp.state.OR_alert = 0;
-    amp.state.OD_alert = 0;
-    amp.state.OV_alert = 0;
-    amp.state.OI_alert = 0;
-
-    delay(20);
-    RESET_PULSE
-    s_disp = 19;
-
-    DrawRxButtons(DGRAY);
-    DrawTxPanel(RED);
-}
-
-void SwitchToRX() {
-    DrawRxButtons(GBLUE);
-    DrawTxPanel(GREEN);
-    amp.tripClear();
-    RESET_PULSE
-    Tft.LCD_SEL = 0;
-    Tft.lcd_fill_rect(70, 203, 36, 16, MGRAY);
-    Tft.drawString((uint8_t*)RL_TXT, 70, 203, 2, LGRAY);
-    strcpy(ORL_TXT, "   ");
-}
 
 byte FT817det() {
     const int ftv = AnalogRead(FT817_V);
@@ -240,7 +203,6 @@ byte Xiegudet() {
 
     return 1;
 }
-
 
 
 // speed = [0,3]
@@ -409,7 +371,7 @@ void setup() {
     drawMeter();
 
     Serial3.begin(19200); // ATU
-    detectATU();
+    amp.atu.detect();
 
     drawHome();
     Tft.LCD_SEL = 0;
@@ -445,14 +407,14 @@ ISR(PCINT0_vect) {
     if (pttEnabledNow && !amp.state.pttEnabled) {
         amp.state.pttEnabled = true;
         RF_ACTIVE
-        amp.SendLPFRelayData(amp.state.lpfBoardSerialData + 0x10);
+        amp.sendLPFRelayData(amp.state.lpfBoardSerialData + 0x10);
         BIAS_ON
         amp.state.txIsOn = true;
     } else {
         amp.state.pttEnabled = false;
         BIAS_OFF
         amp.state.txIsOn = false;
-        amp.SendLPFRelayData(amp.state.lpfBoardSerialData);
+        amp.sendLPFRelayData(amp.state.lpfBoardSerialData);
         RF_BYPASS
     }
 }
@@ -507,17 +469,17 @@ void loop() {
             }
         }
 
-        if (s_disp++ == 20 && f_tot > 250 && amp.state.txIsOn) {
+        if (amp.state.s_disp++ == 20 && f_tot > 250 && amp.state.txIsOn) {
             const auto vswr = ReadPower(power_type::vswr);
-            s_disp = 0;
+            amp.state.s_disp = 0;
             if (vswr > 9)
-                sprintf(RL_TXT, "%d.%d", vswr / 10, vswr % 10);
+                sprintf(amp.state.RL_TXT, "%d.%d", vswr / 10, vswr % 10);
 
-            if (strcmp(ORL_TXT, RL_TXT) != 0) {
+            if (strcmp(amp.state.ORL_TXT, amp.state.RL_TXT) != 0) {
                 Tft.LCD_SEL = 0;
                 Tft.lcd_fill_rect(70, 203, 36, 16, MGRAY);
-                Tft.drawString((uint8_t*)RL_TXT, 70, 203, 2, WHITE);
-                strcpy(ORL_TXT, RL_TXT);
+                Tft.drawString((uint8_t*)amp.state.RL_TXT, 70, 203, 2, WHITE);
+                strcpy(amp.state.ORL_TXT, amp.state.RL_TXT);
             }
         }
 
@@ -534,21 +496,21 @@ void loop() {
 
         if (amp.state.pttEnabled) {
             if (amp.state.mode != mode_type::standby) {
-                SwitchToTX();
+                amp.switchToTX();
             }
 
             const auto pttEnabledNow = digitalRead(PTT_DET) == 1;
             if (!pttEnabledNow && amp.state.mode == mode_type::ptt) {
-                SwitchToRX();
+                amp.switchToRX();
             }
         } else {
             if (amp.state.mode != mode_type::standby) {
-                SwitchToRX();
+                amp.switchToRX();
             }
 
             const auto pttEnabledNow = digitalRead(PTT_DET) == 1;
             if (pttEnabledNow) {
-                SwitchToTX();
+                amp.switchToTX();
             }
         }
     }
