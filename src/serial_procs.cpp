@@ -391,7 +391,7 @@ void handleSerialMessage(char uart) {
             UART_send(uart, "Last ATU response has ");
             UART_send_num(uart, amp.atu.last_response_size);
             UART_send(uart, " bytes. Content: [");
-            for (auto i = 0; i < amp.atu.last_response_size; i++) {
+            for (size_t i = 0; i < amp.atu.last_response_size; i++) {
                 if (isprint(amp.atu.last_response[i])) {
                     UART_send_char(uart, amp.atu.last_response[i]);
                 } else {

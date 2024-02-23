@@ -292,7 +292,7 @@ void TFT::drawString(const char *string,uint16_t poX, uint16_t poY, uint16_t siz
     while(*string)
     {
         drawChar(*string, poX, poY, size, fgcolor);
-        *string++;
+        string++;
 
         if(poX < MAX_X)
         {
@@ -306,7 +306,7 @@ void TFT::drawHString(uint8_t *string,uint16_t poX, uint16_t poY, uint16_t size,
     while(*string)
     {
         drawHChar(*string, poX, poY, size, fgcolor);
-        *string++;
+        string++;
 
         if(poY < MAX_Y)
         {
@@ -366,10 +366,10 @@ void TFT::lcd_display_string(uint16_t hwXpos, //specify x position.
 	}
 	
     while (*pchString != '\0') {       
-        if (hwXpos > (319 - chSize / 2)) {
+        if (hwXpos > (319U - chSize / 2)) {
 			hwXpos = 0;
 			hwXpos += chSize;
-			if (hwYpos > (239 - chSize)) {
+			if (hwYpos > (239U - chSize)) {
 				hwYpos = hwXpos = 0;
 				//lcd_clear_screen(0x00);
 			}
