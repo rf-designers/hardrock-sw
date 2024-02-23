@@ -9,7 +9,6 @@ uploading new firmware from terminal (suppose device is on /dev/ttyUSB2)
     # build solution
     pio run -e megaatmega2560
 
-    # make the amp enter firmware update mode
-    echo -n "HRFW;\n\r" >/dev/ttyUSB2
-    # and then immediately paste
-    avrdude -v -patmega2560 -cwiring -P/dev/ttyUSB1 -b115200 -D -Uflash:w:.pio/build/megaatmega2560/firmware.hex:i
+    # upload it by running
+    uploader/uploader
+
