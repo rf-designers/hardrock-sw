@@ -407,14 +407,14 @@ ISR(PCINT0_vect) {
     if (pttEnabledNow && !amp.state.pttEnabled) {
         amp.state.pttEnabled = true;
         RF_ACTIVE
-        amp.sendLPFRelayData(amp.state.lpfBoardSerialData + 0x10);
+        amp.lpf.sendRelayData(amp.lpf.serialData + 0x10);
         BIAS_ON
         amp.state.txIsOn = true;
     } else {
         amp.state.pttEnabled = false;
         BIAS_OFF
         amp.state.txIsOn = false;
-        amp.sendLPFRelayData(amp.state.lpfBoardSerialData);
+        amp.lpf.sendRelayData(amp.lpf.serialData);
         RF_BYPASS
     }
 }
@@ -456,16 +456,15 @@ void loop() {
                 Tft.lcd_draw_v_line(--OF_bar, 101, 12, MGRAY);
         }
 
-        if (amp.state.Bias_Meter == 1) {
-            int bias_current = ReadCurrent() * 5;
-
+        if (amp.state.biasMeter) {
+            const int bias_current = ReadCurrent() * 5;
             if (bias_current != old_bias_current) {
                 old_bias_current = bias_current;
                 Tft.LCD_SEL = 1;
-                Tft.drawString((uint8_t*)bias_text, 65, 80, 2, MGRAY);
+                Tft.drawString(bias_text, 65, 80, 2, MGRAY);
 
                 sprintf(bias_text, "  %d mA", bias_current);
-                Tft.drawString((uint8_t*)bias_text, 65, 80, 2, WHITE);
+                Tft.drawString(bias_text, 65, 80, 2, WHITE);
             }
         }
 
@@ -478,7 +477,7 @@ void loop() {
             if (strcmp(amp.state.ORL_TXT, amp.state.RL_TXT) != 0) {
                 Tft.LCD_SEL = 0;
                 Tft.lcd_fill_rect(70, 203, 36, 16, MGRAY);
-                Tft.drawString((uint8_t*)amp.state.RL_TXT, 70, 203, 2, WHITE);
+                Tft.drawString(amp.state.RL_TXT, 70, 203, 2, WHITE);
                 strcpy(amp.state.ORL_TXT, amp.state.RL_TXT);
             }
         }
@@ -654,19 +653,16 @@ void updateAlarms() {
     }
 
     // voltage alert
-    int dc_vol = ReadVoltage();
-
-    if (dc_vol < 1800)
+    const int dc_vol = ReadVoltage();
+    amp.state.V_alert = 1;
+    if (dc_vol < 1800 || dc_vol > 3000) {
         amp.state.V_alert = 2;
-    else if (dc_vol > 3000)
-        amp.state.V_alert = 2;
-    else
-        amp.state.V_alert = 1;
+    }
 
     if (amp.state.V_alert != amp.state.OV_alert) {
         amp.state.OV_alert = amp.state.V_alert;
-        unsigned int r_col = GREEN;
 
+        unsigned int r_col = GREEN;
         if (amp.state.V_alert == 2) {
             r_col = YELLOW;
         }
@@ -739,14 +735,14 @@ void updateTemperatureDisplay() {
     if (t_read != otemp) {
         otemp = t_read;
         Tft.LCD_SEL = 0;
-        Tft.drawString((uint8_t*)TEMPbuff, 237, 203, 2, DGRAY);
+        Tft.drawString(TEMPbuff, 237, 203, 2, DGRAY);
         if (amp.state.tempInCelsius) {
             sprintf(TEMPbuff, "%d&C", t_read);
         } else {
             sprintf(TEMPbuff, "%d&F", t_read);
         }
 
-        Tft.drawString((uint8_t*)TEMPbuff, 237, 203, 2, t_color);
+        Tft.drawString(TEMPbuff, 237, 203, 2, t_color);
     }
 }
 

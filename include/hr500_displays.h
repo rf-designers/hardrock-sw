@@ -12,6 +12,6 @@ void DrawButtonUp(int button);
 void DrawPanel(int x, int y, int w, int h);
 void DrawTxPanel(uint16_t pcolor);
 void DrawMode();
-void DrawBand(byte Band, uint16_t bcolor);
+void DrawBand(byte band, uint16_t color);
 void DrawAnt();
 void DrawATU();

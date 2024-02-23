@@ -19,7 +19,7 @@ void setTransceiver(byte s_xcvr);
 
 void menuUpdate(byte item, byte changeDirection) {
     Tft.LCD_SEL = 1;
-    Tft.drawString((uint8_t *) item_disp[item], 65, 80, 2, MGRAY);
+    Tft.drawString(item_disp[item], 65, 80, 2, MGRAY);
 
     switch (item) {
         case mACCbaud:
@@ -105,71 +105,70 @@ void menuUpdate(byte item, byte changeDirection) {
             break;
     }
 
-    Tft.drawString((uint8_t *) item_disp[item], 65, 80, 2, WHITE);
+    Tft.drawString(item_disp[item], 65, 80, 2, WHITE);
 }
 
 void menuSelect() {
     Tft.LCD_SEL = 1;
 
-    if (amp.state.menuSEL == 0) {
-        amp.state.menuSEL = 1;
-        Tft.drawString((uint8_t *) menu_items[amp.state.menu_choice], 65, 20, 2, LGRAY);
+    if (!amp.state.menuSelected) {
+        amp.state.menuSelected = true;
+        Tft.drawString(menu_items[amp.state.menuChoice], 65, 20, 2, LGRAY);
         Tft.lcd_fill_rect(14, 8, 41, 45, GRAY);
         Tft.lcd_fill_rect(266, 8, 41, 45, GRAY);
 
-        if (amp.state.menu_choice != mSETbias && amp.state.menu_choice != mATWfwl) {
-            Tft.drawString((uint8_t *) item_disp[amp.state.menu_choice], 65, 80, 2, WHITE);
+        if (amp.state.menuChoice != mSETbias && amp.state.menuChoice != mATWfwl) {
+            Tft.drawString(item_disp[amp.state.menuChoice], 65, 80, 2, WHITE);
             DrawButton(14, 68, 40, 44);
-            Tft.drawString((uint8_t *) "<", 24, 78, 4, GBLUE);
+            Tft.drawString("<", 24, 78, 4, GBLUE);
             DrawButton(266, 68, 40, 44);
-            Tft.drawString((uint8_t *) ">", 274, 78, 4, GBLUE);
+            Tft.drawString(">", 274, 78, 4, GBLUE);
         }
 
-        Tft.drawString((uint8_t *) "SELECT", 124, 132, 2, GRAY);
-        Tft.drawString((uint8_t *) "OK", 150, 132, 2, GBLUE);
+        Tft.drawString("SELECT", 124, 132, 2, GRAY);
+        Tft.drawString("OK", 150, 132, 2, GBLUE);
 
-        if (amp.state.menu_choice == mSETbias) {
+        if (amp.state.menuChoice == mSETbias) {
             amp.state.old_mode = amp.state.mode;
             amp.state.mode = mode_type::ptt;
             amp.state.MAX_CUR = 3;
-            amp.state.Bias_Meter = 1;
-            amp.sendLPFRelayData(amp.state.lpfBoardSerialData + 0x02);
+            amp.state.biasMeter = true;
+            amp.lpf.sendRelayData(amp.lpf.serialData + 0x02);
             BIAS_ON
         }
     } else {
-        Tft.drawString((uint8_t *) "OK", 150, 132, 2, MGRAY);
-        amp.state.menuSEL = 0;
-        Tft.drawString((uint8_t *) menu_items[amp.state.menu_choice], 65, 20, 2, WHITE);
-        Tft.drawString((uint8_t *) item_disp[amp.state.menu_choice], 65, 80, 2, LGRAY);
+        Tft.drawString("OK", 150, 132, 2, MGRAY);
+        amp.state.menuSelected = 0;
+        Tft.drawString(menu_items[amp.state.menuChoice], 65, 20, 2, WHITE);
+        Tft.drawString(item_disp[amp.state.menuChoice], 65, 80, 2, LGRAY);
         Tft.lcd_fill_rect(14, 68, 41, 45, GRAY);
         Tft.lcd_fill_rect(266, 68, 41, 45, GRAY);
         DrawButton(14, 8, 40, 44);
-        Tft.drawString((uint8_t *) "<", 24, 18, 4, GBLUE);
+        Tft.drawString("<", 24, 18, 4, GBLUE);
         DrawButton(266, 8, 40, 44);
-        Tft.drawString((uint8_t *) ">", 274, 18, 4, GBLUE);
+        Tft.drawString(">", 274, 18, 4, GBLUE);
 
-        if (amp.state.menu_choice == mSETbias) {
+        if (amp.state.menuChoice == mSETbias) {
             BIAS_OFF
-            amp.sendLPFRelayData(amp.state.lpfBoardSerialData);
+            amp.lpf.sendRelayData(amp.lpf.serialData);
             amp.state.mode = amp.state.old_mode;
             amp.state.MAX_CUR = 20;
-            amp.state.Bias_Meter = 0;
+            amp.state.biasMeter = false;
             Tft.lcd_fill_rect(62, 70, 196, 40, MGRAY);
         }
 
-        if (amp.state.menu_choice == mATWfwl) {
-            Tft.drawString((uint8_t *) "  Updating ATU  ", 65, 80, 2, WHITE);
+        if (amp.state.menuChoice == mATWfwl) {
+            Tft.drawString("  Updating ATU  ", 65, 80, 2, WHITE);
             Serial.begin(19200);
             Serial3.println("*u");
 
-            while (1) {
+            while (true) {
                 if (Serial.available()) Serial3.write(Serial.read());
-
                 if (Serial3.available()) Serial.write(Serial3.read());
             }
         }
 
-        Tft.drawString((uint8_t *) "SELECT", 124, 132, 2, GBLUE);
+        Tft.drawString("SELECT", 124, 132, 2, GBLUE);
     }
 }
 
@@ -179,19 +178,19 @@ void SetupAccSerial(const serial_speed speed) {
     switch (speed) {
         case serial_speed::baud_4800:
             Serial2.begin(4800);
-            item_disp[mACCbaud] = (char *) "   4800 Baud    ";
+            strcpy(item_disp[mACCbaud], "   4800 Baud    ");
             break;
         case serial_speed::baud_9600:
-            Serial2.begin(00);
-            item_disp[mACCbaud] = (char *) "   9600 Baud    ";
+            Serial2.begin(9600);
+            strcpy(item_disp[mACCbaud], "   9600 Baud    ");
             break;
         case serial_speed::baud_19200:
             Serial2.begin(19200);
-            item_disp[mACCbaud] = (char *) "   19200 Baud   ";
+            strcpy(item_disp[mACCbaud], "   19200 Baud   ");
             break;
         case serial_speed::baud_38400:
             Serial2.begin(38400);
-            item_disp[mACCbaud] = (char *) "   38400 Baud   ";
+            strcpy(item_disp[mACCbaud], "   38400 Baud   ");
             break;
         case serial_speed::baud_57600:
         case serial_speed::baud_115200:
@@ -207,27 +206,27 @@ void SetupUSBSerial(const serial_speed speed) {
     switch (speed) {
         case serial_speed::baud_4800:
             Serial.begin(4800);
-            item_disp[mUSBbaud] = (char *) "   4800 Baud    ";
+            strcpy(item_disp[mUSBbaud], "   4800 Baud    ");
             break;
         case serial_speed::baud_9600:
             Serial.begin(9600);
-            item_disp[mUSBbaud] = (char *) "   9600 Baud    ";
+            strcpy(item_disp[mUSBbaud], "   9600 Baud    ");
             break;
         case serial_speed::baud_19200:
             Serial.begin(19200);
-            item_disp[mUSBbaud] = (char *) "   19200 Baud   ";
+            strcpy(item_disp[mUSBbaud], "   19200 Baud   ");
             break;
         case serial_speed::baud_38400:
             Serial.begin(38400);
-            item_disp[mUSBbaud] = (char *) "   38400 Baud   ";
+            strcpy(item_disp[mUSBbaud], "   38400 Baud   ");
             break;
         case serial_speed::baud_57600:
             Serial.begin(57600);
-            item_disp[mUSBbaud] = (char *) "   57600 Baud   ";
+            strcpy(item_disp[mUSBbaud], "   57600 Baud   ");
             break;
         case serial_speed::baud_115200:
             Serial.begin(115200);
-            item_disp[mUSBbaud] = (char *) "  115200 Baud   ";
+            strcpy(item_disp[mUSBbaud], "  115200 Baud   ");
             break;
         default:
             // TODO: figure out what to do here

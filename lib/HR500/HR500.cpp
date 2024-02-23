@@ -287,7 +287,7 @@ void TFT::drawHChar( uint8_t ascii, uint16_t poX, uint16_t poY,uint16_t size, ui
 }
 
 
-void TFT::drawString(uint8_t *string,uint16_t poX, uint16_t poY, uint16_t size,uint16_t fgcolor)
+void TFT::drawString(const char *string,uint16_t poX, uint16_t poY, uint16_t size,uint16_t fgcolor)
 {
     while(*string)
     {

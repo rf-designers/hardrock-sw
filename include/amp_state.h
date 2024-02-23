@@ -41,9 +41,9 @@ struct amp_state {
     char ORL_TXT[4] = {"..."};
 
     volatile int timeToTouch = 0; // countdown for TS touching. this gets decremented in timer ISR
-    byte menu_choice = 0;
-    byte menuSEL = 0;
-    byte Bias_Meter = 0;
+    byte menuChoice = 0;
+    bool menuSelected = false;
+    bool biasMeter = false;
     int MAX_CUR = 20;
 
     // alerts
@@ -57,7 +57,6 @@ struct amp_state {
     byte antForBand[11] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}; // antenna selection for each band
     bool isMenuActive; // 0 is normal, 1 is menu mode
     bool tempInCelsius = true; // display temperature in Celsius?
-    volatile byte lpfBoardSerialData = 0; // serial data to be sent to LPF
 
     serial_speed accSpeed;
     serial_speed usbSpeed;
@@ -75,6 +74,10 @@ uint8_t speedToEEPROM(serial_speed speed);
 void PrepareForFWUpdate();
 
 struct lpf_board {
+    void sendRelayData(byte data);
+    void sendRelayDataSafe(byte data);
+
+    volatile byte serialData = 0; // serial data to be sent to LPF
 };
 
 struct atu_board {
@@ -107,8 +110,6 @@ struct amplifier {
 
     void tripClear();
     void tripSet();
-    void sendLPFRelayData(byte data);
-    void sendLPFRelayDataSafe(byte data);
     void readInputFrequency();
     void handleTouchScreen1();
     void handleTouchScreen2();

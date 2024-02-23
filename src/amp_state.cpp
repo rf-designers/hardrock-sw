@@ -191,11 +191,11 @@ void amplifier::tripSet() {
     delay(1);
 
     BIAS_OFF
-    sendLPFRelayData(state.lpfBoardSerialData);
+    lpf.sendRelayData(lpf.serialData);
     RF_BYPASS
 }
 
-void amplifier::sendLPFRelayData(const byte data) {
+void lpf_board::sendRelayData(const byte data) {
     RELAY_CS_LOW
     SPI.beginTransaction(SPISettings(2000000, MSBFIRST, SPI_MODE3));
     SPI.transfer(data);
@@ -203,9 +203,9 @@ void amplifier::sendLPFRelayData(const byte data) {
     RELAY_CS_HIGH
 }
 
-void amplifier::sendLPFRelayDataSafe(byte data) {
+void lpf_board::sendRelayDataSafe(byte data) {
     noInterrupts();
-    sendLPFRelayData(data);
+    sendRelayData(data);
     interrupts();
 }
 
@@ -301,46 +301,48 @@ void amplifier::handleTouchScreen2() {
             switch (pressedKey) {
             case 0:
             case 1:
-                if (state.menuSEL == 0) {
+                if (!state.menuSelected) {
                     Tft.LCD_SEL = 1;
-                    Tft.drawString((uint8_t*)menu_items[state.menu_choice], 65, 20, 2, MGRAY);
-                    Tft.drawString((uint8_t*)item_disp[state.menu_choice], 65, 80, 2, MGRAY);
+                    Tft.drawString(menu_items[state.menuChoice], 65, 20, 2, MGRAY);
+                    Tft.drawString(item_disp[state.menuChoice], 65, 80, 2, MGRAY);
 
-                    if (state.menu_choice-- == 0)
-                        state.menu_choice = menu_max;
+                    if (state.menuChoice-- == 0)
+                        state.menuChoice = menu_max;
 
-                    Tft.drawString((uint8_t*)menu_items[state.menu_choice], 65, 20, 2, WHITE);
-                    Tft.drawString((uint8_t*)item_disp[state.menu_choice], 65, 80, 2, LGRAY);
+                    Tft.drawString(menu_items[state.menuChoice], 65, 20, 2, WHITE);
+                    Tft.drawString(item_disp[state.menuChoice], 65, 80, 2, LGRAY);
                 }
 
                 break;
 
             case 3:
             case 4:
-                if (state.menuSEL == 0) {
+                if (!state.menuSelected) {
                     Tft.LCD_SEL = 1;
-                    Tft.drawString((uint8_t*)menu_items[state.menu_choice], 65, 20, 2, MGRAY);
-                    Tft.drawString((uint8_t*)item_disp[state.menu_choice], 65, 80, 2, MGRAY);
+                    Tft.drawString(menu_items[state.menuChoice], 65, 20, 2, MGRAY);
+                    Tft.drawString(item_disp[state.menuChoice], 65, 80, 2, MGRAY);
 
-                    if (++state.menu_choice > menu_max)
-                        state.menu_choice = 0;
+                    if (++state.menuChoice > menu_max)
+                        state.menuChoice = 0;
 
-                    Tft.drawString((uint8_t*)menu_items[state.menu_choice], 65, 20, 2, WHITE);
-                    Tft.drawString((uint8_t*)item_disp[state.menu_choice], 65, 80, 2, LGRAY);
+                    Tft.drawString(menu_items[state.menuChoice], 65, 20, 2, WHITE);
+                    Tft.drawString(item_disp[state.menuChoice], 65, 80, 2, LGRAY);
                 }
 
                 break;
 
             case 5:
             case 6:
-                if (state.menuSEL == 1)
-                    menuUpdate(state.menu_choice, 0);
+                if (state.menuSelected) {
+                    menuUpdate(state.menuChoice, 0);
+                }
                 break;
 
             case 8:
             case 9:
-                if (state.menuSEL == 1)
-                    menuUpdate(state.menu_choice, 1);
+                if (state.menuSelected) {
+                    menuUpdate(state.menuChoice, 1);
+                }
                 break;
 
             case 7:
@@ -353,12 +355,12 @@ void amplifier::handleTouchScreen2() {
                 Tft.lcd_clear_screen(GRAY);
                 state.isMenuActive = false;
 
-                if (state.menu_choice == mSETbias) {
+                if (state.menuChoice == mSETbias) {
                     BIAS_OFF
-                    sendLPFRelayDataSafe(state.lpfBoardSerialData);
+                    lpf.sendRelayDataSafe(lpf.serialData);
                     state.mode = state.old_mode;
                     state.MAX_CUR = 20;
-                    state.Bias_Meter = 0;
+                    state.biasMeter = false;
                 }
 
                 drawHome();
@@ -540,9 +542,9 @@ void amplifier::setBand() {
         Tft.lcd_fill_rect(121, 142, 74, 21, MGRAY);
     }
 
-    state.lpfBoardSerialData = lpfSerialData;
+    lpf.serialData = lpfSerialData;
     if (state.band != state.oldBand) {
-        sendLPFRelayData(state.lpfBoardSerialData);
+        lpf.sendRelayData(lpf.serialData);
 
         // delete old band (dirty rectangles)
         Tft.LCD_SEL = 1;
@@ -586,6 +588,6 @@ void amplifier::switchToRX() {
     RESET_PULSE
     Tft.LCD_SEL = 0;
     Tft.lcd_fill_rect(70, 203, 36, 16, MGRAY);
-    Tft.drawString((uint8_t*)state.RL_TXT, 70, 203, 2, LGRAY);
+    Tft.drawString(state.RL_TXT, 70, 203, 2, LGRAY);
     strcpy(state.ORL_TXT, "   ");
 }

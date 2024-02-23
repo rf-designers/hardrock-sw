@@ -202,7 +202,7 @@ public:
                       uint16_t hwHeight, //specify the height of the rectangle.
                       uint16_t hwColor);  //specify the color of rectangle.
     void drawChar(uint8_t ascii,uint16_t poX, uint16_t poY,uint16_t size, uint16_t fgcolor);
-    void drawString(uint8_t *string,uint16_t poX, uint16_t poY, uint16_t size,uint16_t fgcolor);
+    void drawString(const char *string,uint16_t poX, uint16_t poY, uint16_t size,uint16_t fgcolor);
     void drawHChar(uint8_t ascii,uint16_t poX, uint16_t poY,uint16_t size, uint16_t fgcolor);
     void drawHString(uint8_t *string,uint16_t poX, uint16_t poY, uint16_t size,uint16_t fgcolor);
                        

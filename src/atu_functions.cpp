@@ -25,8 +25,8 @@ void TuneButtonPressed() {
             DrawATU();
         }
 
-        Tft.drawString((uint8_t*)"STOP", 122, 199, 3, GBLUE);
-        Tft.drawString((uint8_t*)"TUNING", 122, 142, 2, LBLUE);
+        Tft.drawString("STOP", 122, 199, 3, GBLUE);
+        Tft.drawString("TUNING", 122, 142, 2, LBLUE);
         amp.atu.setTuning(true);
 
         // If the TX is on, turn it off
@@ -34,7 +34,7 @@ void TuneButtonPressed() {
             amp.state.pttEnabled = false;
             BIAS_OFF
             amp.state.txIsOn = false;
-            amp.sendLPFRelayData(amp.state.lpfBoardSerialData);
+            amp.lpf.sendRelayData(amp.lpf.serialData);
             RF_BYPASS
         }
 
@@ -49,7 +49,7 @@ void TuneEnd() {
     Tft.LCD_SEL = 1;
     Tft.lcd_fill_rect(121, 142, 74, 21, MGRAY);
     Tft.lcd_fill_rect(121, 199, 74, 21, GRAY);
-    Tft.drawString((uint8_t*)"TUNE", 122, 199, 3, GBLUE);
+    Tft.drawString("TUNE", 122, 199, 3, GBLUE);
     amp.atu.setTuning(false);
     ATU_TUNE_HIGH
     delay(10);
@@ -61,24 +61,24 @@ void TuneEnd() {
 
     switch (ATU_STAT) {
     case 'F':
-        Tft.drawString((uint8_t*)"FAILED", 122, 142, 2, RED);
+        Tft.drawString("FAILED", 122, 142, 2, RED);
         break;
     case 'E':
-        Tft.drawString((uint8_t*)"HI SWR", 122, 142, 2, RED);
+        Tft.drawString("HI SWR", 122, 142, 2, RED);
         break;
     case 'H':
-        Tft.drawString((uint8_t*)"HI PWR", 122, 142, 2, YELLOW);
+        Tft.drawString("HI PWR", 122, 142, 2, YELLOW);
         break;
     case 'L':
-        Tft.drawString((uint8_t*)"LO PWR", 122, 142, 2, YELLOW);
+        Tft.drawString("LO PWR", 122, 142, 2, YELLOW);
         break;
     case 'A':
-        Tft.drawString((uint8_t*)"CANCEL", 122, 142, 2, GREEN);
+        Tft.drawString("CANCEL", 122, 142, 2, GREEN);
         break;
     case 'T':
     case 'S':
         {
-            Tft.drawString((uint8_t*)"TUNED", 128, 142, 2, GREEN);
+            Tft.drawString("TUNED", 128, 142, 2, GREEN);
 
             amp.atu.query("*F", ATU_buff, 8);
 
@@ -87,7 +87,7 @@ void TuneEnd() {
             sprintf(amp.state.RL_TXT, "%d.%d", SWR / 10, SWR % 10);
             Tft.LCD_SEL = 0;
             Tft.lcd_fill_rect(70, 203, 36, 16, MGRAY);
-            Tft.drawString((uint8_t*)amp.state.RL_TXT, 70, 203, 2, GRAY);
+            Tft.drawString(amp.state.RL_TXT, 70, 203, 2, GRAY);
             strcpy(amp.state.ORL_TXT, amp.state.RL_TXT);
             break;
         }
