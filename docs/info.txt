@@ -4,11 +4,11 @@ Serial ports:
      - Serial3  -> talking to the ATU board
 
 
-uploading new firmware from terminal (suppose device is on /dev/ttyUSB2)
+uploading new firmware from terminal
 
     # build solution
     pio run -e megaatmega2560
 
-    # upload it by running
+    # upload it by running. this detects the port the amp is attached to and automatically uploads the previously built firmware
     uploader/uploader
 
