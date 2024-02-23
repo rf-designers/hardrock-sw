@@ -367,7 +367,7 @@ void handleSerialMessage(char uart) {
         // communicate with ATU
         found = strstr(workStringPtr, "HRTM");
         if (found != nullptr && amp.atu.isPresent()) {
-            static char atuCmd[20] = {'*'};
+            char atuCmd[20] = {'*'};
             size_t cmdIdx = 1;
 
             while (found[cmdIdx + 3] != ';' && cmdIdx < 18) {
@@ -376,7 +376,7 @@ void handleSerialMessage(char uart) {
             }
             atuCmd[cmdIdx] = 0;
 
-            static char atuResponse[40];
+            char atuResponse[40];
             auto readBytes = amp.atu.query(atuCmd, atuResponse, 40);
             if (readBytes > 0) {
                 UART_send(uart, "HRTM");
@@ -384,6 +384,26 @@ void handleSerialMessage(char uart) {
                 UART_send_line(uart);
             }
         }
+
+        // debug ATU comm
+        found = strstr(workStringPtr, "HRAD");
+        if (found != nullptr) {
+            UART_send(uart, "Last ATU response has ");
+            UART_send_num(uart, amp.atu.last_response_size);
+            UART_send(uart, " bytes. Content: [");
+            for (auto i = 0; i < amp.atu.last_response_size; i++) {
+                if (isprint(amp.atu.last_response[i])) {
+                    UART_send_char(uart, amp.atu.last_response[i]);
+                } else {
+                    UART_send(uart, "(");
+                    UART_send_num(uart, amp.atu.last_response[i]);
+                    UART_send(uart, ")");
+                }
+            }
+            UART_send(uart, "]");
+            UART_send_line(uart);
+        }
+
     }
 }
 

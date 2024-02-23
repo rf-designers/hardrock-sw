@@ -57,11 +57,9 @@ uint8_t speedToEEPROM(serial_speed speed) {
 void PrepareForFWUpdate() {
     Serial.end();
     delay(50);
-    Serial.begin(115200);
-
-    while (!Serial.available());
-
-    delay(50);
+    // Serial.begin(115200);
+    // while (!Serial.available());
+    // delay(50);
     digitalWrite(RST_OUT, LOW);
 }
 
@@ -70,13 +68,16 @@ void atu_board::detect() {
     strcpy(version, "---");
 
     char response[20] = {};
-
     if (query("*I", response, 20) > 10) {
         if (strncmp(response, "HR500 ATU", 9) == 0) {
             present = true;
 
+            // memset(response, 0, 20);
+            query("*V", response, 20);
+
+            // ATU firmware currently responds with two lines for *I query only the first time (most likely bug)
             const auto versionSize = query("*V", response, 20);
-            strncpy(version, response, versionSize - 1);
+            strncpy(version, response, versionSize);
         }
     }
 }
@@ -90,9 +91,15 @@ const char* atu_board::getVersion() const {
 }
 
 size_t atu_board::query(const char* command, char* response, size_t maxLength) {
-    Serial3.setTimeout(50);
+    Serial3.setTimeout(100);
     Serial3.println(command);
-    const size_t receivedBytes = Serial3.readBytesUntil(0x13, response, maxLength);
+    const size_t receivedBytes = Serial3.readBytesUntil(13, response, maxLength);
+    last_response_size = receivedBytes;
+    memcpy(last_response, response, receivedBytes);
+
+    // look for a 13
+
+
     response[receivedBytes] = 0;
     return receivedBytes;
 }
@@ -293,167 +300,167 @@ void amplifier::handleTouchScreen1() {
 }
 
 void amplifier::handleTouchScreen2() {
-    if (ts2.touched() && state.timeToTouch == 0) {
-        const byte pressedKey = getTouchedRectangle(2);
-        state.timeToTouch = 300;
+    if (state.timeToTouch != 0) return;
+    if (!ts2.touched()) return;
 
-        if (state.isMenuActive) {
-            switch (pressedKey) {
-            case 0:
-            case 1:
-                if (!state.menuSelected) {
-                    Tft.LCD_SEL = 1;
-                    Tft.drawString(menu_items[state.menuChoice], 65, 20, 2, MGRAY);
-                    Tft.drawString(item_disp[state.menuChoice], 65, 80, 2, MGRAY);
+    const byte pressedKey = getTouchedRectangle(2);
+    state.timeToTouch = 300;
 
-                    if (state.menuChoice-- == 0)
-                        state.menuChoice = menu_max;
+    if (state.isMenuActive) {
+        switch (pressedKey) {
+        case 0:
+        case 1:
+            if (!state.menuSelected) {
+                Tft.LCD_SEL = 1;
+                Tft.drawString(menu_items[state.menuChoice], 65, 20, 2, MGRAY);
+                Tft.drawString(item_disp[state.menuChoice], 65, 80, 2, MGRAY);
 
-                    Tft.drawString(menu_items[state.menuChoice], 65, 20, 2, WHITE);
-                    Tft.drawString(item_disp[state.menuChoice], 65, 80, 2, LGRAY);
+                if (state.menuChoice-- == 0)
+                    state.menuChoice = menu_max;
+
+                Tft.drawString(menu_items[state.menuChoice], 65, 20, 2, WHITE);
+                Tft.drawString(item_disp[state.menuChoice], 65, 80, 2, LGRAY);
+            }
+            break;
+
+        case 3:
+        case 4:
+            if (!state.menuSelected) {
+                Tft.LCD_SEL = 1;
+                Tft.drawString(menu_items[state.menuChoice], 65, 20, 2, MGRAY);
+                Tft.drawString(item_disp[state.menuChoice], 65, 80, 2, MGRAY);
+
+                if (++state.menuChoice > menu_max)
+                    state.menuChoice = 0;
+
+                Tft.drawString(menu_items[state.menuChoice], 65, 20, 2, WHITE);
+                Tft.drawString(item_disp[state.menuChoice], 65, 80, 2, LGRAY);
+            }
+
+            break;
+
+        case 5:
+        case 6:
+            if (state.menuSelected) {
+                menuUpdate(state.menuChoice, 0);
+            }
+            break;
+
+        case 8:
+        case 9:
+            if (state.menuSelected) {
+                menuUpdate(state.menuChoice, 1);
+            }
+            break;
+
+        case 7:
+        case 12:
+            menuSelect();
+            break;
+
+        case 17:
+            Tft.LCD_SEL = 1;
+            Tft.lcd_clear_screen(GRAY);
+            state.isMenuActive = false;
+
+            if (state.menuChoice == mSETbias) {
+                BIAS_OFF
+                lpf.sendRelayDataSafe(lpf.serialData);
+                state.mode = state.old_mode;
+                state.MAX_CUR = 20;
+                state.biasMeter = false;
+            }
+
+            drawHome();
+            Tft.LCD_SEL = 0;
+            Tft.lcd_reset();
+        }
+    } else {
+        switch (pressedKey) {
+        case 5:
+        case 6:
+            if (!state.txIsOn) {
+                state.mode = nextMode(state.mode);
+                EEPROM.write(eemode, modeToEEPROM(state.mode));
+                DrawMode();
+                disablePTTDetector();
+
+                if (state.mode == mode_type::ptt) {
+                    enablePTTDetector();
                 }
+            }
+            break;
 
-                break;
+        case 8:
+            if (!state.txIsOn) {
+                if (++state.band >= 11)
+                    state.band = 1;
+                setBand();
+            }
+            break;
 
-            case 3:
-            case 4:
-                if (!state.menuSelected) {
-                    Tft.LCD_SEL = 1;
-                    Tft.drawString(menu_items[state.menuChoice], 65, 20, 2, MGRAY);
-                    Tft.drawString(item_disp[state.menuChoice], 65, 80, 2, MGRAY);
+        case 9:
+            if (!state.txIsOn) {
+                if (--state.band == 0)
+                    state.band = 10;
 
-                    if (++state.menuChoice > menu_max)
-                        state.menuChoice = 0;
+                if (state.band == 0xff)
+                    state.band = 10;
+                setBand();
+            }
+            break;
 
-                    Tft.drawString(menu_items[state.menuChoice], 65, 20, 2, WHITE);
-                    Tft.drawString(item_disp[state.menuChoice], 65, 80, 2, LGRAY);
+        case 15:
+        case 16:
+            if (!state.txIsOn) {
+                if (++state.antForBand[state.band] == 3)
+                    state.antForBand[state.band] = 1;
+
+                EEPROM.write(eeantsel + state.band, state.antForBand[state.band]);
+
+                if (state.antForBand[state.band] == 1) {
+                    SEL_ANT1;
+                } else if (state.antForBand[state.band] == 2) {
+                    SEL_ANT2;
                 }
+                DrawAnt();
+            }
+            break;
 
-                break;
+        case 18:
+        case 19:
+            if (atu.isPresent() && !state.txIsOn) {
+                atu.setActive(!atu.isActive());
+                DrawATU();
+            }
+            break;
 
-            case 5:
-            case 6:
-                if (state.menuSelected) {
-                    menuUpdate(state.menuChoice, 0);
-                }
-                break;
-
-            case 8:
-            case 9:
-                if (state.menuSelected) {
-                    menuUpdate(state.menuChoice, 1);
-                }
-                break;
-
-            case 7:
-            case 12:
-                menuSelect();
-                break;
-
-            case 17:
+        case 12:
+            if (!atu.isPresent()) {
                 Tft.LCD_SEL = 1;
                 Tft.lcd_clear_screen(GRAY);
-                state.isMenuActive = false;
-
-                if (state.menuChoice == mSETbias) {
-                    BIAS_OFF
-                    lpf.sendRelayDataSafe(lpf.serialData);
-                    state.mode = state.old_mode;
-                    state.MAX_CUR = 20;
-                    state.biasMeter = false;
-                }
-
-                drawHome();
-                Tft.LCD_SEL = 0;
-                Tft.lcd_reset();
+                DrawMenu();
+                state.isMenuActive = true;
             }
-        } else {
-            switch (pressedKey) {
-            case 5:
-            case 6:
-                if (!state.txIsOn) {
-                    state.mode = nextMode(state.mode);
-                    EEPROM.write(eemode, modeToEEPROM(state.mode));
-                    DrawMode();
-                    disablePTTDetector();
+            break;
 
-                    if (state.mode == mode_type::ptt) {
-                        enablePTTDetector();
-                    }
-                }
-                break;
+        case 7:
+            if (atu.isPresent()) {
+                Tft.LCD_SEL = 1;
+                Tft.lcd_clear_screen(GRAY);
+                DrawMenu();
+                state.isMenuActive = true;
+            }
+            break;
 
-            case 8:
-                if (!state.txIsOn) {
-                    if (++state.band >= 11)
-                        state.band = 1;
-                    setBand();
-                }
-                break;
-
-            case 9:
-                if (!state.txIsOn) {
-                    if (--state.band == 0)
-                        state.band = 10;
-
-                    if (state.band == 0xff)
-                        state.band = 10;
-                    setBand();
-                }
-                break;
-
-            case 15:
-            case 16:
-                if (!state.txIsOn) {
-                    if (++state.antForBand[state.band] == 3)
-                        state.antForBand[state.band] = 1;
-
-                    EEPROM.write(eeantsel + state.band, state.antForBand[state.band]);
-
-                    if (state.antForBand[state.band] == 1) {
-                        SEL_ANT1;
-                    } else if (state.antForBand[state.band] == 2) {
-                        SEL_ANT2;
-                    }
-                    DrawAnt();
-                }
-                break;
-
-            case 18:
-            case 19:
-                if (atu.isPresent() && !state.txIsOn) {
-                    atu.setActive(!atu.isActive());
-                    DrawATU();
-                }
-                break;
-
-            case 12:
-                if (!atu.isPresent()) {
-                    Tft.LCD_SEL = 1;
-                    Tft.lcd_clear_screen(GRAY);
-                    DrawMenu();
-                    state.isMenuActive = true;
-                }
-                break;
-
-            case 7:
-                if (atu.isPresent()) {
-                    Tft.LCD_SEL = 1;
-                    Tft.lcd_clear_screen(GRAY);
-                    DrawMenu();
-                    state.isMenuActive = true;
-                }
-                break;
-
-            case 17:
-                if (atu.isPresent()) {
-                    TuneButtonPressed();
-                }
+        case 17:
+            if (atu.isPresent()) {
+                TuneButtonPressed();
             }
         }
-
-        while (ts2.touched());
     }
+
+    while (ts2.touched());
 }
 
 byte amplifier::getTouchedRectangle(byte touch_screen) {

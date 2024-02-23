@@ -47,17 +47,24 @@ void DrawMenu() {
     Tft.LCD_SEL = 1;
     DrawButton(130, 205, 60, 30);
     Tft.drawString("EXIT", 135, 213, 2, GBLUE);
+
     DrawButton(14, 8, 40, 44);
     Tft.drawString("<", 24, 18, 4, GBLUE);
+
     DrawButton(266, 8, 40, 44);
     Tft.drawString(">", 274, 18, 4, GBLUE);
+
     DrawPanel(60, 8, 200, 44);
     DrawPanel(60, 68, 200, 44);
+
     Tft.drawString(menu_items[amp.state.menuChoice], 65, 20, 2, WHITE);
     Tft.drawString(item_disp[amp.state.menuChoice], 65, 80, 2, LGRAY);
     DrawButton(120, 125, 80, 30);
+
     Tft.drawString("SELECT", 124, 132, 2, GBLUE);
+
     amp.state.menuSelected = false;
+
     Tft.drawString("ATU:", 206, 190, 2, LGRAY);
     Tft.drawString(amp.atu.getVersion(), 254, 190, 2, LGRAY);
     Tft.drawString("FW:", 206, 213, 2, LGRAY);

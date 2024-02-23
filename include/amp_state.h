@@ -92,9 +92,11 @@ struct atu_board {
     bool isActive() const;
 
     bool present = false;
-    char version[8] = {};
+    char version[8] = {0};
     volatile bool tuning;
     volatile bool active;
+    size_t last_response_size;
+    char last_response[100];
 };
 
 struct display {
