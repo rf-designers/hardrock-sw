@@ -15,6 +15,25 @@ Version 3.5
 #include <HR500X.h>
 #include <TimerOne.h>
 #include <Wire.h>
+#include <avr/sleep.h>
+#include <avr/wdt.h>
+#include <avr/io.h>
+
+#ifndef BODS
+#define BODS 7
+#endif
+
+#ifndef BODSE
+#define BODSE 2
+#endif
+
+// Watchdog Timer interrupt service routine
+ISR(WDT_vect) {
+    // This will execute when the WDT wakes up the Arduino
+    // Clear the watchdog timer
+    wdt_reset();
+}
+
 
 amplifier amp;
 
@@ -83,8 +102,10 @@ void timerISR() {
         f_avg[f_i] = s_calc / static_cast<long>(100);
 
         f_ave += f_avg[f_i++]; // Add in the new sample
+
         if (f_i > 24)
             f_i = 0; // Update the index value
+
         f_ave -= f_avg[f_i]; // Subtract off the 51st value
         const unsigned int ftmp = f_ave / 25;
 
@@ -138,6 +159,7 @@ void timerISR() {
     // handle reenabling of PTT detection
     if (timeToEnablePTTDetector > 0) {
         timeToEnablePTTDetector--;
+
         if (timeToEnablePTTDetector == 0 && amp.state.mode != mode_type::standby) {
             amp.enablePTTDetector();
         }
@@ -160,13 +182,21 @@ byte FT817det() {
     const int ftv = AnalogRead(FT817_V);
 
     if (ftv < 95) return 10;
+
     if (ftv > 99 && ftv < 160) return 9;
+
     if (ftv > 164 && ftv < 225) return 7;
+
     if (ftv > 229 && ftv < 285) return 6;
+
     if (ftv > 289 && ftv < 345) return 5;
+
     if (ftv > 349 && ftv < 410) return 4;
+
     if (ftv > 414 && ftv < 475) return 3;
+
     if (ftv > 479 && ftv < 508) return 2;
+
     if (ftv < 605) return 1;
 
     return 0;
@@ -176,13 +206,21 @@ byte Eladdet() {
     const int ftv = AnalogRead(FT817_V);
 
     if (ftv < 118) return 10;
+
     if (ftv > 130 && ftv < 200) return 9;
+
     if (ftv > 212 && ftv < 282) return 7;
+
     if (ftv > 295 && ftv < 365) return 6;
+
     if (ftv > 380 && ftv < 450) return 5;
+
     if (ftv > 462 && ftv < 532) return 4;
+
     if (ftv > 545 && ftv < 615) return 3;
+
     if (ftv > 630 && ftv < 700) return 2;
+
     if (ftv < 780) return 1;
 
     return 0;
@@ -192,13 +230,21 @@ byte Xiegudet() {
     const int ftv = AnalogRead(FT817_V);
 
     if (ftv < 136) return 10;
+
     if (ftv < 191) return 9;
+
     if (ftv < 246) return 8;
+
     if (ftv < 300) return 7;
+
     if (ftv < 355) return 6;
+
     if (ftv < 410) return 5;
+
     if (ftv < 465) return 4;
+
     if (ftv < 520) return 3;
+
     if (ftv < 574) return 2;
 
     return 1;
@@ -208,46 +254,49 @@ byte Xiegudet() {
 // speed = [0,3]
 void setFanSpeed(byte speed) {
     switch (speed) {
-    case 0:
-        digitalWrite(FAN1, LOW);
-        digitalWrite(FAN2, LOW);
-        temp_utp = 400;
-        temp_dtp = 00;
-        break;
-    case 1:
-        digitalWrite(FAN1, HIGH);
-        digitalWrite(FAN2, LOW);
-        temp_utp = 500;
-        temp_dtp = 350;
-        break;
-    case 2:
-        digitalWrite(FAN1, LOW);
-        digitalWrite(FAN2, HIGH);
-        temp_utp = 600;
-        temp_dtp = 450;
-        break;
-    case 3:
-    default:
-        digitalWrite(FAN1, HIGH);
-        digitalWrite(FAN2, HIGH);
-        temp_utp = 2500;
-        temp_dtp = 550;
+        case 0:
+            digitalWrite(FAN1, LOW);
+            digitalWrite(FAN2, LOW);
+            temp_utp = 400;
+            temp_dtp = 00;
+            break;
+
+        case 1:
+            digitalWrite(FAN1, HIGH);
+            digitalWrite(FAN2, LOW);
+            temp_utp = 500;
+            temp_dtp = 350;
+            break;
+
+        case 2:
+            digitalWrite(FAN1, LOW);
+            digitalWrite(FAN2, HIGH);
+            temp_utp = 600;
+            temp_dtp = 450;
+            break;
+
+        case 3:
+        default:
+            digitalWrite(FAN1, HIGH);
+            digitalWrite(FAN2, HIGH);
+            temp_utp = 2500;
+            temp_dtp = 550;
     }
 }
 
 void setTransceiver(byte s_xcvr) {
     if (s_xcvr == xhobby || s_xcvr == xkx23)
         S_POL_REV
-    else
-        S_POL_NORM
+        else
+            S_POL_NORM
 
-    if (s_xcvr == xhobby) {
-        pinMode(TTL_PU, OUTPUT);
-        digitalWrite(TTL_PU, HIGH);
-    } else {
-        digitalWrite(TTL_PU, LOW);
-        pinMode(TTL_PU, INPUT);
-    }
+            if (s_xcvr == xhobby) {
+                pinMode(TTL_PU, OUTPUT);
+                digitalWrite(TTL_PU, HIGH);
+            } else {
+                digitalWrite(TTL_PU, LOW);
+                pinMode(TTL_PU, INPUT);
+            }
 
     if (s_xcvr == xft817 || s_xcvr == xelad || s_xcvr == xxieg) {
         strcpy(item_disp[mACCbaud], "  XCVR MODE ON  ");
@@ -271,16 +320,62 @@ int AnalogRead(byte pin) {
 }
 
 
+void wakeUpFromSleep() {
+    // Briefly disable sleep mode to allow further processing
+    sleep_disable();
+    EIFR |= 0b11111111; // clear interrupt flags so that we can have multiple subsequent touches
+}
+
+void goToSleep() {
+    // Ensure the BOD (Brown-out Detector) is disabled in sleep
+    MCUCR = (1 << BODS) | (1 << BODSE);
+    MCUCR = (1 << BODS);
+
+    sleep_enable();
+    sleep_mode();
+}
+
+void configureWakeUpPins() {
+    noInterrupts();
+
+    pinMode(18, INPUT);
+    attachInterrupt(digitalPinToInterrupt(18), wakeUpFromSleep, FALLING);
+
+    pinMode(19, INPUT);
+    attachInterrupt(digitalPinToInterrupt(19), wakeUpFromSleep, FALLING);
+
+    set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+
+    interrupts();
+}
+
+void configureWatchDogTimer() {
+
+    // Clear the reset flag
+    MCUSR &= ~(1<<WDRF);
+
+    wdt_reset();
+    // Configure the watchdog timer to interrupt mode only (no reset)
+    WDTCSR |= (1 << WDCE) | (1 << WDE);
+    WDTCSR = (1 << WDIE) | (1 << WDP2) | (1 << WDP1); // 1second
+
+
+    // Set the watchdog timer to wake up every second
+    // wdt_enable(WDTO_1S);
+}
+
 void setup() {
     amp.setup();
 
     amp.state.band = EEPROM.read(eeband);
+
     if (amp.state.band > 10)
         amp.state.band = 5;
 
     amp.state.mode = modeFromEEPROM(EEPROM.read(eemode));
 
     amp.disablePTTDetector();
+
     if (amp.state.mode != mode_type::standby) {
         amp.enablePTTDetector();
     }
@@ -291,11 +386,11 @@ void setup() {
         amp.state.antForBand[i] = EEPROM.read(eeantsel + i);
 
         if (amp.state.antForBand[i] == 1) {
-            SEL_ANT1;
+            // SEL_ANT1;
         } else if (amp.state.antForBand[i] == 2) {
-            SEL_ANT2;
+            // SEL_ANT2;
         } else {
-            SEL_ANT1;
+            // SEL_ANT1;
             amp.state.antForBand[i] = 1;
             EEPROM.write(eeantsel + i, 1);
         }
@@ -310,20 +405,25 @@ void setup() {
     amp.state.tempInCelsius = EEPROM.read(eecelsius) > 0;
 
     amp.state.meterSelection = EEPROM.read(eemetsel);
+
     if (amp.state.meterSelection < 1 || amp.state.meterSelection > 5)
         amp.state.meterSelection = 1;
 
     amp.state.oldMeterSelection = amp.state.meterSelection;
 
     amp.state.trxType = EEPROM.read(eexcvr);
+
     if (amp.state.trxType < 0 || amp.state.trxType > xcvr_max)
         amp.state.trxType = 0;
+
     strcpy(item_disp[mXCVR], xcvr_disp[amp.state.trxType]);
     setTransceiver(amp.state.trxType);
 
     byte MCAL = EEPROM.read(eemcal);
+
     if (MCAL < 75 || MCAL > 125)
         MCAL = 100;
+
     M_CORR = static_cast<long>(MCAL);
     sprintf(item_disp[mMCAL], "      %3li       ", M_CORR);
 
@@ -336,15 +436,15 @@ void setup() {
 
         if (ATTN_ST == 1) {
             ATTN_ON_HIGH;
-            item_disp[mATTN] = (char*)" ATTENUATOR IN  ";
+            item_disp[mATTN] = (char *)" ATTENUATOR IN  ";
         } else {
             ATTN_ON_LOW;
-            item_disp[mATTN] = (char*)" ATTENUATOR OUT ";
+            item_disp[mATTN] = (char *)" ATTENUATOR OUT ";
         }
     } else {
         ATTN_P = 0;
         ATTN_ST = 0;
-        item_disp[mATTN] = (char*)" NO ATTENUATOR  ";
+        item_disp[mATTN] = (char *)" NO ATTENUATOR  ";
     }
 
     analogReference(EXTERNAL);
@@ -387,23 +487,33 @@ void setup() {
     shouldHandlePttChange = false;
 
     while (amp.ts1.touched());
+
     while (amp.ts2.touched());
 
     amp.setBand();
+
+    configureWakeUpPins();
+    configureWatchDogTimer();
 }
 
 ISR(PCINT0_vect) {
+    sleep_disable();
+
     if (amp.state.mode == mode_type::standby) return; // Mode is STBY
+
     if (amp.state.isMenuActive) return; // Menu is active
+
     if (amp.state.band == 0) return; // Band is undefined
+
     if (amp.atu.isTuning()) return; // ATU is working
 
-    timeToEnablePTTDetector = 20;
-    amp.disablePTTDetector();
+    // timeToEnablePTTDetector = 20;
+    // amp.disablePTTDetector();
 
     shouldHandlePttChange = true; // signal to main thread
 
     const auto pttEnabledNow = digitalRead(PTT_DET) == 1;
+
     if (pttEnabledNow && !amp.state.pttEnabled) {
         amp.state.pttEnabled = true;
         RF_ACTIVE
@@ -420,13 +530,21 @@ ISR(PCINT0_vect) {
 }
 
 void loop() {
+
+    // if (Serial2.available()) {
+    //     Serial.write(Serial2.read());
+    // }
+    // return;
+
     static int a_count = 0;
+
     if (++a_count == 10) {
         a_count = 0;
         updateAlarms();
     }
 
     static int t_count = 0;
+
     if (++t_count == 3) {
         t_count = 0;
 
@@ -458,6 +576,7 @@ void loop() {
 
         if (amp.state.biasMeter) {
             const int bias_current = ReadCurrent() * 5;
+
             if (bias_current != old_bias_current) {
                 old_bias_current = bias_current;
                 Tft.LCD_SEL = 1;
@@ -471,6 +590,7 @@ void loop() {
         if (amp.state.s_disp++ == 20 && f_tot > 250 && amp.state.txIsOn) {
             const auto vswr = ReadPower(power_type::vswr);
             amp.state.s_disp = 0;
+
             if (vswr > 9)
                 sprintf(amp.state.RL_TXT, "%d.%d", vswr / 10, vswr % 10);
 
@@ -483,11 +603,12 @@ void loop() {
         }
 
         // temperature display
-        static int t_disp = 0;
-        if (t_disp++ == 200) {
-            t_disp = 0;
-            updateTemperatureDisplay();
-        }
+        // static int t_disp = 0;
+        //
+        // if (t_disp++ == 200) {
+        // t_disp = 0;
+        updateTemperatureDisplay();
+        // }
     }
 
     if (shouldHandlePttChange) {
@@ -499,6 +620,7 @@ void loop() {
             }
 
             const auto pttEnabledNow = digitalRead(PTT_DET) == 1;
+
             if (!pttEnabledNow && amp.state.mode == mode_type::ptt) {
                 amp.switchToRX();
             }
@@ -508,6 +630,7 @@ void loop() {
             }
 
             const auto pttEnabledNow = digitalRead(PTT_DET) == 1;
+
             if (pttEnabledNow) {
                 amp.switchToTX();
             }
@@ -515,6 +638,7 @@ void loop() {
     }
 
     byte sampCOR = digitalRead(COR_DET);
+
     if (OLD_COR != sampCOR) {
         OLD_COR = sampCOR;
 
@@ -537,21 +661,34 @@ void loop() {
     amp.handleTouchScreen2();
 
     const auto atuBusy = digitalRead(ATU_BUSY) == 1;
+
     if (amp.atu.isTuning() && !atuBusy) {
         TuneEnd();
     }
 
     handleACCCommunication();
     handleUSBCommunication();
+
+    if (!amp.state.txIsOn) {
+        goToSleep();
+    }
 }
 
 void handleACCCommunication() {
     while (Serial2.available()) {
         rxbuff2[uart2Idx] = Serial2.read();
+
+        // UART_send(1, "received data:");
+        // UART_send_num(1, rxbuff2[uart2Idx]);
+        // UART_send_line(1);~
+        // UART_send_cr(1);
+        Serial.write(rxbuff2[uart2Idx]);
+
         if (rxbuff2[uart2Idx] == ';') {
             uartGrabBuffer2();
             handleSerialMessage(2);
         }
+
         if (++uart2Idx > 127)
             uart2Idx = 0;
     }
@@ -560,6 +697,7 @@ void handleACCCommunication() {
 void handleUSBCommunication() {
     while (Serial.available()) {
         rxbuff[uartIdx] = Serial.read(); // Storing read data
+
         if (rxbuff[uartIdx] == ';') {
             uartGrabBuffer();
             handleSerialMessage(1);
@@ -573,6 +711,7 @@ void handleUSBCommunication() {
 void updateAlarms() {
     // forward alert
     unsigned int f_yel = 600, f_red = 660;
+
     if (amp.state.band == 10) {
         f_yel = 410;
         f_red = 482;
@@ -590,10 +729,13 @@ void updateAlarms() {
     if (amp.state.F_alert != amp.state.OF_alert) {
         amp.state.OF_alert = amp.state.F_alert;
         int r_col = GREEN;
+
         if (amp.state.F_alert == 2)
             r_col = YELLOW;
+
         if (amp.state.F_alert == 3)
             r_col = RED;
+
         Tft.LCD_SEL = 0;
         Tft.lcd_fill_rect(20, 34, 25, 10, r_col);
     }
@@ -611,8 +753,10 @@ void updateAlarms() {
     if (amp.state.R_alert != amp.state.OR_alert) {
         amp.state.OR_alert = amp.state.R_alert;
         unsigned int r_col = GREEN;
+
         if (amp.state.R_alert == 2)
             r_col = YELLOW;
+
         if (amp.state.R_alert == 3)
             r_col = RED;
 
@@ -638,12 +782,16 @@ void updateAlarms() {
     if (amp.state.D_alert != amp.state.OD_alert) {
         amp.state.OD_alert = amp.state.D_alert;
         unsigned int r_col = GREEN;
+
         if (ATTN_ST == 1)
             r_col = DGRAY;
+
         if (amp.state.D_alert == 2)
             r_col = YELLOW;
+
         if (amp.state.D_alert == 3) {
             r_col = RED;
+
             if (amp.state.txIsOn)
                 amp.tripSet();
         }
@@ -655,6 +803,7 @@ void updateAlarms() {
     // voltage alert
     const int dc_vol = ReadVoltage();
     amp.state.V_alert = 1;
+
     if (dc_vol < 1800 || dc_vol > 3000) {
         amp.state.V_alert = 2;
     }
@@ -663,6 +812,7 @@ void updateAlarms() {
         amp.state.OV_alert = amp.state.V_alert;
 
         unsigned int r_col = GREEN;
+
         if (amp.state.V_alert == 2) {
             r_col = YELLOW;
         }
@@ -716,10 +866,13 @@ void updateTemperatureDisplay() {
     t_ave = t_tot / 5;
 
     unsigned int t_color = GREEN;
+
     if (t_ave > 500)
         t_color = YELLOW;
+
     if (t_ave > 650)
         t_color = RED;
+
     if (t_ave > 700 && amp.state.txIsOn) {
         amp.tripSet();
     }
@@ -736,6 +889,7 @@ void updateTemperatureDisplay() {
         otemp = t_read;
         Tft.LCD_SEL = 0;
         Tft.drawString(TEMPbuff, 237, 203, 2, DGRAY);
+
         if (amp.state.tempInCelsius) {
             sprintf(TEMPbuff, "%d&C", t_read);
         } else {
@@ -752,6 +906,7 @@ void handleTrxBandDetection() {
 
     if (amp.state.trxType == xft817) {
         byte nFT817 = FT817det();
+
         while (nFT817 != FT817det()) {
             nFT817 = FT817det();
         }
@@ -766,6 +921,7 @@ void handleTrxBandDetection() {
         }
     } else if (amp.state.trxType == xxieg) {
         byte nXieg = Xiegudet();
+
         while (nXieg != Xiegudet()) {
             nXieg = Xiegudet();
         }
@@ -780,6 +936,7 @@ void handleTrxBandDetection() {
         }
     } else if (amp.state.trxType == xelad) {
         byte nElad = Eladdet();
+
         while (nElad != Eladdet()) {
             nElad = Eladdet();
         }

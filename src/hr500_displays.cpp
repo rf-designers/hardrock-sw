@@ -75,17 +75,24 @@ void drawMeter() {
     Tft.LCD_SEL = 0;
     Tft.drawString("FWD", 14, 8, 2, GBLUE);
     DrawPanel(18, 32, 29, 14);
+
     Tft.drawString("RFL", 78, 8, 2, GBLUE);
     DrawPanel(82, 32, 29, 14);
+
     Tft.drawString("DRV", 142, 8, 2, GBLUE);
     DrawPanel(146, 32, 29, 14);
+
     Tft.drawString("VDD", 206, 8, 2, GBLUE);
     DrawPanel(210, 32, 29, 14);
+
     Tft.drawString("IDD", 270, 8, 2, GBLUE);
+
     DrawPanel(274, 32, 29, 14);
     DrawPanel(7, 58, 304, 64);
+
     DrawButton(10, 141, 44, 30);
     Tft.drawString("FWD", 13, 150, 2, GBLUE);
+
     DrawButton(74, 141, 44, 30);
     Tft.drawString("RFL", 77, 150, 2, GBLUE);
     DrawButton(138, 141, 44, 30);
@@ -112,7 +119,7 @@ void DrawRxButtons(uint16_t bcolor) {
 
     if (amp.atu.isPresent()) {
         Tft.drawString("MENU", 135, 93, 2, bcolor);
-        Tft.drawString("TUNA", 122, 199, 3, GBLUE);
+        Tft.drawString("TUNE", 122, 199, 3, GBLUE);
         //Tft.drawString((char*)"----", 122, 142,  3, LBLUE);
     } else {
         Tft.drawString("MENU", 135, 143, 2, bcolor);
@@ -304,7 +311,7 @@ void DrawBand(const byte band, const uint16_t color) {
 }
 
 void DrawAnt() {
-    if (amp.state.isMenuActive != 0) return;
+    if (amp.state.isMenuActive) return;
 
     Tft.LCD_SEL = 1;
     Tft.lcd_fill_rect(43, 142, 16, 21, MGRAY);
@@ -334,14 +341,12 @@ void DrawATU() {
     Tft.lcd_fill_rect(244, 142, 54, 21, MGRAY);
 
     if (amp.atu.isPresent()) {
-        if (!amp.atu.isActive()) {
-            Tft.drawString("BYP", 244, 142, 3, LBLUE);
-            Serial3.println("*Y1");
-        }
-
         if (amp.atu.isActive()) {
             Tft.drawString("ON", 244, 142, 3, LBLUE);
             Serial3.println("*Y0");
+        } else {
+            Tft.drawString("BYP", 244, 142, 3, LBLUE);
+            Serial3.println("*Y1");
         }
 
         EEPROM.write(eeatub, amp.atu.isActive());

@@ -1,6 +1,6 @@
 #pragma once
 
-#define VERSION "3.5A-own"
+#define VERSION "3.5A-B"
 
 //
 // LCD and Touch Panel:

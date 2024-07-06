@@ -7,6 +7,9 @@
 #include <atu_functions.h>
 
 #include "hr500_sensors.h"
+// #include <ArduinoLowPower.h>
+#include <avr/sleep.h>
+#include <avr/power.h>
 
 long freqLong = 0;
 char freqStr[7];
@@ -20,6 +23,8 @@ extern char ATU_STAT;
 extern unsigned int t_tot, t_ave;
 extern char ATU_buff[40];
 extern amplifier amp;
+
+extern void goToSleep();
 
 void uartGrabBuffer() {
     int z = 0;
@@ -402,6 +407,11 @@ void handleSerialMessage(char uart) {
             }
             UART_send(uart, "]");
             UART_send_line(uart);
+        }
+
+        found = strstr(workStringPtr, "HRXX");
+        if (found != nullptr) {
+            goToSleep();
         }
 
     }

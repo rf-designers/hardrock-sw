@@ -300,11 +300,11 @@ void amplifier::handleTouchScreen1() {
 }
 
 void amplifier::handleTouchScreen2() {
-    if (state.timeToTouch != 0) return;
+    // if (state.timeToTouch != 0) return;
     if (!ts2.touched()) return;
 
     const byte pressedKey = getTouchedRectangle(2);
-    state.timeToTouch = 300;
+    // state.timeToTouch = 300;
 
     if (state.isMenuActive) {
         switch (pressedKey) {
@@ -482,14 +482,22 @@ byte amplifier::getTouchedRectangle(byte touch_screen) {
 
 // Enable interrupt on state change of D11 (PTT)
 void amplifier::enablePTTDetector() {
+    noInterrupts();
+
     PCICR |= (1 << PCIE0);
     PCMSK0 |= (1 << PCINT5); // Set PCINT0 (digital input 11) to trigger an
     // interrupt on state change.
+
+    interrupts();
 }
 
 // Disable interrupt for state change of D11 (PTT)
 void amplifier::disablePTTDetector() {
+    noInterrupts();
+
     PCMSK0 &= ~(1 << PCINT5);
+
+    interrupts();
 }
 
 void amplifier::setBand() {

@@ -46,11 +46,12 @@ bool XPT2046_Touchscreen::begin()
 	SPI.begin();
 	pinMode(csPin, OUTPUT);
 	digitalWrite(csPin, HIGH);
-	if (255 != tirqPin) {
-		pinMode( tirqPin, INPUT );
-		attachInterrupt( tirqPin, isrPin, FALLING );
-		isrPinptr = this;
-	}
+	// FIXME: benny: commented out the chunk below since we're going to use our own 
+	// if (255 != tirqPin) {
+	// 	pinMode( tirqPin, INPUT );
+	// 	attachInterrupt( tirqPin, isrPin, FALLING );
+	// 	isrPinptr = this;
+	// }
 	return true;
 }
 
