@@ -7,7 +7,7 @@ extern volatile unsigned int f_tot, f_ave;
 extern volatile unsigned int r_tot;
 extern volatile unsigned int d_tot;
 
-unsigned int ReadPower(power_type powerType) {
+unsigned int read_power(power_type powerType) {
     long pCalc, tCalc, bCalc;
     long pResult{0};
 
@@ -47,7 +47,7 @@ unsigned int ReadPower(power_type powerType) {
 
 
 // returns the voltage in 25mV steps
-unsigned int ReadVoltage() {
+unsigned int read_voltage() {
     Wire.beginTransmission(LTCADDR); // first get Input Voltage - 80V max
     Wire.write(0x1e);
     Wire.endTransmission(false);
@@ -59,7 +59,7 @@ unsigned int ReadVoltage() {
 }
 
 // returns the current in 5mA steps
-unsigned int ReadCurrent() {
+unsigned int read_current() {
     Wire.beginTransmission(LTCADDR); // get sense current
     Wire.write(0x14);
     Wire.endTransmission(false);

@@ -149,14 +149,14 @@ void handleSerialMessage(char uart) {
             if (found[4] == '0') {
                 amp.state.mode = mode_type::standby;
                 EEPROM.write(eemode, modeToEEPROM(amp.state.mode));
-                DrawMode();
+                draw_mode();
                 amp.disablePTTDetector();
             }
 
             if (found[4] == '1') {
                 amp.state.mode = mode_type::ptt;
                 EEPROM.write(eemode, modeToEEPROM(amp.state.mode));
-                DrawMode();
+                draw_mode();
                 amp.enablePTTDetector();
             }
         }
@@ -173,13 +173,13 @@ void handleSerialMessage(char uart) {
             if (found[4] == '1') {
                 amp.state.antForBand[amp.state.band] = 1;
                 EEPROM.write(eeantsel + amp.state.band, amp.state.antForBand[amp.state.band]);
-                DrawAnt();
+                draw_ant();
             }
 
             if (found[4] == '2') {
                 amp.state.antForBand[amp.state.band] = 2;
                 EEPROM.write(eeantsel + amp.state.band, amp.state.antForBand[amp.state.band]);
-                DrawAnt();
+                draw_ant();
             }
         }
 
@@ -212,7 +212,7 @@ void handleSerialMessage(char uart) {
         if (found != nullptr) {
             char vbuff[4];
             UART_send(uart, "HRVT");
-            sprintf(vbuff, "%2d", ReadVoltage() / 40);
+            sprintf(vbuff, "%2d", read_voltage() / 40);
             UART_send(uart, vbuff);
             UART_send_line(uart);
         }
@@ -235,11 +235,11 @@ void handleSerialMessage(char uart) {
             }
             if (found[4] == '1') {
                 amp.atu.setActive(true);
-                DrawATU();
+                draw_atu();
             }
             if (found[4] == '0') {
                 amp.atu.setActive(false);
-                DrawATU();
+                draw_atu();
             }
         }
 
@@ -323,7 +323,7 @@ void handleSerialMessage(char uart) {
 
             if (pwf == 1) {
                 char tbuff[10];
-                unsigned int reading = ReadPower(psel);
+                unsigned int reading = read_power(psel);
                 sprintf(tbuff, "HRPW%c%03d", schr, reading);
                 UART_send(uart, tbuff);
                 UART_send_line(uart);
@@ -335,12 +335,12 @@ void handleSerialMessage(char uart) {
         if (found != nullptr) {
             char tbuff[80];
 
-            const auto stF = ReadPower(power_type::fwd_p);
-            const auto stR = ReadPower(power_type::rfl_p);
-            const auto stD = ReadPower(power_type::drv_p);
-            const auto stS = ReadPower(power_type::vswr);
-            const auto stV = ReadVoltage() / 40;
-            const auto stI = ReadCurrent() / 20;
+            const auto stF = read_power(power_type::fwd_p);
+            const auto stR = read_power(power_type::rfl_p);
+            const auto stD = read_power(power_type::drv_p);
+            const auto stS = read_power(power_type::vswr);
+            const auto stV = read_voltage() / 40;
+            const auto stI = read_current() / 20;
             auto stT = t_ave / 10;
             if (!amp.state.tempInCelsius) {
                 stT = ((stT * 9) / 5) + 32;

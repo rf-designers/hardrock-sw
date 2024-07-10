@@ -22,7 +22,7 @@ void TuneButtonPressed() {
     if (!amp.atu.isTuning()) {
         if (!amp.atu.isActive()) {
             amp.atu.setActive(true);
-            DrawATU();
+            draw_atu();
         }
 
         Tft.drawString("STOP", 122, 199, 3, GBLUE);

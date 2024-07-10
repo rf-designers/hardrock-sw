@@ -371,7 +371,7 @@ void amplifier::handleTouchScreen2() {
                 state.biasMeter = false;
             }
 
-            drawHome();
+                draw_home();
             Tft.LCD_SEL = 0;
             Tft.lcd_reset();
         }
@@ -382,7 +382,7 @@ void amplifier::handleTouchScreen2() {
             if (!state.txIsOn) {
                 state.mode = nextMode(state.mode);
                 EEPROM.write(eemode, modeToEEPROM(state.mode));
-                DrawMode();
+                draw_mode();
                 disablePTTDetector();
 
                 if (state.mode == mode_type::ptt) {
@@ -423,7 +423,7 @@ void amplifier::handleTouchScreen2() {
                 } else if (state.antForBand[state.band] == 2) {
                     SEL_ANT2;
                 }
-                DrawAnt();
+                draw_ant();
             }
             break;
 
@@ -431,7 +431,7 @@ void amplifier::handleTouchScreen2() {
         case 19:
             if (atu.isPresent() && !state.txIsOn) {
                 atu.setActive(!atu.isActive());
-                DrawATU();
+                draw_atu();
             }
             break;
 
@@ -439,7 +439,7 @@ void amplifier::handleTouchScreen2() {
             if (!atu.isPresent()) {
                 Tft.LCD_SEL = 1;
                 Tft.lcd_clear_screen(GRAY);
-                DrawMenu();
+                draw_menu();
                 state.isMenuActive = true;
             }
             break;
@@ -448,7 +448,7 @@ void amplifier::handleTouchScreen2() {
             if (atu.isPresent()) {
                 Tft.LCD_SEL = 1;
                 Tft.lcd_clear_screen(GRAY);
-                DrawMenu();
+                draw_menu();
                 state.isMenuActive = true;
             }
             break;
@@ -563,16 +563,16 @@ void amplifier::setBand() {
 
         // delete old band (dirty rectangles)
         Tft.LCD_SEL = 1;
-        DrawBand(state.oldBand, MGRAY);
+        draw_band(state.oldBand, MGRAY);
 
         state.oldBand = state.band;
 
         // draw the new band
         const uint16_t dcolor = state.band == 0 ? RED : ORANGE;
-        DrawBand(state.band, dcolor);
+        draw_band(state.band, dcolor);
 
         EEPROM.write(eeband, state.band);
-        DrawAnt();
+        draw_ant();
     }
 }
 
@@ -592,13 +592,13 @@ void amplifier::switchToTX() {
     RESET_PULSE
     state.s_disp = 19;
 
-    DrawRxButtons(DGRAY);
-    DrawTxPanel(RED);
+    draw_rx_buttons(DGRAY);
+    draw_tx_panel(RED);
 }
 
 void amplifier::switchToRX() {
-    DrawRxButtons(GBLUE);
-    DrawTxPanel(GREEN);
+    draw_rx_buttons(GBLUE);
+    draw_tx_panel(GREEN);
     tripClear();
     RESET_PULSE
     Tft.LCD_SEL = 0;

@@ -253,7 +253,7 @@ void TFT::drawChar(uint8_t ascii, uint16_t poX, uint16_t poY, uint16_t size, uin
         ascii = '?';
 
     for (int i = 0; i < FONT_X; i++) {
-        uint8_t temp = pgm_read_byte(&simpleFont[ascii-0x20][i]);
+        uint8_t temp = pgm_read_byte(&simpleFont[ascii - 0x20][i]);
         for (uint8_t f = 0; f < 8; f++) {
             if ((temp >> f) & 0x01) {
                 lcd_fill_rect(poX + i * size, poY + f * size, size, size, fgcolor);
@@ -267,7 +267,7 @@ void TFT::drawHChar(uint8_t ascii, uint16_t poX, uint16_t poY, uint16_t size, ui
         ascii = '?';
 
     for (int i = 0; i < FONT_X; i++) {
-        uint8_t temp = pgm_read_byte(&simpleFont[ascii-0x20][i]);
+        uint8_t temp = pgm_read_byte(&simpleFont[ascii - 0x20][i]);
         for (uint8_t f = 0; f < 8; f++) {
             if ((temp >> f) & 0x01) {
                 lcd_fill_rect(poX - f * size, poY + i * size, size, size, fgcolor);
@@ -277,7 +277,7 @@ void TFT::drawHChar(uint8_t ascii, uint16_t poX, uint16_t poY, uint16_t size, ui
 }
 
 
-void TFT::drawString(const char* string, uint16_t poX, uint16_t poY, uint16_t size, uint16_t fgcolor) {
+void TFT::drawString(const char *string, uint16_t poX, uint16_t poY, uint16_t size, uint16_t fgcolor) {
     while (*string) {
         drawChar(*string, poX, poY, size, fgcolor);
         string++;
@@ -288,7 +288,7 @@ void TFT::drawString(const char* string, uint16_t poX, uint16_t poY, uint16_t si
     }
 }
 
-void TFT::drawHString(uint8_t* string, uint16_t poX, uint16_t poY, uint16_t size, uint16_t fgcolor) {
+void TFT::drawHString(uint8_t *string, uint16_t poX, uint16_t poY, uint16_t size, uint16_t fgcolor) {
     while (*string) {
         drawHChar(*string, poX, poY, size, fgcolor);
         string++;
@@ -339,7 +339,7 @@ void TFT::lcd_display_num(uint16_t hwXpos, //specify x position.
 //display a string at the specified position on lcd.
 void TFT::lcd_display_string(uint16_t hwXpos, //specify x position.
                              uint16_t hwYpos, //specify y position.
-                             const uint8_t* pchString, //a pointer to string
+                             const uint8_t *pchString, //a pointer to string
                              uint8_t chSize, // the size of the string
                              uint16_t hwColor) // specify the color of the string
 {
@@ -357,7 +357,7 @@ void TFT::lcd_display_string(uint16_t hwXpos, //specify x position.
             }
         }
 
-        lcd_display_char(hwXpos, hwYpos, (uint8_t)*pchString, chSize, hwColor);
+        lcd_display_char(hwXpos, hwYpos, (uint8_t) *pchString, chSize, hwColor);
         hwXpos += chSize / 2;
         pchString++;
     }

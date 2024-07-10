@@ -27,16 +27,27 @@ Version 3.5
 #define BODSE 2
 #endif
 
-// Watchdog Timer interrupt service routine
-ISR(WDT_vect) {
-    // This will execute when the WDT wakes up the Arduino
-    // Clear the watchdog timer
-    wdt_reset();
+
+// Flags to indicate data received on Serial or Serial2
+volatile bool serialEvent = false;
+volatile bool serial2Event = false;
+
+// Interrupt Service Routine for Serial RX (Pin 0)
+void serialRxISR() {
+    serialEvent = true;
+}
+
+// Interrupt Service Routine for Serial2 RX (Pin 17)
+void serial2RxISR() {
+    serial2Event = true;
 }
 
 
-amplifier amp;
+ISR(WDT_vect) {
+    wdt_reset();
+}
 
+amplifier amp;
 
 int AnalogRead(byte pin);
 void handleACCCommunication();
@@ -58,8 +69,8 @@ int FT8CNT = 0;
 
 volatile unsigned int f_tot = 0, f_ave = 0;
 volatile unsigned int f_avg[] = {
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
 volatile byte f_i = 0;
 volatile unsigned int r_tot = 0;
@@ -70,9 +81,9 @@ volatile unsigned int r_pep = 0;
 volatile unsigned int d_pep = 0;
 
 unsigned int t_avg[] = {
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
 unsigned int t_tot = 0, t_ave;
 byte t_i = 0;
@@ -287,16 +298,16 @@ void setFanSpeed(byte speed) {
 void setTransceiver(byte s_xcvr) {
     if (s_xcvr == xhobby || s_xcvr == xkx23)
         S_POL_REV
-        else
-            S_POL_NORM
+    else
+        S_POL_NORM
 
-            if (s_xcvr == xhobby) {
-                pinMode(TTL_PU, OUTPUT);
-                digitalWrite(TTL_PU, HIGH);
-            } else {
-                digitalWrite(TTL_PU, LOW);
-                pinMode(TTL_PU, INPUT);
-            }
+    if (s_xcvr == xhobby) {
+        pinMode(TTL_PU, OUTPUT);
+        digitalWrite(TTL_PU, HIGH);
+    } else {
+        digitalWrite(TTL_PU, LOW);
+        pinMode(TTL_PU, INPUT);
+    }
 
     if (s_xcvr == xft817 || s_xcvr == xelad || s_xcvr == xxieg) {
         strcpy(item_disp[mACCbaud], "  XCVR MODE ON  ");
@@ -344,7 +355,8 @@ void configureWakeUpPins() {
     pinMode(19, INPUT);
     attachInterrupt(digitalPinToInterrupt(19), wakeUpFromSleep, FALLING);
 
-    set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+    // set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+    set_sleep_mode(SLEEP_MODE_IDLE);
 
     interrupts();
 }
@@ -352,7 +364,7 @@ void configureWakeUpPins() {
 void configureWatchDogTimer() {
 
     // Clear the reset flag
-    MCUSR &= ~(1<<WDRF);
+    MCUSR &= ~(1 << WDRF);
 
     wdt_reset();
     // Configure the watchdog timer to interrupt mode only (no reset)
@@ -436,15 +448,15 @@ void setup() {
 
         if (ATTN_ST == 1) {
             ATTN_ON_HIGH;
-            item_disp[mATTN] = (char *)" ATTENUATOR IN  ";
+            item_disp[mATTN] = (char *) " ATTENUATOR IN  ";
         } else {
             ATTN_ON_LOW;
-            item_disp[mATTN] = (char *)" ATTENUATOR OUT ";
+            item_disp[mATTN] = (char *) " ATTENUATOR OUT ";
         }
     } else {
         ATTN_P = 0;
         ATTN_ST = 0;
-        item_disp[mATTN] = (char *)" NO ATTENUATOR  ";
+        item_disp[mATTN] = (char *) " NO ATTENUATOR  ";
     }
 
     analogReference(EXTERNAL);
@@ -468,12 +480,12 @@ void setup() {
     Tft.lcd_init(GRAY);
 
     setFanSpeed(0);
-    drawMeter();
+    draw_meter();
 
     Serial3.begin(19200); // ATU
     amp.atu.detect();
 
-    drawHome();
+    draw_home();
     Tft.LCD_SEL = 0;
     Tft.lcd_fill_rect(20, 34, 25, 10, GREEN);
     Tft.lcd_fill_rect(84, 34, 25, 10, GREEN);
@@ -494,6 +506,10 @@ void setup() {
 
     configureWakeUpPins();
     configureWatchDogTimer();
+
+    // Attach interrupts to RX pins
+    attachInterrupt(digitalPinToInterrupt(0), serialRxISR, FALLING); // RX for Serial
+    attachInterrupt(digitalPinToInterrupt(17), serial2RxISR, FALLING); // RX for Serial2
 }
 
 ISR(PCINT0_vect) {
@@ -549,19 +565,19 @@ void loop() {
         t_count = 0;
 
         if (amp.state.meterSelection == 1) {
-            unsigned int f_pw = ReadPower(power_type::fwd_p);
+            unsigned int f_pw = read_power(power_type::fwd_p);
             F_bar = constrain(map(f_pw, 0, 500, 19, 300), 10, 309);
         } else if (amp.state.meterSelection == 2) {
-            unsigned int r_pw = ReadPower(power_type::rfl_p);
+            unsigned int r_pw = read_power(power_type::rfl_p);
             F_bar = constrain(map(r_pw, 0, 50, 19, 300), 10, 309);
         } else if (amp.state.meterSelection == 3) {
-            unsigned int d_pw = ReadPower(power_type::drv_p);
+            unsigned int d_pw = read_power(power_type::drv_p);
             F_bar = constrain(map(d_pw, 0, 100, 19, 300), 10, 309);
         } else if (amp.state.meterSelection == 4) {
-            F_bar = constrain(map(ReadVoltage(), 0, 2400, 19, 299), 19, 309);
+            F_bar = constrain(map(read_voltage(), 0, 2400, 19, 299), 19, 309);
         } else {
             // MeterSel == 5
-            F_bar = constrain(map(ReadCurrent(), 0, 4000, 19, 299), 19, 309);
+            F_bar = constrain(map(read_current(), 0, 4000, 19, 299), 19, 309);
         }
 
         Tft.LCD_SEL = 0;
@@ -575,7 +591,7 @@ void loop() {
         }
 
         if (amp.state.biasMeter) {
-            const int bias_current = ReadCurrent() * 5;
+            const int bias_current = read_current() * 5;
 
             if (bias_current != old_bias_current) {
                 old_bias_current = bias_current;
@@ -588,7 +604,7 @@ void loop() {
         }
 
         if (amp.state.s_disp++ == 20 && f_tot > 250 && amp.state.txIsOn) {
-            const auto vswr = ReadPower(power_type::vswr);
+            const auto vswr = read_power(power_type::vswr);
             amp.state.s_disp = 0;
 
             if (vswr > 9)
@@ -603,12 +619,12 @@ void loop() {
         }
 
         // temperature display
-        // static int t_disp = 0;
-        //
-        // if (t_disp++ == 200) {
-        // t_disp = 0;
-        updateTemperatureDisplay();
-        // }
+        static int t_disp = 0;
+
+        if (t_disp++ == 200) {
+            t_disp = 0;
+            updateTemperatureDisplay();
+        }
     }
 
     if (shouldHandlePttChange) {
@@ -801,7 +817,7 @@ void updateAlarms() {
     }
 
     // voltage alert
-    const int dc_vol = ReadVoltage();
+    const int dc_vol = read_voltage();
     amp.state.V_alert = 1;
 
     if (dc_vol < 1800 || dc_vol > 3000) {
@@ -822,7 +838,7 @@ void updateAlarms() {
     }
 
     // current alert
-    int dc_cur = ReadCurrent();
+    int dc_cur = read_current();
     int MC1 = 180 * amp.state.MAX_CUR;
     int MC2 = 200 * amp.state.MAX_CUR;
 
