@@ -10,6 +10,7 @@ Version 3.5
 #include "hr500_sensors.h"
 #include "menu_functions.h"
 #include "serial_procs.h"
+#include "display_board.h"
 #include <EEPROM.h>
 #include <HR500.h>
 #include <HR500X.h>
@@ -376,24 +377,48 @@ void configureWatchDogTimer() {
     // wdt_enable(WDTO_1S);
 }
 
+unsigned long delta;
+
+void test() {
+//    SPI.begin();
+//    Serial.begin(19200);
+//
+//    display_board <lcd1> l1;
+//    l1.lcd_init(GREEN);
+//    l1.lcd_draw_point(160, 100, RED);
+//    auto start = millis();
+//    l1.lcd_display_char(10, 10, 'A', FONT_1608, RED);
+//    delta = millis() - start;
+//    l1.draw_char('A', 30, 10, 6, WHITE);
+//
+//
+//    display_board <lcd2> l2;
+//    l2.lcd_init(RED);
+//    l2.lcd_draw_point(160, 100, GREEN);
+//    l2.lcd_display_char(10, 10, 'A', FONT_1608, GREEN);
+//    l2.draw_char('A', 30, 10, 6, WHITE);
+}
+
+
+display_board lcd[2] = {display_board{new lcd1}, display_board{new lcd2}};
+
 void setup() {
+//    test();
+//    return;
+
     amp.setup();
-
     amp.state.band = EEPROM.read(eeband);
-
     if (amp.state.band > 10)
         amp.state.band = 5;
 
     amp.state.mode = modeFromEEPROM(EEPROM.read(eemode));
 
     amp.disablePTTDetector();
-
     if (amp.state.mode != mode_type::standby) {
         amp.enablePTTDetector();
     }
 
     amp.atu.setActive(EEPROM.read(eeatub) == 1);
-
     for (byte i = 1; i < 11; i++) {
         amp.state.antForBand[i] = EEPROM.read(eeantsel + i);
 
@@ -516,11 +541,8 @@ ISR(PCINT0_vect) {
     sleep_disable();
 
     if (amp.state.mode == mode_type::standby) return; // Mode is STBY
-
     if (amp.state.isMenuActive) return; // Menu is active
-
     if (amp.state.band == 0) return; // Band is undefined
-
     if (amp.atu.isTuning()) return; // ATU is working
 
     // timeToEnablePTTDetector = 20;
@@ -546,6 +568,11 @@ ISR(PCINT0_vect) {
 }
 
 void loop() {
+    Serial.print("Delta: ");
+    Serial.print(delta);
+    Serial.println();
+    delay(1000);
+    return;
 
     // if (Serial2.available()) {
     //     Serial.write(Serial2.read());
