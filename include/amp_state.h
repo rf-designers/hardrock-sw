@@ -110,7 +110,7 @@ struct amplifier {
     void setup();
     void update();
 
-    void tripClear();
+    void trip_clear();
     void tripSet();
     void readInputFrequency();
     void handleTouchScreen1();

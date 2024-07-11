@@ -7,19 +7,18 @@
 #include <EEPROM.h>
 #include "hr500_displays.h"
 
-extern TFT Tft;
-extern char* workingString;
-extern char* workingString2;
+extern char *workingString;
+extern char *workingString2;
 extern char ATTN_P;
 extern char ATTN_ST;
 extern long M_CORR;
 extern amplifier amp;
+extern display_board lcd[2];
 
 void setTransceiver(byte s_xcvr);
 
 void menuUpdate(byte item, byte changeDirection) {
-    Tft.LCD_SEL = 1;
-    Tft.drawString(item_disp[item], 65, 80, 2, MGRAY);
+    lcd[1].draw_string(item_disp[item], 65, 80, 2, MGRAY);
 
     switch (item) {
         case mACCbaud:
@@ -105,28 +104,26 @@ void menuUpdate(byte item, byte changeDirection) {
             break;
     }
 
-    Tft.drawString(item_disp[item], 65, 80, 2, WHITE);
+    lcd[1].draw_string(item_disp[item], 65, 80, 2, WHITE);
 }
 
 void menuSelect() {
-    Tft.LCD_SEL = 1;
-
     if (!amp.state.menuSelected) {
         amp.state.menuSelected = true;
-        Tft.drawString(menu_items[amp.state.menuChoice], 65, 20, 2, LGRAY);
-        Tft.lcd_fill_rect(14, 8, 41, 45, GRAY);
-        Tft.lcd_fill_rect(266, 8, 41, 45, GRAY);
+        lcd[1].draw_string(menu_items[amp.state.menuChoice], 65, 20, 2, LGRAY);
+        lcd[1].fill_rect(14, 8, 41, 45, GRAY);
+        lcd[1].fill_rect(266, 8, 41, 45, GRAY);
 
         if (amp.state.menuChoice != mSETbias && amp.state.menuChoice != mATWfwl) {
-            Tft.drawString(item_disp[amp.state.menuChoice], 65, 80, 2, WHITE);
-            DrawButton(14, 68, 40, 44);
-            Tft.drawString("<", 24, 78, 4, GBLUE);
-            DrawButton(266, 68, 40, 44);
-            Tft.drawString(">", 274, 78, 4, GBLUE);
+            lcd[1].draw_string(item_disp[amp.state.menuChoice], 65, 80, 2, WHITE);
+            draw_button(lcd[1], 14, 68, 40, 44);
+            lcd[1].draw_string("<", 24, 78, 4, GBLUE);
+            draw_button(lcd[1], 266, 68, 40, 44);
+            lcd[1].draw_string(">", 274, 78, 4, GBLUE);
         }
 
-        Tft.drawString("SELECT", 124, 132, 2, GRAY);
-        Tft.drawString("OK", 150, 132, 2, GBLUE);
+        lcd[1].draw_string("SELECT", 124, 132, 2, GRAY);
+        lcd[1].draw_string("OK", 150, 132, 2, GBLUE);
 
         if (amp.state.menuChoice == mSETbias) {
             amp.state.old_mode = amp.state.mode;
@@ -137,16 +134,16 @@ void menuSelect() {
             BIAS_ON
         }
     } else {
-        Tft.drawString("OK", 150, 132, 2, MGRAY);
+        lcd[1].draw_string("OK", 150, 132, 2, MGRAY);
         amp.state.menuSelected = 0;
-        Tft.drawString(menu_items[amp.state.menuChoice], 65, 20, 2, WHITE);
-        Tft.drawString(item_disp[amp.state.menuChoice], 65, 80, 2, LGRAY);
-        Tft.lcd_fill_rect(14, 68, 41, 45, GRAY);
-        Tft.lcd_fill_rect(266, 68, 41, 45, GRAY);
-        DrawButton(14, 8, 40, 44);
-        Tft.drawString("<", 24, 18, 4, GBLUE);
-        DrawButton(266, 8, 40, 44);
-        Tft.drawString(">", 274, 18, 4, GBLUE);
+        lcd[1].draw_string(menu_items[amp.state.menuChoice], 65, 20, 2, WHITE);
+        lcd[1].draw_string(item_disp[amp.state.menuChoice], 65, 80, 2, LGRAY);
+        lcd[1].fill_rect(14, 68, 41, 45, GRAY);
+        lcd[1].fill_rect(266, 68, 41, 45, GRAY);
+        draw_button(lcd[1], 14, 8, 40, 44);
+        lcd[1].draw_string("<", 24, 18, 4, GBLUE);
+        draw_button(lcd[1], 266, 8, 40, 44);
+        lcd[1].draw_string(">", 274, 18, 4, GBLUE);
 
         if (amp.state.menuChoice == mSETbias) {
             BIAS_OFF
@@ -154,11 +151,11 @@ void menuSelect() {
             amp.state.mode = amp.state.old_mode;
             amp.state.MAX_CUR = 20;
             amp.state.biasMeter = false;
-            Tft.lcd_fill_rect(62, 70, 196, 40, MGRAY);
+            lcd[1].fill_rect(62, 70, 196, 40, MGRAY);
         }
 
         if (amp.state.menuChoice == mATWfwl) {
-            Tft.drawString("  Updating ATU  ", 65, 80, 2, WHITE);
+            lcd[1].draw_string("  Updating ATU  ", 65, 80, 2, WHITE);
             Serial.begin(19200);
             Serial3.println("*u");
 
@@ -168,7 +165,7 @@ void menuSelect() {
             }
         }
 
-        Tft.drawString("SELECT", 124, 132, 2, GBLUE);
+        lcd[1].draw_string("SELECT", 124, 132, 2, GBLUE);
     }
 }
 

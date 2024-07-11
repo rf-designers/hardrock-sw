@@ -264,7 +264,7 @@ byte Xiegudet() {
 
 
 // speed = [0,3]
-void setFanSpeed(byte speed) {
+void set_fan_speed(byte speed) {
     switch (speed) {
         case 0:
             digitalWrite(FAN1, LOW);
@@ -497,34 +497,30 @@ void setup() {
     SPI.begin();
     Wire.begin();
     Wire.setClock(400000);
-    amp.tripClear();
+    amp.trip_clear();
 
-    Tft.LCD_SEL = 0;
-    Tft.lcd_init(GRAY);
-    Tft.LCD_SEL = 1;
-    Tft.lcd_init(GRAY);
+    lcd[0].lcd_init(GRAY);
+    lcd[1].lcd_init(GRAY);
 
-    setFanSpeed(0);
+    set_fan_speed(0);
     draw_meter();
 
     Serial3.begin(19200); // ATU
     amp.atu.detect();
 
     draw_home();
-    Tft.LCD_SEL = 0;
-    Tft.lcd_fill_rect(20, 34, 25, 10, GREEN);
-    Tft.lcd_fill_rect(84, 34, 25, 10, GREEN);
+    lcd[0].fill_rect(20, 34, 25, 10, GREEN);
+    lcd[0].fill_rect(84, 34, 25, 10, GREEN);
 
     if (ATTN_ST == 0)
-        Tft.lcd_fill_rect(148, 34, 25, 10, GREEN);
+        lcd[0].fill_rect(148, 34, 25, 10, GREEN);
 
-    Tft.lcd_fill_rect(212, 34, 25, 10, GREEN);
-    Tft.lcd_fill_rect(276, 34, 25, 10, GREEN);
+    lcd[0].fill_rect(212, 34, 25, 10, GREEN);
+    lcd[0].fill_rect(276, 34, 25, 10, GREEN);
 
     shouldHandlePttChange = false;
 
     while (amp.ts1.touched());
-
     while (amp.ts2.touched());
 
     amp.setBand();
@@ -568,11 +564,11 @@ ISR(PCINT0_vect) {
 }
 
 void loop() {
-    Serial.print("Delta: ");
-    Serial.print(delta);
-    Serial.println();
-    delay(1000);
-    return;
+//    Serial.print("Delta: ");
+//    Serial.print(delta);
+//    Serial.println();
+//    delay(1000);
+//    return;
 
     // if (Serial2.available()) {
     //     Serial.write(Serial2.read());
@@ -607,14 +603,12 @@ void loop() {
             F_bar = constrain(map(read_current(), 0, 4000, 19, 299), 19, 309);
         }
 
-        Tft.LCD_SEL = 0;
-
         while (F_bar != OF_bar) {
             if (OF_bar < F_bar)
-                Tft.lcd_draw_v_line(OF_bar++, 101, 12, GREEN);
+                lcd[0].draw_v_line(OF_bar++, 101, 12, GREEN);
 
             if (OF_bar > F_bar)
-                Tft.lcd_draw_v_line(--OF_bar, 101, 12, MGRAY);
+                lcd[0].draw_v_line(--OF_bar, 101, 12, MGRAY);
         }
 
         if (amp.state.biasMeter) {
@@ -622,11 +616,10 @@ void loop() {
 
             if (bias_current != old_bias_current) {
                 old_bias_current = bias_current;
-                Tft.LCD_SEL = 1;
-                Tft.drawString(bias_text, 65, 80, 2, MGRAY);
+                lcd[1].draw_string(bias_text, 65, 80, 2, MGRAY);
 
                 sprintf(bias_text, "  %d mA", bias_current);
-                Tft.drawString(bias_text, 65, 80, 2, WHITE);
+                lcd[1].draw_string(bias_text, 65, 80, 2, WHITE);
             }
         }
 
@@ -638,9 +631,8 @@ void loop() {
                 sprintf(amp.state.RL_TXT, "%d.%d", vswr / 10, vswr % 10);
 
             if (strcmp(amp.state.ORL_TXT, amp.state.RL_TXT) != 0) {
-                Tft.LCD_SEL = 0;
-                Tft.lcd_fill_rect(70, 203, 36, 16, MGRAY);
-                Tft.drawString(amp.state.RL_TXT, 70, 203, 2, WHITE);
+                lcd[0].fill_rect(70, 203, 36, 16, MGRAY);
+                lcd[0].draw_string(amp.state.RL_TXT, 70, 203, 2, WHITE);
                 strcpy(amp.state.ORL_TXT, amp.state.RL_TXT);
             }
         }
@@ -779,8 +771,7 @@ void updateAlarms() {
         if (amp.state.F_alert == 3)
             r_col = RED;
 
-        Tft.LCD_SEL = 0;
-        Tft.lcd_fill_rect(20, 34, 25, 10, r_col);
+        lcd[0].fill_rect(20, 34, 25, 10, r_col);
     }
 
     // reflected alert
@@ -803,8 +794,7 @@ void updateAlarms() {
         if (amp.state.R_alert == 3)
             r_col = RED;
 
-        Tft.LCD_SEL = 0;
-        Tft.lcd_fill_rect(84, 34, 25, 10, r_col);
+        lcd[0].fill_rect(84, 34, 25, 10, r_col);
     }
 
     // drive alert
@@ -839,8 +829,7 @@ void updateAlarms() {
                 amp.tripSet();
         }
 
-        Tft.LCD_SEL = 0;
-        Tft.lcd_fill_rect(148, 34, 25, 10, r_col);
+        lcd[0].fill_rect(148, 34, 25, 10, r_col);
     }
 
     // voltage alert
@@ -860,8 +849,7 @@ void updateAlarms() {
             r_col = YELLOW;
         }
 
-        Tft.LCD_SEL = 0;
-        Tft.lcd_fill_rect(212, 34, 25, 10, r_col);
+        lcd[0].fill_rect(212, 34, 25, 10, r_col);
     }
 
     // current alert
@@ -888,14 +876,13 @@ void updateAlarms() {
         if (amp.state.I_alert == 3)
             r_col = RED;
 
-        Tft.LCD_SEL = 0;
-        Tft.lcd_fill_rect(276, 34, 25, 10, r_col);
+        lcd[0].fill_rect(276, 34, 25, 10, r_col);
     }
 
     if (t_ave > temp_utp)
-        setFanSpeed(++FAN_SP);
+        set_fan_speed(++FAN_SP);
     else if (t_ave < temp_dtp)
-        setFanSpeed(--FAN_SP);
+        set_fan_speed(--FAN_SP);
 }
 
 void updateTemperatureDisplay() {
@@ -930,8 +917,7 @@ void updateTemperatureDisplay() {
 
     if (t_read != otemp) {
         otemp = t_read;
-        Tft.LCD_SEL = 0;
-        Tft.drawString(TEMPbuff, 237, 203, 2, DGRAY);
+        lcd[0].draw_string(TEMPbuff, 237, 203, 2, DGRAY);
 
         if (amp.state.tempInCelsius) {
             sprintf(TEMPbuff, "%d&C", t_read);
@@ -939,7 +925,7 @@ void updateTemperatureDisplay() {
             sprintf(TEMPbuff, "%d&F", t_read);
         }
 
-        Tft.drawString(TEMPbuff, 237, 203, 2, t_color);
+        lcd[0].draw_string(TEMPbuff, 237, 203, 2, t_color);
     }
 }
 
