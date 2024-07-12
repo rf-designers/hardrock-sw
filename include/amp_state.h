@@ -165,5 +165,6 @@ struct amplifier {
     void set_transceiver(byte type);
     void configure_attenuator();
     void set_fan_speed(int i);
+    void configure_adc();
 };
 

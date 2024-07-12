@@ -68,6 +68,7 @@ void prepare_for_fw_update() {
 }
 
 void atu_board::detect() {
+    Serial3.begin(19200); // ATU
     Serial3.println(" ");
     strcpy(version, "---");
 
@@ -117,7 +118,7 @@ void atu_board::set_tuning(bool enabled) {
 }
 
 void atu_board::set_active(bool a) {
-    active = active;
+    active = a;
 }
 
 bool atu_board::is_tuning() const {
@@ -413,7 +414,6 @@ void amplifier::handle_ts2() {
                         state.antForBand[state.band] = 1;
 
                     EEPROM.write(eeantsel + state.band, state.antForBand[state.band]);
-
                     if (state.antForBand[state.band] == 1) {
                         SEL_ANT1;
                     } else if (state.antForBand[state.band] == 2) {
@@ -858,4 +858,12 @@ void amplifier::set_fan_speed(int speed) {
             state.temp_utp = 2500;
             state.temp_dtp = 550;
     }
+}
+
+void amplifier::configure_adc() {
+    analogReference(EXTERNAL);
+    const unsigned char PS_32 = (1 << ADPS2) | (1 << ADPS0);
+    const unsigned char PS_128 = (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0);
+    ADCSRA &= ~PS_128;
+    ADCSRA |= PS_32;
 }

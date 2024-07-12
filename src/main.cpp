@@ -206,13 +206,7 @@ void setup() {
     amp.setup();
     amp.load_eeprom_config();
     amp.configure_attenuator();
-
-
-    analogReference(EXTERNAL);
-    const unsigned char PS_32 = (1 << ADPS2) | (1 << ADPS0);
-    const unsigned char PS_128 = (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0);
-    ADCSRA &= ~PS_128;
-    ADCSRA |= PS_32;
+    amp.configure_adc();
 
     Timer1.initialize(1000);
     Timer1.attachInterrupt(timer_isr);
@@ -233,7 +227,6 @@ void setup() {
     amp.set_fan_speed(0);
     draw_meter();
 
-    Serial3.begin(19200); // ATU
     amp.atu.detect();
 
     draw_home();
@@ -253,8 +246,8 @@ void setup() {
 
     amp.set_band();
 
-    config_wakeup_pins();
-    config_watchdog_timer();
+//    config_wakeup_pins();
+//    config_watchdog_timer();
 
     // Attach interrupts to RX pins
     attachInterrupt(digitalPinToInterrupt(0), serialRxISR, FALLING); // RX for Serial
@@ -275,7 +268,6 @@ ISR(PCINT0_vect) {
     shouldHandlePttChange = true; // signal to main thread
 
     const auto pttEnabledNow = digitalRead(PTT_DET) == 1;
-
     if (pttEnabledNow && !amp.state.pttEnabled) {
         amp.state.pttEnabled = true;
         RF_ACTIVE
@@ -313,7 +305,6 @@ void loop() {
             amp.update_swr();
         }
 
-        // temperature display
         static int temperature_display_counter = 0;
         if (temperature_display_counter++ == 200) {
             temperature_display_counter = 0;
@@ -324,30 +315,26 @@ void loop() {
     if (shouldHandlePttChange) {
         shouldHandlePttChange = false;
 
+        const auto ptt_enabled_now = digitalRead(PTT_DET) == 1;
         if (amp.state.pttEnabled) {
             if (amp.state.mode != mode_type::standby) {
                 amp.switch_to_tx();
             }
 
-            const auto pttEnabledNow = digitalRead(PTT_DET) == 1;
-            if (!pttEnabledNow && amp.state.mode == mode_type::ptt) {
+            if (!ptt_enabled_now && amp.state.mode == mode_type::ptt) {
                 amp.switch_to_rx();
             }
         } else {
             if (amp.state.mode != mode_type::standby) {
                 amp.switch_to_rx();
             }
-
-            const auto pttEnabledNow = digitalRead(PTT_DET) == 1;
-
-            if (pttEnabledNow) {
+            if (ptt_enabled_now) {
                 amp.switch_to_tx();
             }
         }
     }
 
     byte sampCOR = digitalRead(COR_DET);
-
     if (OLD_COR != sampCOR) {
         OLD_COR = sampCOR;
 
@@ -370,7 +357,6 @@ void loop() {
     amp.handle_ts2();
 
     const auto atuBusy = digitalRead(ATU_BUSY) == 1;
-
     if (amp.atu.is_tuning() && !atuBusy) {
         on_tune_end();
     }
