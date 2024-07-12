@@ -79,6 +79,16 @@ struct amp_state {
     char TEMPbuff[16];
     int t_read;
     int otemp = -99;
+
+    // meter calibration
+    long M_CORR = 100;
+
+    // attenuator status
+    char ATTN_P = 0;
+    byte ATTN_ST = 0;
+
+    unsigned int temp_utp, temp_dtp;
+
 };
 
 mode_type next_mode(mode_type mode);
@@ -151,5 +161,9 @@ struct amplifier {
     byte get_detected_trx_band() const;
     void update_swr();
     void update_temperature();
+    void load_eeprom_config();
+    void set_transceiver(byte type);
+    void configure_attenuator();
+    void set_fan_speed(int i);
 };
 

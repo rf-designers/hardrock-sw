@@ -6,11 +6,7 @@
 #include "atu_functions.h"
 #include "hr500_displays.h"
 #include "hr500_sensors.h"
-#include "menu_functions.h"
-#include "serial_procs.h"
-#include "display_board.h"
 #include "transceivers.h"
-#include <EEPROM.h>
 #include <HR500.h>
 #include <HR500X.h>
 #include <TimerOne.h>
@@ -56,12 +52,8 @@ void update_alarms();
 
 constexpr int volts_to_voltage_reading(const int volts);
 void update_fan_speed();
-long M_CORR = 100;
 byte FAN_SP = 0;
 char ATU_STAT;
-char ATTN_P = 0;
-byte ATTN_ST = 0;
-unsigned int temp_utp, temp_dtp;
 
 volatile unsigned int f_tot = 0, f_ave = 0;
 volatile unsigned int f_avg[] = {
@@ -90,7 +82,7 @@ byte OLD_COR = 0;
 void timer_isr() {
     if (amp.state.tx_is_on) {
         // read forward power
-        long s_calc = static_cast<long>(analogRead(12)) * M_CORR;
+        long s_calc = static_cast<long>(analogRead(12)) * amp.state.M_CORR;
         f_avg[f_i] = s_calc / static_cast<long>(100);
 
         f_ave += f_avg[f_i++]; // Add in the new sample
@@ -112,7 +104,7 @@ void timer_isr() {
         }
 
         // read reflected power
-        s_calc = static_cast<long>(analogRead(13)) * M_CORR;
+        s_calc = static_cast<long>(analogRead(13)) * amp.state.M_CORR;
         const unsigned int rtmp = s_calc / static_cast<long>(100);
 
         if (rtmp > r_tot) {
@@ -158,67 +150,6 @@ void timer_isr() {
     }
 }
 
-
-// speed = [0,3]
-void set_fan_speed(byte speed) {
-    switch (speed) {
-        case 0:
-            digitalWrite(FAN1, LOW);
-            digitalWrite(FAN2, LOW);
-            temp_utp = 400;
-            temp_dtp = 00;
-            break;
-
-        case 1:
-            digitalWrite(FAN1, HIGH);
-            digitalWrite(FAN2, LOW);
-            temp_utp = 500;
-            temp_dtp = 350;
-            break;
-
-        case 2:
-            digitalWrite(FAN1, LOW);
-            digitalWrite(FAN2, HIGH);
-            temp_utp = 600;
-            temp_dtp = 450;
-            break;
-
-        case 3:
-        default:
-            digitalWrite(FAN1, HIGH);
-            digitalWrite(FAN2, HIGH);
-            temp_utp = 2500;
-            temp_dtp = 550;
-    }
-}
-
-void set_transceiver(byte s_xcvr) {
-    if (s_xcvr == xhobby || s_xcvr == xkx23)
-        S_POL_REV
-    else
-        S_POL_NORM
-
-    if (s_xcvr == xhobby) {
-        pinMode(TTL_PU, OUTPUT);
-        digitalWrite(TTL_PU, HIGH);
-    } else {
-        digitalWrite(TTL_PU, LOW);
-        pinMode(TTL_PU, INPUT);
-    }
-
-    if (s_xcvr == xft817 || s_xcvr == xelad || s_xcvr == xxieg) {
-        strcpy(item_disp[mACCbaud], "  XCVR MODE ON  ");
-        Serial2.end();
-    } else {
-        SetupAccSerial(amp.state.accSpeed);
-    }
-
-    if (s_xcvr == xic705) {
-        amp.state.accSpeed = serial_speed::baud_19200;
-        EEPROM.write(eeaccbaud, speed_to_eeprom(amp.state.accSpeed));
-        SetupAccSerial(amp.state.accSpeed);
-    }
-}
 
 int analog_read(byte pin) {
     noInterrupts();
@@ -272,78 +203,10 @@ void config_watchdog_timer() {
 
 
 void setup() {
-//    test();
-//    return;
-
     amp.setup();
-    amp.state.band = EEPROM.read(eeband);
-    if (amp.state.band > 10)
-        amp.state.band = 5;
+    amp.load_eeprom_config();
+    amp.configure_attenuator();
 
-    amp.state.mode = mode_from_eeprom(EEPROM.read(eemode));
-
-    amp.disable_ptt_detector();
-    if (amp.state.mode != mode_type::standby) {
-        amp.enable_ptt_detector();
-    }
-
-    amp.atu.set_active(EEPROM.read(eeatub) == 1);
-    for (byte i = 1; i < 11; i++) {
-        amp.state.antForBand[i] = EEPROM.read(eeantsel + i);
-
-        if (amp.state.antForBand[i] == 1) {
-            // SEL_ANT1;
-        } else if (amp.state.antForBand[i] == 2) {
-            // SEL_ANT2;
-        } else {
-            // SEL_ANT1;
-            amp.state.antForBand[i] = 1;
-            EEPROM.write(eeantsel + i, 1);
-        }
-    }
-
-    amp.state.accSpeed = speed_from_eeprom(EEPROM.read(eeaccbaud));
-    SetupAccSerial(amp.state.accSpeed);
-
-    amp.state.usbSpeed = speed_from_eeprom(EEPROM.read(eeusbbaud));
-    SetupUSBSerial(amp.state.usbSpeed);
-
-    amp.state.tempInCelsius = EEPROM.read(eecelsius) > 0;
-
-    amp.state.meterSelection = EEPROM.read(eemetsel);
-    if (amp.state.meterSelection < 1 || amp.state.meterSelection > 5) {
-        amp.state.meterSelection = 1;
-    }
-    amp.state.oldMeterSelection = amp.state.meterSelection;
-
-
-    amp.state.trx_type = constrain(EEPROM.read(eexcvr), 0, xcvr_max);
-    strcpy(item_disp[mXCVR], xcvr_disp[amp.state.trx_type]);
-    set_transceiver(amp.state.trx_type);
-
-    byte MCAL = constrain(EEPROM.read(eemcal), 75, 125);
-    M_CORR = static_cast<long>(MCAL);
-    sprintf(item_disp[mMCAL], "      %3li       ", M_CORR);
-
-    if (ATTN_INST_READ == LOW) {
-        ATTN_P = 1;
-        ATTN_ST = EEPROM.read(eeattn);
-
-        if (ATTN_ST > 1)
-            ATTN_ST = 0;
-
-        if (ATTN_ST == 1) {
-            ATTN_ON_HIGH;
-            item_disp[mATTN] = (char *) " ATTENUATOR IN  ";
-        } else {
-            ATTN_ON_LOW;
-            item_disp[mATTN] = (char *) " ATTENUATOR OUT ";
-        }
-    } else {
-        ATTN_P = 0;
-        ATTN_ST = 0;
-        item_disp[mATTN] = (char *) " NO ATTENUATOR  ";
-    }
 
     analogReference(EXTERNAL);
     const unsigned char PS_32 = (1 << ADPS2) | (1 << ADPS0);
@@ -367,7 +230,7 @@ void setup() {
     amp.lcd[0].lcd_init(GRAY);
     amp.lcd[1].lcd_init(GRAY);
 
-    set_fan_speed(0);
+    amp.set_fan_speed(0);
     draw_meter();
 
     Serial3.begin(19200); // ATU
@@ -377,7 +240,7 @@ void setup() {
     amp.lcd[0].fill_rect(20, 34, 25, 10, GREEN);
     amp.lcd[0].fill_rect(84, 34, 25, 10, GREEN);
 
-    if (ATTN_ST == 0)
+    if (amp.state.ATTN_ST == 0)
         amp.lcd[0].fill_rect(148, 34, 25, 10, GREEN);
 
     amp.lcd[0].fill_rect(212, 34, 25, 10, GREEN);
@@ -521,10 +384,10 @@ void loop() {
 }
 
 void update_fan_speed() {
-    if (amp.state.t_ave > temp_utp)
-        set_fan_speed(++FAN_SP);
-    else if (amp.state.t_ave < temp_dtp)
-        set_fan_speed(--FAN_SP);
+    if (amp.state.t_ave > amp.state.temp_utp)
+        amp.set_fan_speed(++FAN_SP);
+    else if (amp.state.t_ave < amp.state.temp_dtp)
+        amp.set_fan_speed(--FAN_SP);
 }
 
 void update_alarms() {
@@ -585,7 +448,7 @@ void update_alarms() {
         amp.state.D_alert = 2;
     }
 
-    if (ATTN_ST == 1)
+    if (amp.state.ATTN_ST == 1)
         amp.state.D_alert = 0;
 
     if (!amp.state.tx_is_on)
@@ -595,7 +458,7 @@ void update_alarms() {
         amp.state.OD_alert = amp.state.D_alert;
 
         unsigned int r_col = GREEN;
-        if (ATTN_ST == 1) {
+        if (amp.state.ATTN_ST == 1) {
             r_col = DGRAY;
         } else if (amp.state.D_alert == 2) {
             r_col = YELLOW;

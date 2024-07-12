@@ -725,3 +725,137 @@ void amplifier::update_temperature() {
     }
 
 }
+
+void amplifier::load_eeprom_config() {
+    state.band = EEPROM.read(eeband);
+    if (state.band > 10)
+        state.band = 5;
+
+    state.mode = mode_from_eeprom(EEPROM.read(eemode));
+    disable_ptt_detector();
+    if (state.mode != mode_type::standby) {
+        enable_ptt_detector();
+    }
+
+    atu.set_active(EEPROM.read(eeatub) == 1);
+    for (byte i = 1; i < 11; i++) {
+        state.antForBand[i] = EEPROM.read(eeantsel + i);
+
+        if (state.antForBand[i] == 1) {
+            // SEL_ANT1;
+        } else if (state.antForBand[i] == 2) {
+            // SEL_ANT2;
+        } else {
+            // SEL_ANT1;
+            state.antForBand[i] = 1;
+            EEPROM.write(eeantsel + i, 1);
+        }
+    }
+
+    state.accSpeed = speed_from_eeprom(EEPROM.read(eeaccbaud));
+    setup_acc_serial(state.accSpeed);
+
+    state.usbSpeed = speed_from_eeprom(EEPROM.read(eeusbbaud));
+    setup_usb_serial(state.usbSpeed);
+
+    state.tempInCelsius = EEPROM.read(eecelsius) > 0;
+
+    state.meterSelection = EEPROM.read(eemetsel);
+    if (state.meterSelection < 1 || state.meterSelection > 5) {
+        state.meterSelection = 1;
+    }
+    state.oldMeterSelection = state.meterSelection;
+
+
+    state.trx_type = constrain(EEPROM.read(eexcvr), 0, xcvr_max);
+    strcpy(item_disp[mXCVR], xcvr_disp[state.trx_type]);
+    this->set_transceiver(state.trx_type);
+
+    byte MCAL = constrain(EEPROM.read(eemcal), 75, 125);
+    state.M_CORR = static_cast<long>(MCAL);
+    sprintf(item_disp[mMCAL], "      %3li       ", state.M_CORR);
+}
+
+void amplifier::set_transceiver(byte type) {
+    if (type == xhobby || type == xkx23)
+        S_POL_REV
+    else
+        S_POL_NORM
+
+    if (type == xhobby) {
+        pinMode(TTL_PU, OUTPUT);
+        digitalWrite(TTL_PU, HIGH);
+    } else {
+        digitalWrite(TTL_PU, LOW);
+        pinMode(TTL_PU, INPUT);
+    }
+
+    if (type == xft817 || type == xelad || type == xxieg) {
+        strcpy(item_disp[mACCbaud], "  XCVR MODE ON  ");
+        Serial2.end();
+    } else {
+        setup_acc_serial(state.accSpeed);
+    }
+
+    if (type == xic705) {
+        state.accSpeed = serial_speed::baud_19200;
+        EEPROM.write(eeaccbaud, speed_to_eeprom(state.accSpeed));
+        setup_acc_serial(state.accSpeed);
+    }
+}
+
+void amplifier::configure_attenuator() {
+    if (ATTN_INST_READ == LOW) {
+        state.ATTN_P = 1;
+        state.ATTN_ST = EEPROM.read(eeattn);
+
+        if (state.ATTN_ST > 1)
+            state.ATTN_ST = 0;
+
+        if (state.ATTN_ST == 1) {
+            ATTN_ON_HIGH;
+            item_disp[mATTN] = (char *) " ATTENUATOR IN  ";
+        } else {
+            ATTN_ON_LOW;
+            item_disp[mATTN] = (char *) " ATTENUATOR OUT ";
+        }
+    } else {
+        state.ATTN_P = 0;
+        state.ATTN_ST = 0;
+        item_disp[mATTN] = (char *) " NO ATTENUATOR  ";
+    }
+
+}
+
+void amplifier::set_fan_speed(int speed) {
+// speed = [0,3]
+    switch (speed) {
+        case 0:
+            digitalWrite(FAN1, LOW);
+            digitalWrite(FAN2, LOW);
+            state.temp_utp = 400;
+            state.temp_dtp = 00;
+            break;
+
+        case 1:
+            digitalWrite(FAN1, HIGH);
+            digitalWrite(FAN2, LOW);
+            state.temp_utp = 500;
+            state.temp_dtp = 350;
+            break;
+
+        case 2:
+            digitalWrite(FAN1, LOW);
+            digitalWrite(FAN2, HIGH);
+            state.temp_utp = 600;
+            state.temp_dtp = 450;
+            break;
+
+        case 3:
+        default:
+            digitalWrite(FAN1, HIGH);
+            digitalWrite(FAN2, HIGH);
+            state.temp_utp = 2500;
+            state.temp_dtp = 550;
+    }
+}

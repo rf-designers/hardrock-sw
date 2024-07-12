@@ -9,12 +9,7 @@
 
 extern char *workingString;
 extern char *workingString2;
-extern char ATTN_P;
-extern char ATTN_ST;
-extern long M_CORR;
 extern amplifier amp;
-
-void set_transceiver(byte s_xcvr);
 
 void menu_update(byte item, byte ch_dir) {
     amp.lcd[1].draw_string(item_disp[item], 65, 80, 2, MGRAY);
@@ -32,7 +27,7 @@ void menu_update(byte item, byte ch_dir) {
                 amp.state.accSpeed = serial_speed::baud_4800;
 
             EEPROM.write(eeaccbaud, speed_to_eeprom(amp.state.accSpeed));
-            SetupAccSerial(amp.state.accSpeed);
+            setup_acc_serial(amp.state.accSpeed);
             break;
 
         case mUSBbaud:
@@ -42,7 +37,7 @@ void menu_update(byte item, byte ch_dir) {
                 amp.state.usbSpeed = prev_serial_speed(amp.state.usbSpeed);
 
             EEPROM.write(eeusbbaud, speed_to_eeprom(amp.state.usbSpeed));
-            SetupUSBSerial(amp.state.usbSpeed);
+            setup_usb_serial(amp.state.usbSpeed);
             break;
 
         case mXCVR:
@@ -59,24 +54,24 @@ void menu_update(byte item, byte ch_dir) {
 
             strcpy(item_disp[mXCVR], xcvr_disp[amp.state.trx_type]);
             EEPROM.write(eexcvr, amp.state.trx_type);
-            set_transceiver(amp.state.trx_type);
+            amp.set_transceiver(amp.state.trx_type);
             break;
 
         case mATTN:
-            if (ATTN_P == 0) {
+            if (amp.state.ATTN_P == 0) {
                 item_disp[mATTN] = (char *) " NO ATTENUATOR  ";
             } else {
-                if (ATTN_ST != 0) {
-                    ATTN_ST = 0;
+                if (amp.state.ATTN_ST != 0) {
+                    amp.state.ATTN_ST = 0;
                     ATTN_ON_LOW;
                     item_disp[mATTN] = (char *) " ATTENUATOR OUT ";
                 } else {
-                    ATTN_ST = 1;
+                    amp.state.ATTN_ST = 1;
                     ATTN_ON_HIGH;
                     item_disp[mATTN] = (char *) " ATTENUATOR IN  ";
                 }
 
-                EEPROM.write(eeattn, ATTN_ST);
+                EEPROM.write(eeattn, amp.state.ATTN_ST);
                 amp.state.OD_alert = 5;
             }
 
@@ -84,22 +79,22 @@ void menu_update(byte item, byte ch_dir) {
 
         case mMCAL:
             if (ch_dir == 1) {
-                M_CORR++;
+                amp.state.M_CORR++;
             } else {
-                M_CORR--;
+                amp.state.M_CORR--;
             }
 
-            if (M_CORR > 125) {
-                M_CORR = long(125);
+            if (amp.state.M_CORR > 125) {
+                amp.state.M_CORR = long(125);
             }
 
-            if (M_CORR < 75) {
-                M_CORR = long(75);
+            if (amp.state.M_CORR < 75) {
+                amp.state.M_CORR = long(75);
             }
 
-            byte MCAL = M_CORR;
+            byte MCAL = amp.state.M_CORR;
             EEPROM.write(eemcal, MCAL);
-            sprintf(item_disp[mMCAL], "      %3ld       ", M_CORR);
+            sprintf(item_disp[mMCAL], "      %3ld       ", amp.state.M_CORR);
             break;
     }
 
@@ -168,7 +163,7 @@ void menuSelect() {
     }
 }
 
-void SetupAccSerial(const serial_speed speed) {
+void setup_acc_serial(serial_speed speed) {
     Serial2.end();
 
     switch (speed) {
@@ -196,7 +191,7 @@ void SetupAccSerial(const serial_speed speed) {
     }
 }
 
-void SetupUSBSerial(const serial_speed speed) {
+void setup_usb_serial(serial_speed speed) {
     Serial.end();
 
     switch (speed) {
