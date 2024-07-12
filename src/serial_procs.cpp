@@ -14,13 +14,20 @@
 long freqLong = 0;
 char freqStr[7];
 
-extern char rxbuff[128]; // 128 byte circular Buffer for storing rx data
-extern char workingString[128];
-extern char rxbuff2[128]; // 128 byte circular Buffer for storing rx data
-extern char workingString2[128];
-extern uint8_t readStart, readStart2;
+uint8_t uartIdx = 0, uart2Idx = 0;
+uint8_t readStart = 0, readStart2 = 0;
+char rxbuff[128]; // 128 byte circular Buffer for storing rx data
+char workingString[128];
+char rxbuff2[128]; // 128 byte circular Buffer for storing rx data
+char workingString2[128];
+
+
+//extern char rxbuff[128]; // 128 byte circular Buffer for storing rx data
+//extern char workingString[128];
+//extern char rxbuff2[128]; // 128 byte circular Buffer for storing rx data
+//extern char workingString2[128];
+//extern uint8_t readStart, readStart2;
 extern char ATU_STAT;
-extern unsigned int t_tot, t_ave;
 extern char ATU_buff[40];
 extern amplifier amp;
 
@@ -272,9 +279,9 @@ void handle_usb_message(char uart) {
             int tread;
 
             if (amp.state.tempInCelsius) {
-                tread = t_ave;
+                tread = amp.state.t_ave;
             } else {
-                tread = ((t_ave * 9) / 5) + 320;
+                tread = ((amp.state.t_ave * 9) / 5) + 320;
             }
 
             tread /= 10;
@@ -341,7 +348,7 @@ void handle_usb_message(char uart) {
             const auto stS = read_power(power_type::vswr);
             const auto stV = read_voltage() / 40;
             const auto stI = read_current() / 20;
-            auto stT = t_ave / 10;
+            auto stT = amp.state.t_ave / 10;
             if (!amp.state.tempInCelsius) {
                 stT = ((stT * 9) / 5) + 32;
             }
@@ -349,7 +356,7 @@ void handle_usb_message(char uart) {
             sprintf(tbuff, "HRST-%03d-%03d-%03d-%03d-%03d-%03d-%03d-%01d-%02d-%01d-%01d%01d%01d%01d%01d%01d%01d%01d-",
                     stF, stR, stD, stS, stV, stI, stT, mode_to_eeprom(amp.state.mode), amp.state.band,
                     amp.state.antForBand[amp.state.band],
-                    amp.state.txIsOn ? 1 : 0, amp.state.F_alert,
+                    amp.state.tx_is_on ? 1 : 0, amp.state.F_alert,
                     amp.state.R_alert, amp.state.D_alert,
                     amp.state.V_alert, amp.state.I_alert, amp.atu.is_tuning() ? 1 : 0, amp.atu.is_active() ? 1 : 0);
             UART_send(uart, tbuff);
@@ -440,4 +447,30 @@ void UART_send_line(const char uart) {
 void UART_send_cr(const char uart) {
     if (uart == 1) Serial.println();
     if (uart == 2) Serial2.println();
+}
+
+void handle_acc_comms() {
+    while (Serial2.available()) {
+        rxbuff2[uart2Idx] = Serial2.read();
+        if (rxbuff2[uart2Idx] == ';') {
+            uart_grab_buffer2();
+            handle_usb_message(2);
+        }
+
+        if (++uart2Idx > 127)
+            uart2Idx = 0;
+    }
+}
+
+void handle_usb_comms() {
+    while (Serial.available()) {
+        rxbuff[uartIdx] = Serial.read(); // Storing read data
+        if (rxbuff[uartIdx] == ';') {
+            uart_grab_buffer();
+            handle_usb_message(1);
+        }
+
+        if (++uartIdx > 127)
+            uartIdx = 0;
+    }
 }

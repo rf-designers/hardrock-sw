@@ -28,10 +28,10 @@ void on_tune_button_pressed() {
         amp.atu.set_tuning(true);
 
         // If the TX is on, turn it off
-        if (amp.state.txIsOn) {
+        if (amp.state.tx_is_on) {
             amp.state.pttEnabled = false;
             BIAS_OFF
-            amp.state.txIsOn = false;
+            amp.state.tx_is_on = false;
             amp.lpf.send_relay_data(amp.lpf.serial_data);
             RF_BYPASS
         }

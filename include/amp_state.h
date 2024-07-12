@@ -28,7 +28,7 @@ enum class serial_speed : uint8_t {
 };
 
 struct amp_state {
-    volatile bool txIsOn;
+    volatile bool tx_is_on;
     mode_type mode = mode_type::standby; // 0 - OFF, 1 - PTT
     mode_type old_mode;
 
@@ -42,7 +42,7 @@ struct amp_state {
     char RL_TXT[4] = {"-.-"};
     char ORL_TXT[4] = {"..."};
 
-    volatile int timeToTouch = 0; // countdown for TS touching. this gets decremented in timer ISR
+    volatile int touch_enable_counter = 0; // countdown for TS touching. this gets decremented in timer ISR
     byte menuChoice = 0;
     bool menuSelected = false;
     bool biasMeter = false;
@@ -55,13 +55,30 @@ struct amp_state {
     byte meterSelection = 0; // 1 - FWD; 2 - RFL; 3 - DRV; 4 - VDD; 5 - IDD
     byte oldMeterSelection;
 
-    byte trxType = 0;
+    byte trx_type = 0;
     byte antForBand[11] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}; // antenna selection for each band
     bool isMenuActive; // 0 is normal, 1 is menu mode
     bool tempInCelsius = true; // display temperature in Celsius?
 
     serial_speed accSpeed;
     serial_speed usbSpeed;
+
+    unsigned int F_bar = 9, OF_bar = 9;
+
+    char bias_text[11] = {"          "};
+    int old_bias_current = -1;
+
+    // temp
+    unsigned int t_avg[51] = {
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    };
+    unsigned int t_tot = 0, t_ave;
+    byte t_i = 0;
+    char TEMPbuff[16];
+    int t_read;
+    int otemp = -99;
 };
 
 mode_type next_mode(mode_type mode);
@@ -128,5 +145,11 @@ struct amplifier {
     display_board lcd[2] = {display_board{new lcd1}, display_board{new lcd2}};
     XPT2046_Touchscreen ts1{TP1_CS};
     XPT2046_Touchscreen ts2{TP2_CS};
+    void update_meter_drawing();
+    void update_bias_reading();
+    void handle_trx_band_detection();
+    byte get_detected_trx_band() const;
+    void update_swr();
+    void update_temperature();
 };
 

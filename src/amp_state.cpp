@@ -1,4 +1,6 @@
 #include "amp_state.h"
+#include "hr500_sensors.h"
+#include "transceivers.h"
 
 #include <atu_functions.h>
 #include <EEPROM.h>
@@ -10,6 +12,7 @@
 #include <Wire.h>
 #include <SPI.h>
 
+extern int analog_read(byte pin);
 
 mode_type next_mode(mode_type mode) {
     auto md = mode_to_eeprom(mode) + 1;
@@ -373,7 +376,7 @@ void amplifier::handle_ts2() {
         switch (pressedKey) {
             case 5:
             case 6:
-                if (!state.txIsOn) {
+                if (!state.tx_is_on) {
                     state.mode = next_mode(state.mode);
                     EEPROM.write(eemode, mode_to_eeprom(state.mode));
                     draw_mode();
@@ -385,7 +388,7 @@ void amplifier::handle_ts2() {
                 break;
 
             case 8:
-                if (!state.txIsOn) {
+                if (!state.tx_is_on) {
                     if (++state.band >= 11)
                         state.band = 1;
                     set_band();
@@ -393,7 +396,7 @@ void amplifier::handle_ts2() {
                 break;
 
             case 9:
-                if (!state.txIsOn) {
+                if (!state.tx_is_on) {
                     if (--state.band == 0)
                         state.band = 10;
 
@@ -405,7 +408,7 @@ void amplifier::handle_ts2() {
 
             case 15:
             case 16:
-                if (!state.txIsOn) {
+                if (!state.tx_is_on) {
                     if (++state.antForBand[state.band] == 3)
                         state.antForBand[state.band] = 1;
 
@@ -422,7 +425,7 @@ void amplifier::handle_ts2() {
 
             case 18:
             case 19:
-                if (atu.is_present() && !state.txIsOn) {
+                if (atu.is_present() && !state.tx_is_on) {
                     atu.set_active(!atu.is_active());
                     draw_atu();
                 }
@@ -492,7 +495,7 @@ void amplifier::disable_ptt_detector() {
 
 void amplifier::set_band() {
     if (state.band > 10) return;
-    if (state.txIsOn) return;
+    if (state.tx_is_on) return;
 
     byte lpfSerialData = 0;
     switch (state.band) {
@@ -593,4 +596,132 @@ void amplifier::switch_to_rx() {
     lcd[0].fill_rect(70, 203, 36, 16, MGRAY);
     lcd[0].draw_string(state.RL_TXT, 70, 203, 2, LGRAY);
     strcpy(state.ORL_TXT, "   ");
+}
+
+void amplifier::update_meter_drawing() {
+    if (state.meterSelection == 1) {
+        unsigned int f_pw = read_power(power_type::fwd_p);
+        state.F_bar = constrain(map(f_pw, 0, 500, 19, 300), 10, 309);
+    } else if (state.meterSelection == 2) {
+        unsigned int r_pw = read_power(power_type::rfl_p);
+        state.F_bar = constrain(map(r_pw, 0, 50, 19, 300), 10, 309);
+    } else if (state.meterSelection == 3) {
+        unsigned int d_pw = read_power(power_type::drv_p);
+        state.F_bar = constrain(map(d_pw, 0, 100, 19, 300), 10, 309);
+    } else if (state.meterSelection == 4) {
+        state.F_bar = constrain(map(read_voltage(), 0, 2400, 19, 299), 19, 309);
+    } else {
+        // MeterSel == 5
+        state.F_bar = constrain(map(read_current(), 0, 4000, 19, 299), 19, 309);
+    }
+
+    while (state.F_bar != state.OF_bar) {
+        if (state.OF_bar < state.F_bar)
+            lcd[0].draw_v_line(state.OF_bar++, 101, 12, GREEN);
+
+        if (state.OF_bar > state.F_bar)
+            lcd[0].draw_v_line(--state.OF_bar, 101, 12, MGRAY);
+    }
+
+}
+
+void amplifier::update_bias_reading() {
+    const int bias_current = read_current() * 5;
+    if (bias_current != state.old_bias_current) {
+        state.old_bias_current = bias_current;
+        lcd[1].draw_string(state.bias_text, 65, 80, 2, MGRAY);
+
+        sprintf(state.bias_text, "  %d mA", bias_current);
+        lcd[1].draw_string(state.bias_text, 65, 80, 2, WHITE);
+    }
+
+}
+
+void amplifier::handle_trx_band_detection() {
+    if (state.tx_is_on) return;
+
+    byte detected_band = this->get_detected_trx_band();
+    if (detected_band != 0 && detected_band != state.band) {
+        state.band = detected_band;
+        set_band();
+    }
+}
+
+byte amplifier::get_detected_trx_band() const {
+    byte detected_band = 0;
+    if (state.trx_type == xft817) {
+        do {
+            detected_band = FT817det();
+        } while (detected_band != FT817det());
+    } else if (state.trx_type == xxieg) {
+        do {
+            detected_band = Xiegudet();
+        } while (detected_band != Xiegudet());
+    } else if (state.trx_type == xelad) {
+        do {
+            detected_band = Eladdet();
+        } while (detected_band != Eladdet());
+    }
+
+    return detected_band;
+}
+
+void amplifier::update_swr() {
+    const auto vswr = read_power(power_type::vswr);
+    if (vswr > 9) {
+        sprintf(state.RL_TXT, "%d.%d", vswr / 10, vswr % 10);
+    }
+
+    // FIXME: compare vswr, not string.
+    if (strcmp(state.ORL_TXT, state.RL_TXT) != 0) {
+        lcd[0].fill_rect(70, 203, 36, 16, MGRAY);
+        lcd[0].draw_string(state.RL_TXT, 70, 203, 2, WHITE);
+        strcpy(state.ORL_TXT, state.RL_TXT);
+    }
+
+}
+
+
+void amplifier::update_temperature() {
+    state.t_avg[state.t_i] = constrain(analog_read(14), 5, 2000);
+    state.t_tot += state.t_avg[state.t_i++]; // Add in the new sample
+
+    if (state.t_i > 10)
+        state.t_i = 0; // Update the index value
+
+    state.t_tot -= state.t_avg[state.t_i]; // Subtract off the 51st value
+    state.t_ave = state.t_tot / 5;
+
+    unsigned int t_color = GREEN;
+    if (state.t_ave > 500)
+        t_color = YELLOW;
+
+    if (state.t_ave > 650)
+        t_color = RED;
+
+    if (state.t_ave > 700 && state.tx_is_on) {
+        trip_set();
+    }
+
+    if (state.tempInCelsius) {
+        state.t_read = state.t_ave;
+    } else {
+        state.t_read = ((state.t_ave * 9) / 5) + 320;
+    }
+
+    state.t_read /= 10;
+
+    if (state.t_read != state.otemp) {
+        state.otemp = state.t_read;
+        lcd[0].draw_string(state.TEMPbuff, 237, 203, 2, DGRAY);
+
+        if (state.tempInCelsius) {
+            sprintf(state.TEMPbuff, "%d&C", state.t_read);
+        } else {
+            sprintf(state.TEMPbuff, "%d&F", state.t_read);
+        }
+
+        lcd[0].draw_string(state.TEMPbuff, 237, 203, 2, t_color);
+    }
+
 }

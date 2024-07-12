@@ -21,7 +21,7 @@ void menu_update(byte item, byte ch_dir) {
 
     switch (item) {
         case mACCbaud:
-            if (amp.state.trxType == xft817) break;
+            if (amp.state.trx_type == xft817) break;
 
             if (ch_dir == 1)
                 amp.state.accSpeed = next_serial_speed(amp.state.accSpeed);
@@ -47,19 +47,19 @@ void menu_update(byte item, byte ch_dir) {
 
         case mXCVR:
             if (ch_dir == 1)
-                amp.state.trxType++;
+                amp.state.trx_type++;
             else
-                amp.state.trxType--;
+                amp.state.trx_type--;
 
-            if (amp.state.trxType == xcvr_max + 1)
-                amp.state.trxType = 0;
+            if (amp.state.trx_type == xcvr_max + 1)
+                amp.state.trx_type = 0;
 
-            if (amp.state.trxType == 255)
-                amp.state.trxType = xcvr_max;
+            if (amp.state.trx_type == 255)
+                amp.state.trx_type = xcvr_max;
 
-            strcpy(item_disp[mXCVR], xcvr_disp[amp.state.trxType]);
-            EEPROM.write(eexcvr, amp.state.trxType);
-            set_transceiver(amp.state.trxType);
+            strcpy(item_disp[mXCVR], xcvr_disp[amp.state.trx_type]);
+            EEPROM.write(eexcvr, amp.state.trx_type);
+            set_transceiver(amp.state.trx_type);
             break;
 
         case mATTN:
