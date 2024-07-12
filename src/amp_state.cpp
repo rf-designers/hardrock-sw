@@ -372,7 +372,7 @@ void amplifier::handleTouchScreen2() {
                 }
 
                 draw_home();
-                lcd[0].lcd_reset();
+//                lcd[0].lcd_reset();
         }
     } else {
         switch (pressedKey) {

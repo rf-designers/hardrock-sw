@@ -1,7 +1,27 @@
-/*
-Hardrock 500 Firmware
-Version 3.5
-*/
+//#include <SPI.h>
+//#include <Adafruit_GFX.h>
+//#include "display_board.h"
+////#include "Adafruit_ST7789.h"
+//#include "../lib/Adafruit_ST7789/Adafruit_ST7789.h"
+//
+//void setup(void) {
+//    Serial.begin(19200);
+//
+//    SPI.setDataMode(SPI_MODE3);
+//    SPI.setBitOrder(MSBFIRST);
+//    SPI.setClockDivider(SPI_CLOCK_DIV4);
+//    SPI.begin();
+//
+//    display_board lcdxx{new lcd1};
+//    lcdxx.lcd_init(GREEN);
+//    lcdxx.fill_rect(10, 10, 200, 200, MAGENTA);
+//}
+//
+//void loop() {
+//}
+
+//Hardrock 500 Firmware
+//Version 3.5
 
 #include "HR500V1.h"
 #include "amp_state.h"
@@ -704,9 +724,9 @@ void loop() {
     handleACCCommunication();
     handleUSBCommunication();
 
-    if (!amp.state.txIsOn) {
-        goToSleep();
-    }
+//    if (!amp.state.txIsOn) {
+//        goToSleep();
+//    }
 }
 
 void handleACCCommunication() {

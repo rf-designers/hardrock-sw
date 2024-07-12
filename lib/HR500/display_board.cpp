@@ -48,34 +48,35 @@ void display_board::fill_rect(uint16_t x,
                               uint16_t w,
                               uint16_t h,
                               uint16_t color) {
-    uint8_t xhi = 255, xnow, yhi = 255, ynow;
-
-    if (x >= lcd->width || y >= lcd->height) {
-        return;
-    }
-
-    for (uint16_t current_y = 240 - y; current_y >= (240 - y - h); current_y--) {
-        // Don't write high byte if unchanged
-        ynow = current_y >> 8;
-        if (ynow != yhi) {
-            lcd->write_register(0x02, ynow); //Column Start
-            yhi = ynow;
-        }
-        lcd->write_register(0x03, current_y & 0xFF); //Column Start
-
-        for (uint16_t current_x = x; current_x < x + w; current_x++) {
-            /* Don't write high byte if unchanged */
-            xnow = current_x >> 8;
-            if (xnow != xhi) {
-                lcd->write_register(0x06, xnow);
-                xhi = xnow;
-            }
-            lcd->write_register(0x07, current_x & 0xFF); //Row Start
-
-            lcd->write_byte(0x22, write_type::command);
-            lcd->write_word(color);
-        }
-    }
+    lcd->fill_rect(x, y, w, h, color);
+//    uint8_t xhi = 255, xnow, yhi = 255, ynow;
+//
+//    if (x >= lcd->width || y >= lcd->height) {
+//        return;
+//    }
+//
+//    for (uint16_t current_y = 240 - y; current_y >= (240 - y - h); current_y--) {
+//        // Don't write high byte if unchanged
+//        ynow = current_y >> 8;
+//        if (ynow != yhi) {
+//            lcd->write_register(0x02, ynow); //Column Start
+//            yhi = ynow;
+//        }
+//        lcd->write_register(0x03, current_y & 0xFF); //Column Start
+//
+//        for (uint16_t current_x = x; current_x < x + w; current_x++) {
+//            /* Don't write high byte if unchanged */
+//            xnow = current_x >> 8;
+//            if (xnow != xhi) {
+//                lcd->write_register(0x06, xnow);
+//                xhi = xnow;
+//            }
+//            lcd->write_register(0x07, current_x & 0xFF); //Row Start
+//
+//            lcd->write_byte(0x22, write_type::command);
+//            lcd->write_word(color);
+//        }
+//    }
 }
 
 
