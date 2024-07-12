@@ -7,11 +7,11 @@ extern volatile unsigned int f_tot, f_ave;
 extern volatile unsigned int r_tot;
 extern volatile unsigned int d_tot;
 
-unsigned int read_power(power_type powerType) {
+unsigned int read_power(power_type type) {
     long pCalc, tCalc, bCalc;
     long pResult{0};
 
-    switch (powerType) {
+    switch (type) {
         case power_type::fwd_p:
             if (f_tot == 0) return 0;
             pCalc = long(f_tot) + long(30);
@@ -52,7 +52,9 @@ unsigned int read_voltage() {
     Wire.write(0x1e);
     Wire.endTransmission(false);
     Wire.requestFrom(LTCADDR, 2, true);
+
     delay(1);
+
     byte ADCvinMSB = Wire.read();
     byte ADCvinLSB = Wire.read();
     return ((unsigned int) (ADCvinMSB) << 4) + ((ADCvinLSB >> 4) & 0x0F); // formats into 12bit integer

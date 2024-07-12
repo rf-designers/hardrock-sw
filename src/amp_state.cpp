@@ -11,53 +11,51 @@
 #include <SPI.h>
 
 
-extern display_board lcd[2];
-
-mode_type nextMode(mode_type mode) {
-    auto md = modeToEEPROM(mode) + 1;
+mode_type next_mode(mode_type mode) {
+    auto md = mode_to_eeprom(mode) + 1;
     if (md == 2) {
         md = 0;
     }
-    return modeFromEEPROM(md);
+    return mode_from_eeprom(md);
 }
 
-mode_type modeFromEEPROM(uint8_t mode) {
+mode_type mode_from_eeprom(uint8_t mode) {
     mode = mode > 1 ? 0 : mode;
     return static_cast<mode_type>(mode);
 }
 
-uint8_t modeToEEPROM(mode_type mode) {
+uint8_t mode_to_eeprom(mode_type mode) {
     return static_cast<uint8_t>(mode);
 }
 
-serial_speed nextSerialSpeed(serial_speed speed) {
-    auto spd = speedToEEPROM(speed);
+serial_speed next_serial_speed(serial_speed speed) {
+    auto spd = speed_to_eeprom(speed);
     spd++;
-    if (spd > speedToEEPROM(serial_speed::baud_115200)) {
+    if (spd > speed_to_eeprom(serial_speed::baud_115200)) {
         spd = 0;
     }
-    return speedFromEEPROM(spd);
+    return speed_from_eeprom(spd);
 }
 
-serial_speed previousSerialSpeed(serial_speed speed) {
-    auto spd = speedToEEPROM(speed);
+serial_speed prev_serial_speed(serial_speed speed) {
+    auto spd = speed_to_eeprom(speed);
     spd--;
     if (spd == 255) {
-        spd = speedToEEPROM(serial_speed::baud_115200);
+        spd = speed_to_eeprom(serial_speed::baud_115200);
     }
-    return speedFromEEPROM(spd);
+    return speed_from_eeprom(spd);
 }
 
-serial_speed speedFromEEPROM(uint8_t speed) {
-    speed = speed > speedToEEPROM(serial_speed::baud_115200) ? speedToEEPROM(serial_speed::baud_115200) : speed;
+serial_speed speed_from_eeprom(uint8_t speed) {
+    speed = speed > speed_to_eeprom(serial_speed::baud_115200) ? speed_to_eeprom(serial_speed::baud_115200) : speed;
     return static_cast<serial_speed>(speed);
 }
 
-uint8_t speedToEEPROM(serial_speed speed) {
+uint8_t speed_to_eeprom(serial_speed speed) {
     return static_cast<uint8_t>(speed);
 }
 
-void PrepareForFWUpdate() {
+void prepare_for_fw_update() {
     Serial.end();
     delay(50);
     // Serial.begin(115200);
@@ -85,11 +83,11 @@ void atu_board::detect() {
     }
 }
 
-bool atu_board::isPresent() const {
+bool atu_board::is_present() const {
     return present;
 }
 
-const char *atu_board::getVersion() const {
+const char *atu_board::get_version() const {
     return version;
 }
 
@@ -111,19 +109,19 @@ void atu_board::println(const char *command) {
     Serial3.println(command);
 }
 
-void atu_board::setTuning(bool enabled) {
+void atu_board::set_tuning(bool enabled) {
     tuning = enabled;
 }
 
-void atu_board::setActive(bool a) {
-    active = a;
+void atu_board::set_active(bool a) {
+    active = active;
 }
 
-bool atu_board::isTuning() const {
+bool atu_board::is_tuning() const {
     return tuning;
 }
 
-bool atu_board::isActive() const {
+bool atu_board::is_active() const {
     return active;
 }
 
@@ -171,9 +169,6 @@ void amplifier::setup() {
     digitalWrite(RST_OUT, HIGH);
 }
 
-void amplifier::update() {
-}
-
 void amplifier::trip_clear() {
     Wire.beginTransmission(LTCADDR); //clear any existing faults
     Wire.write(0x04);
@@ -192,7 +187,7 @@ void amplifier::trip_clear() {
     delay(1);
 }
 
-void amplifier::tripSet() {
+void amplifier::trip_set() {
     Wire.beginTransmission(LTCADDR); //establish a fault condition
     Wire.write(0x03);
     Wire.write(0x02);
@@ -201,11 +196,11 @@ void amplifier::tripSet() {
     delay(1);
 
     BIAS_OFF
-    lpf.sendRelayData(lpf.serialData);
+    lpf.send_relay_data(lpf.serial_data);
     RF_BYPASS
 }
 
-void lpf_board::sendRelayData(const byte data) {
+void lpf_board::send_relay_data(byte data) {
     RELAY_CS_LOW
     SPI.beginTransaction(SPISettings(2000000, MSBFIRST, SPI_MODE3));
     SPI.transfer(data);
@@ -213,14 +208,14 @@ void lpf_board::sendRelayData(const byte data) {
     RELAY_CS_HIGH
 }
 
-void lpf_board::sendRelayDataSafe(byte data) {
+void lpf_board::send_relay_data_safe(byte data) {
     noInterrupts();
-    sendRelayData(data);
+    send_relay_data(data);
     interrupts();
 }
 
 // Reads input frequency and sets state.band accordingly
-void amplifier::readInputFrequency() {
+void amplifier::read_input_frequency() {
     int cnt = 0;
     byte same_cnt = 0;
     byte last_band = 0;
@@ -260,9 +255,9 @@ void amplifier::readInputFrequency() {
 }
 
 
-void amplifier::handleTouchScreen1() {
+void amplifier::handle_ts1() {
     if (ts1.touched()) {
-        const byte pressedKey = getTouchedRectangle(1);
+        const byte pressedKey = get_touched_rectangle(1);
         switch (pressedKey) {
             case 10:
                 state.meterSelection = 1;
@@ -302,11 +297,11 @@ void amplifier::handleTouchScreen1() {
     }
 }
 
-void amplifier::handleTouchScreen2() {
+void amplifier::handle_ts2() {
     // if (state.timeToTouch != 0) return;
     if (!ts2.touched()) return;
 
-    const byte pressedKey = getTouchedRectangle(2);
+    const byte pressedKey = get_touched_rectangle(2);
     // state.timeToTouch = 300;
 
     if (state.isMenuActive) {
@@ -343,14 +338,14 @@ void amplifier::handleTouchScreen2() {
             case 5:
             case 6:
                 if (state.menuSelected) {
-                    menuUpdate(state.menuChoice, 0);
+                    menu_update(state.menuChoice, 0);
                 }
                 break;
 
             case 8:
             case 9:
                 if (state.menuSelected) {
-                    menuUpdate(state.menuChoice, 1);
+                    menu_update(state.menuChoice, 1);
                 }
                 break;
 
@@ -365,7 +360,7 @@ void amplifier::handleTouchScreen2() {
 
                 if (state.menuChoice == mSETbias) {
                     BIAS_OFF
-                    lpf.sendRelayDataSafe(lpf.serialData);
+                    lpf.send_relay_data_safe(lpf.serial_data);
                     state.mode = state.old_mode;
                     state.MAX_CUR = 20;
                     state.biasMeter = false;
@@ -379,13 +374,12 @@ void amplifier::handleTouchScreen2() {
             case 5:
             case 6:
                 if (!state.txIsOn) {
-                    state.mode = nextMode(state.mode);
-                    EEPROM.write(eemode, modeToEEPROM(state.mode));
+                    state.mode = next_mode(state.mode);
+                    EEPROM.write(eemode, mode_to_eeprom(state.mode));
                     draw_mode();
-                    disablePTTDetector();
-
+                    disable_ptt_detector();
                     if (state.mode == mode_type::ptt) {
-                        enablePTTDetector();
+                        enable_ptt_detector();
                     }
                 }
                 break;
@@ -394,7 +388,7 @@ void amplifier::handleTouchScreen2() {
                 if (!state.txIsOn) {
                     if (++state.band >= 11)
                         state.band = 1;
-                    setBand();
+                    set_band();
                 }
                 break;
 
@@ -405,7 +399,7 @@ void amplifier::handleTouchScreen2() {
 
                     if (state.band == 0xff)
                         state.band = 10;
-                    setBand();
+                    set_band();
                 }
                 break;
 
@@ -428,14 +422,14 @@ void amplifier::handleTouchScreen2() {
 
             case 18:
             case 19:
-                if (atu.isPresent() && !state.txIsOn) {
-                    atu.setActive(!atu.isActive());
+                if (atu.is_present() && !state.txIsOn) {
+                    atu.set_active(!atu.is_active());
                     draw_atu();
                 }
                 break;
 
             case 12:
-                if (!atu.isPresent()) {
+                if (!atu.is_present()) {
                     lcd[1].clear_screen(GRAY);
                     draw_menu();
                     state.isMenuActive = true;
@@ -443,7 +437,7 @@ void amplifier::handleTouchScreen2() {
                 break;
 
             case 7:
-                if (atu.isPresent()) {
+                if (atu.is_present()) {
                     lcd[1].clear_screen(GRAY);
                     draw_menu();
                     state.isMenuActive = true;
@@ -451,22 +445,22 @@ void amplifier::handleTouchScreen2() {
                 break;
 
             case 17:
-                if (atu.isPresent()) {
-                    TuneButtonPressed();
+                if (atu.is_present()) {
+                    on_tune_button_pressed();
                 }
         }
     }
     while (ts2.touched());
 }
 
-byte amplifier::getTouchedRectangle(byte touch_screen) {
+byte amplifier::get_touched_rectangle(byte touch_screen) {
     uint16_t x, y;
     uint8_t key;
     TS_Point p;
 
     if (touch_screen == 1)
         p = ts1.getPoint();
-    if (touch_screen == 2)
+    else if (touch_screen == 2)
         p = ts2.getPoint();
 
     x = map(p.x, 3850, 400, 0, 5);
@@ -477,7 +471,7 @@ byte amplifier::getTouchedRectangle(byte touch_screen) {
 }
 
 // Enable interrupt on state change of D11 (PTT)
-void amplifier::enablePTTDetector() {
+void amplifier::enable_ptt_detector() {
     noInterrupts();
 
     PCICR |= (1 << PCIE0);
@@ -488,7 +482,7 @@ void amplifier::enablePTTDetector() {
 }
 
 // Disable interrupt for state change of D11 (PTT)
-void amplifier::disablePTTDetector() {
+void amplifier::disable_ptt_detector() {
     noInterrupts();
 
     PCMSK0 &= ~(1 << PCINT5);
@@ -496,7 +490,7 @@ void amplifier::disablePTTDetector() {
     interrupts();
 }
 
-void amplifier::setBand() {
+void amplifier::set_band() {
     if (state.band > 10) return;
     if (state.txIsOn) return;
 
@@ -548,13 +542,13 @@ void amplifier::setBand() {
             break;
     }
 
-    if (atu.isPresent() && !state.isMenuActive) {
+    if (atu.is_present() && !state.isMenuActive) {
         lcd[1].fill_rect(121, 142, 74, 21, MGRAY);
     }
 
-    lpf.serialData = lpfSerialData;
+    lpf.serial_data = lpfSerialData;
     if (state.band != state.oldBand) {
-        lpf.sendRelayData(lpf.serialData);
+        lpf.send_relay_data(lpf.serial_data);
 
         // delete old band (dirty rectangles)
         draw_band(state.oldBand, MGRAY);
@@ -570,7 +564,7 @@ void amplifier::setBand() {
     }
 }
 
-void amplifier::switchToTX() {
+void amplifier::switch_to_tx() {
     state.F_alert = 1;
     state.R_alert = 1;
     state.D_alert = 1;
@@ -584,13 +578,13 @@ void amplifier::switchToTX() {
 
     delay(20);
     RESET_PULSE
-    state.s_disp = 19;
+    state.swr_display_counter = 19;
 
     draw_rx_buttons(DGRAY);
     draw_tx_panel(RED);
 }
 
-void amplifier::switchToRX() {
+void amplifier::switch_to_rx() {
     draw_rx_buttons(GBLUE);
     draw_tx_panel(GREEN);
     trip_clear();

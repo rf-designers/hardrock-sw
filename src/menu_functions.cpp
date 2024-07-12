@@ -13,41 +13,40 @@ extern char ATTN_P;
 extern char ATTN_ST;
 extern long M_CORR;
 extern amplifier amp;
-extern display_board lcd[2];
 
-void setTransceiver(byte s_xcvr);
+void set_transceiver(byte s_xcvr);
 
-void menuUpdate(byte item, byte changeDirection) {
-    lcd[1].draw_string(item_disp[item], 65, 80, 2, MGRAY);
+void menu_update(byte item, byte ch_dir) {
+    amp.lcd[1].draw_string(item_disp[item], 65, 80, 2, MGRAY);
 
     switch (item) {
         case mACCbaud:
             if (amp.state.trxType == xft817) break;
 
-            if (changeDirection == 1)
-                amp.state.accSpeed = nextSerialSpeed(amp.state.accSpeed);
+            if (ch_dir == 1)
+                amp.state.accSpeed = next_serial_speed(amp.state.accSpeed);
             else
-                amp.state.accSpeed = previousSerialSpeed(amp.state.accSpeed);
+                amp.state.accSpeed = prev_serial_speed(amp.state.accSpeed);
 
             if (amp.state.accSpeed == serial_speed::baud_57600)
                 amp.state.accSpeed = serial_speed::baud_4800;
 
-            EEPROM.write(eeaccbaud, speedToEEPROM(amp.state.accSpeed));
+            EEPROM.write(eeaccbaud, speed_to_eeprom(amp.state.accSpeed));
             SetupAccSerial(amp.state.accSpeed);
             break;
 
         case mUSBbaud:
-            if (changeDirection == 1)
-                amp.state.usbSpeed = nextSerialSpeed(amp.state.usbSpeed);
+            if (ch_dir == 1)
+                amp.state.usbSpeed = next_serial_speed(amp.state.usbSpeed);
             else
-                amp.state.usbSpeed = previousSerialSpeed(amp.state.usbSpeed);
+                amp.state.usbSpeed = prev_serial_speed(amp.state.usbSpeed);
 
-            EEPROM.write(eeusbbaud, speedToEEPROM(amp.state.usbSpeed));
+            EEPROM.write(eeusbbaud, speed_to_eeprom(amp.state.usbSpeed));
             SetupUSBSerial(amp.state.usbSpeed);
             break;
 
         case mXCVR:
-            if (changeDirection == 1)
+            if (ch_dir == 1)
                 amp.state.trxType++;
             else
                 amp.state.trxType--;
@@ -60,7 +59,7 @@ void menuUpdate(byte item, byte changeDirection) {
 
             strcpy(item_disp[mXCVR], xcvr_disp[amp.state.trxType]);
             EEPROM.write(eexcvr, amp.state.trxType);
-            setTransceiver(amp.state.trxType);
+            set_transceiver(amp.state.trxType);
             break;
 
         case mATTN:
@@ -84,7 +83,7 @@ void menuUpdate(byte item, byte changeDirection) {
             break;
 
         case mMCAL:
-            if (changeDirection == 1) {
+            if (ch_dir == 1) {
                 M_CORR++;
             } else {
                 M_CORR--;
@@ -104,58 +103,58 @@ void menuUpdate(byte item, byte changeDirection) {
             break;
     }
 
-    lcd[1].draw_string(item_disp[item], 65, 80, 2, WHITE);
+    amp.lcd[1].draw_string(item_disp[item], 65, 80, 2, WHITE);
 }
 
 void menuSelect() {
     if (!amp.state.menuSelected) {
         amp.state.menuSelected = true;
-        lcd[1].draw_string(menu_items[amp.state.menuChoice], 65, 20, 2, LGRAY);
-        lcd[1].fill_rect(14, 8, 41, 45, GRAY);
-        lcd[1].fill_rect(266, 8, 41, 45, GRAY);
+        amp.lcd[1].draw_string(menu_items[amp.state.menuChoice], 65, 20, 2, LGRAY);
+        amp.lcd[1].fill_rect(14, 8, 41, 45, GRAY);
+        amp.lcd[1].fill_rect(266, 8, 41, 45, GRAY);
 
         if (amp.state.menuChoice != mSETbias && amp.state.menuChoice != mATWfwl) {
-            lcd[1].draw_string(item_disp[amp.state.menuChoice], 65, 80, 2, WHITE);
-            draw_button(lcd[1], 14, 68, 40, 44);
-            lcd[1].draw_string("<", 24, 78, 4, GBLUE);
-            draw_button(lcd[1], 266, 68, 40, 44);
-            lcd[1].draw_string(">", 274, 78, 4, GBLUE);
+            amp.lcd[1].draw_string(item_disp[amp.state.menuChoice], 65, 80, 2, WHITE);
+            draw_button(amp.lcd[1], 14, 68, 40, 44);
+            amp.lcd[1].draw_string("<", 24, 78, 4, GBLUE);
+            draw_button(amp.lcd[1], 266, 68, 40, 44);
+            amp.lcd[1].draw_string(">", 274, 78, 4, GBLUE);
         }
 
-        lcd[1].draw_string("SELECT", 124, 132, 2, GRAY);
-        lcd[1].draw_string("OK", 150, 132, 2, GBLUE);
+        amp.lcd[1].draw_string("SELECT", 124, 132, 2, GRAY);
+        amp.lcd[1].draw_string("OK", 150, 132, 2, GBLUE);
 
         if (amp.state.menuChoice == mSETbias) {
             amp.state.old_mode = amp.state.mode;
             amp.state.mode = mode_type::ptt;
             amp.state.MAX_CUR = 3;
             amp.state.biasMeter = true;
-            amp.lpf.sendRelayData(amp.lpf.serialData + 0x02);
+            amp.lpf.send_relay_data(amp.lpf.serial_data + 0x02);
             BIAS_ON
         }
     } else {
-        lcd[1].draw_string("OK", 150, 132, 2, MGRAY);
+        amp.lcd[1].draw_string("OK", 150, 132, 2, MGRAY);
         amp.state.menuSelected = 0;
-        lcd[1].draw_string(menu_items[amp.state.menuChoice], 65, 20, 2, WHITE);
-        lcd[1].draw_string(item_disp[amp.state.menuChoice], 65, 80, 2, LGRAY);
-        lcd[1].fill_rect(14, 68, 41, 45, GRAY);
-        lcd[1].fill_rect(266, 68, 41, 45, GRAY);
-        draw_button(lcd[1], 14, 8, 40, 44);
-        lcd[1].draw_string("<", 24, 18, 4, GBLUE);
-        draw_button(lcd[1], 266, 8, 40, 44);
-        lcd[1].draw_string(">", 274, 18, 4, GBLUE);
+        amp.lcd[1].draw_string(menu_items[amp.state.menuChoice], 65, 20, 2, WHITE);
+        amp.lcd[1].draw_string(item_disp[amp.state.menuChoice], 65, 80, 2, LGRAY);
+        amp.lcd[1].fill_rect(14, 68, 41, 45, GRAY);
+        amp.lcd[1].fill_rect(266, 68, 41, 45, GRAY);
+        draw_button(amp.lcd[1], 14, 8, 40, 44);
+        amp.lcd[1].draw_string("<", 24, 18, 4, GBLUE);
+        draw_button(amp.lcd[1], 266, 8, 40, 44);
+        amp.lcd[1].draw_string(">", 274, 18, 4, GBLUE);
 
         if (amp.state.menuChoice == mSETbias) {
             BIAS_OFF
-            amp.lpf.sendRelayData(amp.lpf.serialData);
+            amp.lpf.send_relay_data(amp.lpf.serial_data);
             amp.state.mode = amp.state.old_mode;
             amp.state.MAX_CUR = 20;
             amp.state.biasMeter = false;
-            lcd[1].fill_rect(62, 70, 196, 40, MGRAY);
+            amp.lcd[1].fill_rect(62, 70, 196, 40, MGRAY);
         }
 
         if (amp.state.menuChoice == mATWfwl) {
-            lcd[1].draw_string("  Updating ATU  ", 65, 80, 2, WHITE);
+            amp.lcd[1].draw_string("  Updating ATU  ", 65, 80, 2, WHITE);
             Serial.begin(19200);
             Serial3.println("*u");
 
@@ -165,7 +164,7 @@ void menuSelect() {
             }
         }
 
-        lcd[1].draw_string("SELECT", 124, 132, 2, GBLUE);
+        amp.lcd[1].draw_string("SELECT", 124, 132, 2, GBLUE);
     }
 }
 

@@ -24,9 +24,9 @@ extern unsigned int t_tot, t_ave;
 extern char ATU_buff[40];
 extern amplifier amp;
 
-extern void goToSleep();
+extern void go_to_sleep();
 
-void uartGrabBuffer() {
+void uart_grab_buffer() {
     int z = 0;
     char lastChar[1];
     lastChar[0] = 'C';
@@ -44,7 +44,7 @@ void uartGrabBuffer() {
     workingString[z] = 0x00;
 }
 
-void uartGrabBuffer2() {
+void uart_grab_buffer2() {
     int z = 0;
     char lastChar[1];
     lastChar[0] = 'C';
@@ -63,8 +63,8 @@ void uartGrabBuffer2() {
 }
 
 
-void handleSerialMessage(char uart) {
-    char* workStringPtr;
+void handle_usb_message(char uart) {
+    char *workStringPtr;
     int i;
 
     if (uart == 1) {
@@ -78,7 +78,7 @@ void handleSerialMessage(char uart) {
     for (i = 0; i <= wsl; i++)
         workStringPtr[i] = toupper(workStringPtr[i]);
 
-    char* found = strstr(workStringPtr, "FA");
+    char *found = strstr(workStringPtr, "FA");
     if (found == nullptr) {
         found = strstr(workStringPtr, "IF");
     }
@@ -115,7 +115,7 @@ void handleSerialMessage(char uart) {
         }
 
         if (amp.state.band != amp.state.oldBand)
-            amp.setBand();
+            amp.set_band();
     }
 
     found = strstr(workStringPtr, "HR");
@@ -134,7 +134,7 @@ void handleSerialMessage(char uart) {
             }
 
             if (amp.state.band > 10) amp.state.band = 0;
-            if (amp.state.band != amp.state.oldBand) amp.setBand();
+            if (amp.state.band != amp.state.oldBand) amp.set_band();
         }
 
         // set mode:
@@ -142,22 +142,22 @@ void handleSerialMessage(char uart) {
         if (found != nullptr) {
             if (found[4] == ';') {
                 UART_send(uart, "HRMD");
-                UART_send_num(uart, modeToEEPROM(amp.state.mode));
+                UART_send_num(uart, mode_to_eeprom(amp.state.mode));
                 UART_send_line(uart);
             }
 
             if (found[4] == '0') {
                 amp.state.mode = mode_type::standby;
-                EEPROM.write(eemode, modeToEEPROM(amp.state.mode));
+                EEPROM.write(eemode, mode_to_eeprom(amp.state.mode));
                 draw_mode();
-                amp.disablePTTDetector();
+                amp.disable_ptt_detector();
             }
 
             if (found[4] == '1') {
                 amp.state.mode = mode_type::ptt;
-                EEPROM.write(eemode, modeToEEPROM(amp.state.mode));
+                EEPROM.write(eemode, mode_to_eeprom(amp.state.mode));
                 draw_mode();
-                amp.enablePTTDetector();
+                amp.enable_ptt_detector();
             }
         }
 
@@ -221,7 +221,7 @@ void handleSerialMessage(char uart) {
         found = strstr(workStringPtr, "HRAP");
         if (found != nullptr) {
             UART_send(uart, "HRAP");
-            UART_send_num(uart, amp.atu.isPresent());
+            UART_send_num(uart, amp.atu.is_present());
             UART_send_line(uart);
         }
 
@@ -230,23 +230,23 @@ void handleSerialMessage(char uart) {
         if (found != nullptr) {
             if (found[4] == ';') {
                 UART_send(uart, "HRTB");
-                UART_send_num(uart, amp.atu.isActive());
+                UART_send_num(uart, amp.atu.is_active());
                 UART_send_line(uart);
             }
             if (found[4] == '1') {
-                amp.atu.setActive(true);
+                amp.atu.set_active(true);
                 draw_atu();
             }
             if (found[4] == '0') {
-                amp.atu.setActive(false);
+                amp.atu.set_active(false);
                 draw_atu();
             }
         }
 
         // Press the TUNE button
         found = strstr(workStringPtr, "HRTU");
-        if (found != nullptr && amp.atu.isPresent()) {
-            TuneButtonPressed();
+        if (found != nullptr && amp.atu.is_present()) {
+            on_tune_button_pressed();
         }
 
         // Tune Result
@@ -261,7 +261,7 @@ void handleSerialMessage(char uart) {
         found = strstr(workStringPtr, "HRTT");
         if (found != nullptr) {
             UART_send(uart, "HRTT");
-            UART_send_num(uart, amp.atu.isTuning());
+            UART_send_num(uart, amp.atu.is_tuning());
             UART_send_line(uart);
         }
 
@@ -347,11 +347,11 @@ void handleSerialMessage(char uart) {
             }
 
             sprintf(tbuff, "HRST-%03d-%03d-%03d-%03d-%03d-%03d-%03d-%01d-%02d-%01d-%01d%01d%01d%01d%01d%01d%01d%01d-",
-                    stF, stR, stD, stS, stV, stI, stT, modeToEEPROM(amp.state.mode), amp.state.band,
+                    stF, stR, stD, stS, stV, stI, stT, mode_to_eeprom(amp.state.mode), amp.state.band,
                     amp.state.antForBand[amp.state.band],
                     amp.state.txIsOn ? 1 : 0, amp.state.F_alert,
                     amp.state.R_alert, amp.state.D_alert,
-                    amp.state.V_alert, amp.state.I_alert, amp.atu.isTuning() ? 1 : 0, amp.atu.isActive() ? 1 : 0);
+                    amp.state.V_alert, amp.state.I_alert, amp.atu.is_tuning() ? 1 : 0, amp.atu.is_active() ? 1 : 0);
             UART_send(uart, tbuff);
             UART_send_line(uart);
         }
@@ -366,12 +366,12 @@ void handleSerialMessage(char uart) {
         // get new firmware
         found = strstr(workStringPtr, "HRFW");
         if (found != nullptr) {
-            PrepareForFWUpdate();
+            prepare_for_fw_update();
         }
 
         // communicate with ATU
         found = strstr(workStringPtr, "HRTM");
-        if (found != nullptr && amp.atu.isPresent()) {
+        if (found != nullptr && amp.atu.is_present()) {
             char atuCmd[20] = {'*'};
             size_t cmdIdx = 1;
 
@@ -411,13 +411,13 @@ void handleSerialMessage(char uart) {
 
         found = strstr(workStringPtr, "HRXX");
         if (found != nullptr) {
-            goToSleep();
+            go_to_sleep();
         }
 
     }
 }
 
-void UART_send(const char uart, const char* message) {
+void UART_send(const char uart, const char *message) {
     if (uart == 1) Serial.print(message);
     if (uart == 2) Serial2.print(message);
 }

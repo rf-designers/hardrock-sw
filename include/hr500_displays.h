@@ -6,7 +6,7 @@
 void draw_home();
 void draw_menu();
 void draw_meter();
-void draw_rx_buttons(uint16_t bcolor);
+void draw_rx_buttons(uint16_t color);
 void draw_button(display_board &b, int x, int y, int w, int h);
 void draw_button_down(int button);
 void draw_button_up(int button);

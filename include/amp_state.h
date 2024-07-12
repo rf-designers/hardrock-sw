@@ -1,7 +1,9 @@
 #pragma once
+
 #include <Arduino.h>
 #include <HR500V1.h>
 #include <HR500X.h>
+#include "display_board.h"
 
 enum class mode_type : uint8_t {
     standby = 0,
@@ -36,7 +38,7 @@ struct amp_state {
 
     volatile bool pttEnabled;
 
-    int s_disp = 19;
+    int swr_display_counter = 19;
     char RL_TXT[4] = {"-.-"};
     char ORL_TXT[4] = {"..."};
 
@@ -62,34 +64,34 @@ struct amp_state {
     serial_speed usbSpeed;
 };
 
-mode_type nextMode(mode_type mode);
-mode_type modeFromEEPROM(uint8_t mode);
-uint8_t modeToEEPROM(mode_type mode);
+mode_type next_mode(mode_type mode);
+mode_type mode_from_eeprom(uint8_t mode);
+uint8_t mode_to_eeprom(mode_type mode);
 
-serial_speed nextSerialSpeed(serial_speed speed);
-serial_speed previousSerialSpeed(serial_speed speed);
-serial_speed speedFromEEPROM(uint8_t speed);
-uint8_t speedToEEPROM(serial_speed speed);
+serial_speed next_serial_speed(serial_speed speed);
+serial_speed prev_serial_speed(serial_speed speed);
+serial_speed speed_from_eeprom(uint8_t speed);
+uint8_t speed_to_eeprom(serial_speed speed);
 
-void PrepareForFWUpdate();
+void prepare_for_fw_update();
 
 struct lpf_board {
-    void sendRelayData(byte data);
-    void sendRelayDataSafe(byte data);
+    void send_relay_data(byte data);
+    void send_relay_data_safe(byte data);
 
-    volatile byte serialData = 0; // serial data to be sent to LPF
+    volatile byte serial_data = 0; // serial data to be sent to LPF
 };
 
 struct atu_board {
     void detect();
-    bool isPresent() const;
-    const char* getVersion() const;
-    size_t query(const char* command, char* response, size_t maxLength);
-    void println(const char* command);
-    void setTuning(bool enabled);
-    void setActive(bool active);
-    bool isTuning() const;
-    bool isActive() const;
+    bool is_present() const;
+    const char *get_version() const;
+    size_t query(const char *command, char *response, size_t maxLength);
+    void println(const char *command);
+    void set_tuning(bool enabled);
+    void set_active(bool active);
+    bool is_tuning() const;
+    bool is_active() const;
 
     bool present = false;
     char version[8] = {0};
@@ -99,34 +101,31 @@ struct atu_board {
     char last_response[100];
 };
 
-struct display {
-};
-
-struct touchscreen {
-};
-
 struct amplifier {
-
     void setup();
-    void update();
 
     void trip_clear();
-    void tripSet();
-    void readInputFrequency();
-    void handleTouchScreen1();
-    void handleTouchScreen2();
-    byte getTouchedRectangle(byte touch_screen);
-    void enablePTTDetector();
-    void disablePTTDetector();
-    void setBand();
-    void switchToTX();
-    void switchToRX();
+    void trip_set();
+
+    void read_input_frequency();
+
+    void handle_ts1();
+    void handle_ts2();
+
+    byte get_touched_rectangle(byte touch_screen);
+
+    void enable_ptt_detector();
+    void disable_ptt_detector();
+
+    void set_band();
+
+    void switch_to_tx();
+    void switch_to_rx();
 
     amp_state state;
     atu_board atu;
     lpf_board lpf;
-    display tft1, tft2;
-    // touchscreen ts1, ts2;
+    display_board lcd[2] = {display_board{new lcd1}, display_board{new lcd2}};
     XPT2046_Touchscreen ts1{TP1_CS};
     XPT2046_Touchscreen ts2{TP2_CS};
 };

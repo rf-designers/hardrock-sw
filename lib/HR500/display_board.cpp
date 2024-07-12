@@ -9,28 +9,30 @@ extern const uint8_t simpleFont[96][8];
 #define FONT_Y 8
 
 
-void display_board::draw_h_line(uint16_t hwXpos, uint16_t hwYpos, uint16_t hwWidth, uint16_t hwColor) {
-    uint16_t i, x1 = min(hwXpos + hwWidth, lcd->width - 1);
+void display_board::draw_h_line(uint16_t x, uint16_t y, uint16_t width, uint16_t color) {
+    lcd->fill_rect(x, y, width, 1, color);
 
-    if (hwXpos >= lcd->width || hwYpos >= lcd->height) {
-        return;
-    }
-
-    for (i = hwXpos; i < x1; i++) {
-        draw_point(i, hwYpos, hwColor);
-    }
+//    uint16_t i, x1 = min(hwXpos + hwWidth, lcd->width - 1);
+//
+//    if (hwXpos >= lcd->width || hwYpos >= lcd->height) {
+//        return;
+//    }
+//
+//    for (i = hwXpos; i < x1; i++) {
+//        draw_point(i, hwYpos, hwColor);
+//    }
 }
 
 void display_board::draw_v_line(uint16_t x, uint16_t y, uint16_t length, uint16_t color) {
-    uint16_t i, y1 = min(y + length, lcd->height - 1);
-    if (x >= lcd->width || y >= lcd->height) {
-        return;
-    }
-
-    for (i = y; i < y1; i++) {
-        draw_point(x, i, color);
-    }
-
+    lcd->fill_rect(x, y, 1, length, color);
+//    uint16_t i, y1 = min(y + length, lcd->height - 1);
+//    if (x >= lcd->width || y >= lcd->height) {
+//        return;
+//    }
+//
+//    for (i = y; i < y1; i++) {
+//        draw_point(x, i, color);
+//    }
 }
 
 void display_board::draw_point(uint16_t x, uint16_t y, uint16_t color) {
@@ -109,6 +111,30 @@ void display_board::draw_char(uint8_t ascii, uint16_t x, uint16_t y, uint16_t si
     }
 }
 
+void display_board::display_string(uint16_t x, uint16_t y,
+                                   const uint8_t *text,
+                                   uint8_t size,
+                                   uint16_t color) {
+    if (x >= 319 || y >= 239) {
+        return;
+    }
+
+    while (*text != '\0') {
+        if (x > (319U - size / 2)) {
+            x = 0;
+            x += size;
+            if (y > (239U - size)) {
+                y = x = 0;
+                //lcd_clear_screen(0x00);
+            }
+        }
+
+        display_char(x, y, *text, size, color);
+        x += size / 2;
+        text++;
+    }
+}
+
 void display_board::display_char(uint16_t x, uint16_t y, uint8_t chr, uint8_t chSize, uint16_t hwColor) {
     uint8_t i, j, chTemp;
     uint16_t hwYpos0 = y, hwColorVal = 0;
@@ -137,30 +163,6 @@ void display_board::display_char(uint16_t x, uint16_t y, uint8_t chr, uint8_t ch
                 break;
             }
         }
-    }
-}
-
-void display_board::display_string(uint16_t x, uint16_t y,
-                                   const uint8_t *text,
-                                   uint8_t size,
-                                   uint16_t color) {
-    if (x >= 319 || y >= 239) {
-        return;
-    }
-
-    while (*text != '\0') {
-        if (x > (319U - size / 2)) {
-            x = 0;
-            x += size;
-            if (y > (239U - size)) {
-                y = x = 0;
-                //lcd_clear_screen(0x00);
-            }
-        }
-
-        display_char(x, y, *text, size, color);
-        x += size / 2;
-        text++;
     }
 }
 
