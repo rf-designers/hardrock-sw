@@ -306,7 +306,6 @@ void amplifier::handle_ts2() {
     if (!ts2.touched()) return;
 
     const byte pressedKey = get_touched_rectangle(2);
-    // state.timeToTouch = 300;
 
     if (state.isMenuActive) {
         switch (pressedKey) {

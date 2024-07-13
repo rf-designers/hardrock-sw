@@ -353,8 +353,12 @@ void loop() {
     }
 
     amp.handle_trx_band_detection();
-    amp.handle_ts1();
-    amp.handle_ts2();
+
+    if (amp.state.touch_enable_counter == 0) {
+        amp.handle_ts1();
+        amp.handle_ts2();
+        amp.state.touch_enable_counter = 300;
+    }
 
     const auto atuBusy = digitalRead(ATU_BUSY) == 1;
     if (amp.atu.is_tuning() && !atuBusy) {
