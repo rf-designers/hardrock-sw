@@ -58,21 +58,21 @@ void menu_update(byte item, byte ch_dir) {
             break;
 
         case mATTN:
-            if (amp.state.ATTN_P == 0) {
+            if (amp.state.attenuator_present == 0) {
                 item_disp[mATTN] = (char *) " NO ATTENUATOR  ";
             } else {
-                if (amp.state.ATTN_ST != 0) {
-                    amp.state.ATTN_ST = 0;
+                if (amp.state.attenuator_enabled) {
+                    amp.state.attenuator_enabled = false;
                     ATTN_ON_LOW;
                     item_disp[mATTN] = (char *) " ATTENUATOR OUT ";
                 } else {
-                    amp.state.ATTN_ST = 1;
+                    amp.state.attenuator_enabled = true;
                     ATTN_ON_HIGH;
                     item_disp[mATTN] = (char *) " ATTENUATOR IN  ";
                 }
 
-                EEPROM.write(eeattn, amp.state.ATTN_ST);
-                amp.state.OD_alert = 5;
+                EEPROM.write(eeattn, amp.state.attenuator_enabled);
+                amp.state.old_alerts[alert_drive_pwr] = 5;
             }
 
             break;

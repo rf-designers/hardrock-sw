@@ -1,7 +1,6 @@
 #include "hr500_displays.h"
 
-#include <amp_state.h>
-
+#include "amp_state.h"
 #include "HR500.h"
 #include "HR500V1.h"
 #include "display_board.h"
@@ -31,12 +30,12 @@ void draw_home() {
     draw_panel(amp.lcd[1], 140, 8, 40, 20);
     draw_tx_sensor(amp.state.colors.named.tx_sensor_rx);
     draw_rx_buttons(amp.state.colors.named.text_enabled);
-    draw_mode();
+    draw_ptt_mode();
 
     if (amp.state.band != 0)
-        draw_band(amp.state.band, ORANGE);
+        draw_band(amp.state.band, amp.state.colors.named.band_text);
     else
-        draw_band(amp.state.band, RED);
+        draw_band(amp.state.band, amp.state.colors.named.alarm[3]);
 
     draw_ant();
     draw_atu();
@@ -111,7 +110,7 @@ void draw_meter() {
 }
 
 void draw_rx_buttons(uint16_t color) {
-    if (amp.state.isMenuActive) return;
+    if (amp.state.is_menu_active) return;
 
     amp.lcd[1].draw_string("MODE", 26, 79, 3, color);
     amp.lcd[1].draw_string("<", 219, 79, 3, color);
@@ -298,14 +297,14 @@ void draw_panel(display_board &b, const int x, const int y, const int w, const i
 }
 
 void draw_tx_sensor(const uint16_t pcolor) {
-    if (amp.state.isMenuActive)
+    if (amp.state.is_menu_active)
         return;
 
     amp.lcd[1].fill_rect(142, 10, 36, 16, pcolor);
 }
 
-void draw_mode() {
-    if (amp.state.isMenuActive) return;
+void draw_ptt_mode() {
+    if (amp.state.is_menu_active) return;
 
     amp.lcd[1].fill_rect(38, 21, 54, 21, amp.state.colors.named.panel_bg);
 
@@ -323,7 +322,7 @@ void draw_mode() {
 }
 
 void draw_band(const byte band, const uint16_t color) {
-    if (amp.state.isMenuActive) return;
+    if (amp.state.is_menu_active) return;
 
     if (band == 0) amp.lcd[1].draw_string("UNK", 228, 21, 3, color);
     else if (band == 1) amp.lcd[1].draw_string("10M", 228, 21, 3, color);
@@ -339,7 +338,7 @@ void draw_band(const byte band, const uint16_t color) {
 }
 
 void draw_ant() {
-    if (amp.state.isMenuActive) return;
+    if (amp.state.is_menu_active) return;
 
     amp.lcd[1].fill_rect(43, 142, 16, 21, amp.state.colors.named.panel_bg);
 
@@ -361,7 +360,7 @@ void draw_ant() {
 }
 
 void draw_atu() {
-    if (amp.state.isMenuActive) return;
+    if (amp.state.is_menu_active) return;
 
     amp.lcd[1].fill_rect(244, 142, 54, 21, amp.state.colors.named.panel_bg);
 

@@ -3,9 +3,7 @@
 #include <Wire.h>
 #include "HR500V1.h"
 
-extern volatile unsigned int f_tot, f_ave;
-extern volatile unsigned int r_tot;
-extern volatile unsigned int d_tot;
+extern amplifier amp;
 
 unsigned int read_power(power_type type) {
     long pCalc, tCalc, bCalc;
@@ -13,28 +11,28 @@ unsigned int read_power(power_type type) {
 
     switch (type) {
         case power_type::fwd_p:
-            if (f_tot == 0) return 0;
-            pCalc = long(f_tot) + long(30);
+            if (amp.state.f_tot == 0) return 0;
+            pCalc = long(amp.state.f_tot) + long(30);
             pResult = (pCalc * pCalc) / long(809);
             break;
         case power_type::rfl_p:
-            if (r_tot == 0) return 0;
+            if (amp.state.r_tot == 0) return 0;
 
-            pCalc = long(r_tot) + long(140);
+            pCalc = long(amp.state.r_tot) + long(140);
             pResult = (pCalc * pCalc) / long(10716);
             break;
         case power_type::drv_p:
-            if (d_tot == 0) return 0;
+            if (amp.state.d_tot == 0) return 0;
 
-            pCalc = long(d_tot) + long(30);
+            pCalc = long(amp.state.d_tot) + long(30);
             pResult = (pCalc * pCalc) / long(10860);
             break;
         case power_type::vswr:
-            if (f_tot < 205) return 0;
-            if (r_tot < 33) return 10;
+            if (amp.state.f_tot < 205) return 0;
+            if (amp.state.r_tot < 33) return 10;
 
-            tCalc = long(100) * long(f_tot) + long(30) * (r_tot) + long(2800);
-            bCalc = long(10) * long(f_tot) - long(3) * long(r_tot) - long(280);
+            tCalc = long(100) * long(amp.state.f_tot) + long(30) * (amp.state.r_tot) + long(2800);
+            bCalc = long(10) * long(amp.state.f_tot) - long(3) * long(amp.state.r_tot) - long(280);
             pResult = tCalc / bCalc;
 
             if (pResult < 10) pResult = 10;

@@ -1,16 +1,22 @@
 #include "amp_state.h"
-#include "hr500_sensors.h"
-#include "transceivers.h"
 
-#include <atu_functions.h>
 #include <EEPROM.h>
-#include <FreqCount.h>
-#include <HR500.h>
-#include <HR500V1.h>
-#include <hr500_displays.h>
-#include <menu_functions.h>
 #include <Wire.h>
 #include <SPI.h>
+#include <FreqCount.h>
+
+#include "hr500_sensors.h"
+#include "transceivers.h"
+#include "amp_view.h"
+
+#include "atu_functions.h"
+#include "HR500.h"
+#include "HR500V1.h"
+#include "hr500_displays.h"
+#include "menu_functions.h"
+
+
+extern amp_view view;
 
 extern int analog_read(byte pin);
 
@@ -65,6 +71,10 @@ void prepare_for_fw_update() {
     // while (!Serial.available());
     // delay(50);
     digitalWrite(RST_OUT, LOW);
+}
+
+constexpr int volts_to_voltage_reading(const int volts) {
+    return volts * 40; // voltage reading offers 25mV resolution
 }
 
 void atu_board::detect() {
@@ -307,7 +317,7 @@ void amplifier::handle_ts2() {
 
     const byte pressedKey = get_touched_rectangle(2);
 
-    if (state.isMenuActive) {
+    if (state.is_menu_active) {
         switch (pressedKey) {
             case 0:
             case 1:
@@ -361,7 +371,7 @@ void amplifier::handle_ts2() {
 
             case 17:
                 lcd[1].clear_screen(GRAY);
-                state.isMenuActive = false;
+                state.is_menu_active = false;
 
                 if (state.menuChoice == mSETbias) {
                     BIAS_OFF
@@ -381,7 +391,7 @@ void amplifier::handle_ts2() {
                 if (!state.tx_is_on) {
                     state.mode = next_mode(state.mode);
                     EEPROM.write(eemode, mode_to_eeprom(state.mode));
-                    draw_mode();
+                    draw_ptt_mode();
                     disable_ptt_detector();
                     if (state.mode == mode_type::ptt) {
                         enable_ptt_detector();
@@ -436,7 +446,7 @@ void amplifier::handle_ts2() {
                 if (!atu.is_present()) {
                     lcd[1].clear_screen(GRAY);
                     draw_menu();
-                    state.isMenuActive = true;
+                    state.is_menu_active = true;
                 }
                 break;
 
@@ -444,7 +454,7 @@ void amplifier::handle_ts2() {
                 if (atu.is_present()) {
                     lcd[1].clear_screen(GRAY);
                     draw_menu();
-                    state.isMenuActive = true;
+                    state.is_menu_active = true;
                 }
                 break;
 
@@ -546,7 +556,7 @@ void amplifier::set_band() {
             break;
     }
 
-    if (atu.is_present() && !state.isMenuActive) {
+    if (atu.is_present() && !state.is_menu_active) {
         lcd[1].fill_rect(121, 142, 74, 21, MGRAY);
     }
 
@@ -569,16 +579,10 @@ void amplifier::set_band() {
 }
 
 void amplifier::switch_to_tx() {
-    state.F_alert = 1;
-    state.R_alert = 1;
-    state.D_alert = 1;
-    state.V_alert = 1;
-    state.I_alert = 1;
-    state.OF_alert = 0;
-    state.OR_alert = 0;
-    state.OD_alert = 0;
-    state.OV_alert = 0;
-    state.OI_alert = 0;
+    for (auto i = 0; i < 5; i++) {
+        state.alerts[i] = 1;
+        state.old_alerts[i] = 0;
+    }
 
     delay(20);
     RESET_PULSE
@@ -682,47 +686,25 @@ void amplifier::update_swr() {
 
 }
 
-
 void amplifier::update_temperature() {
-    state.t_avg[state.t_i] = constrain(analog_read(14), 5, 2000);
-    state.t_tot += state.t_avg[state.t_i++]; // Add in the new sample
+    state.temperature.add(constrain(analog_read(14), 5, 2000));
+    auto temp = state.temperature.get();
 
-    if (state.t_i > 10)
-        state.t_i = 0; // Update the index value
-
-    state.t_tot -= state.t_avg[state.t_i]; // Subtract off the 51st value
-    state.t_ave = state.t_tot / 5;
-
-    unsigned int t_color = GREEN;
-    if (state.t_ave > 500)
-        t_color = YELLOW;
-
-    if (state.t_ave > 650)
-        t_color = RED;
-
-    if (state.t_ave > 700 && state.tx_is_on) {
+    if (temp > 700 && state.tx_is_on) {
         trip_set();
     }
 
     if (state.tempInCelsius) {
-        state.t_read = state.t_ave;
+        state.temp_read = temp;
     } else {
-        state.t_read = ((state.t_ave * 9) / 5) + 320;
+        state.temp_read = ((temp * 9) / 5) + 320;
     }
 
-    state.t_read /= 10;
+    state.temp_read /= 10;
 
-    if (state.t_read != state.otemp) {
-        state.otemp = state.t_read;
-        lcd[0].draw_string(state.TEMPbuff, 237, 203, 2, DGRAY);
-
-        if (state.tempInCelsius) {
-            sprintf(state.TEMPbuff, "%d&C", state.t_read);
-        } else {
-            sprintf(state.TEMPbuff, "%d&F", state.t_read);
-        }
-
-        lcd[0].draw_string(state.TEMPbuff, 237, 203, 2, t_color);
+    if (state.temp_read != state.old_temp_read) {
+        state.old_temp_read = state.temp_read;
+        view.item_changed(refresh_item::view_item_temperature);
     }
 
 }
@@ -807,13 +789,10 @@ void amplifier::set_transceiver(byte type) {
 
 void amplifier::configure_attenuator() {
     if (ATTN_INST_READ == LOW) {
-        state.ATTN_P = 1;
-        state.ATTN_ST = EEPROM.read(eeattn);
+        state.attenuator_present = true;
+        state.attenuator_enabled = EEPROM.read(eeattn) == 1;
 
-        if (state.ATTN_ST > 1)
-            state.ATTN_ST = 0;
-
-        if (state.ATTN_ST == 1) {
+        if (state.attenuator_enabled) {
             ATTN_ON_HIGH;
             item_disp[mATTN] = (char *) " ATTENUATOR IN  ";
         } else {
@@ -821,8 +800,8 @@ void amplifier::configure_attenuator() {
             item_disp[mATTN] = (char *) " ATTENUATOR OUT ";
         }
     } else {
-        state.ATTN_P = 0;
-        state.ATTN_ST = 0;
+        state.attenuator_present = false;
+        state.attenuator_enabled = false;
         item_disp[mATTN] = (char *) " NO ATTENUATOR  ";
     }
 
@@ -867,4 +846,111 @@ void amplifier::configure_adc() {
     const unsigned char PS_128 = (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0);
     ADCSRA &= ~PS_128;
     ADCSRA |= PS_32;
+}
+
+void amplifier::update_fan_speed() {
+    auto temp = state.temperature.get();
+    if (temp > state.temp_utp)
+        set_fan_speed(++state.fan_speed);
+    else if (temp < state.temp_dtp)
+        set_fan_speed(--state.fan_speed);
+}
+
+void amplifier::update_alerts() {
+    this->update_fwd_pwr_alert();
+    this->update_rfl_pwr_alert();
+    this->update_drive_pwr_alert();
+    this->update_vdd_alert();
+    this->update_idd_alert();
+}
+
+void amplifier::update_fwd_pwr_alert() {
+    unsigned int f_yel = 600, f_red = 660;
+    if (state.band == 10) {
+        f_yel = 410;
+        f_red = 482;
+    }
+
+    if (state.f_tot > f_red) {
+        state.alerts[alert_fwd_pwr] = 3;
+        trip_set();
+    } else if (state.f_tot > f_yel && state.alerts[alert_fwd_pwr] == 1) {
+        state.alerts[alert_fwd_pwr] = 2;
+    }
+
+    if (state.alerts[alert_fwd_pwr] != state.old_alerts[alert_fwd_pwr]) {
+        state.old_alerts[alert_fwd_pwr] = state.alerts[alert_fwd_pwr];
+        view.item_changed(refresh_item::view_item_fwd_alert);
+    }
+
+}
+
+void amplifier::update_rfl_pwr_alert() {
+    if (state.r_tot > 590) {
+        state.alerts[alert_rfl_pwr] = 3;
+        trip_set();
+    } else if (state.r_tot > 450 && state.alerts[alert_rfl_pwr] == 1) {
+        state.alerts[alert_rfl_pwr] = 2;
+    }
+
+    if (state.alerts[alert_rfl_pwr] != state.old_alerts[alert_rfl_pwr]) {
+        state.old_alerts[alert_rfl_pwr] = state.alerts[alert_rfl_pwr];
+        view.item_changed(refresh_item::view_item_rfl_alert);
+    }
+}
+
+void amplifier::update_drive_pwr_alert() {
+    if (state.d_tot > 1100) {
+        state.alerts[alert_drive_pwr] = 3;
+    } else if (state.d_tot > 900 && state.alerts[alert_drive_pwr] == 1) {
+        state.alerts[alert_drive_pwr] = 2;
+    }
+
+    if (state.attenuator_enabled)
+        state.alerts[alert_drive_pwr] = 0;
+
+    if (!state.tx_is_on)
+        state.alerts[alert_drive_pwr] = 0;
+
+    if (state.alerts[alert_drive_pwr] != state.old_alerts[alert_drive_pwr]) {
+        state.old_alerts[alert_drive_pwr] = state.alerts[alert_drive_pwr];
+
+        if (state.alerts[alert_drive_pwr] == 3 && state.tx_is_on) {
+            trip_set();
+        }
+        view.item_changed(refresh_item::view_item_drive_alert);
+    }
+}
+
+void amplifier::update_vdd_alert() {
+    state.alerts[alert_vdd] = 1;
+
+    const int dc_voltage = read_voltage();
+    if (dc_voltage < volts_to_voltage_reading(45) ||
+        dc_voltage > volts_to_voltage_reading(75)) {
+        state.alerts[alert_vdd] = 2;
+    }
+
+    if (state.alerts[alert_vdd] != state.old_alerts[alert_vdd]) {
+        state.old_alerts[alert_vdd] = state.alerts[alert_vdd];
+        view.item_changed(refresh_item::view_item_voltage_alert);
+    }
+}
+
+void amplifier::update_idd_alert() {
+    int dc_current = read_current();
+    int MC1 = 180 * state.MAX_CUR;
+    int MC2 = 200 * state.MAX_CUR;
+
+    if (dc_current > MC2) {
+        state.alerts[alert_idd] = 3;
+        trip_set();
+    } else if (dc_current > MC1 && state.alerts[alert_idd] == 1) {
+        state.alerts[alert_idd] = 2;
+    }
+
+    if (state.alerts[alert_idd] != state.old_alerts[alert_idd]) {
+        state.old_alerts[alert_idd] = state.alerts[alert_idd];
+        view.item_changed(refresh_item::view_item_current_alert);
+    }
 }

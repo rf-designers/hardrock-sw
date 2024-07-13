@@ -5,7 +5,7 @@
 #include <HR500V1.h>
 #include <HR500X.h>
 #include "color_theme.h"
-
+#include "moving_average.h"
 
 enum class mode_type : uint8_t {
     standby = 0,
@@ -29,6 +29,14 @@ enum class serial_speed : uint8_t {
     baud_115200 = 5
 };
 
+enum alert_type {
+    alert_fwd_pwr = 0,
+    alert_rfl_pwr = 1,
+    alert_drive_pwr = 2,
+    alert_vdd = 3,
+    alert_idd = 4
+};
+
 struct amp_state {
     volatile bool tx_is_on = false;
     mode_type mode = mode_type::standby; // 0 - OFF, 1 - PTT
@@ -37,8 +45,7 @@ struct amp_state {
     volatile byte band = 6;
     byte oldBand = 0;
 
-
-    volatile bool pttEnabled = false;
+    volatile bool ptt_enabled = false;
 
     int swr_display_counter = 19;
     char RL_TXT[4] = {"-.-"};
@@ -51,15 +58,15 @@ struct amp_state {
     int MAX_CUR = 20;
 
     // alerts
-    byte I_alert = 0, V_alert = 0, F_alert = 0, R_alert = 0, D_alert = 0;
-    byte OI_alert = 0, OV_alert = 0, OF_alert = 0, OR_alert = 0, OD_alert = 0;
+    byte alerts[5] = {0, 0, 0, 0, 0};
+    byte old_alerts[5] = {0, 0, 0, 0, 0};
 
     byte meterSelection = 0; // 1 - FWD; 2 - RFL; 3 - DRV; 4 - VDD; 5 - IDD
     byte oldMeterSelection = 0;
 
     byte trx_type = 0;
     byte antForBand[11] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}; // antenna selection for each band
-    bool isMenuActive = false; // 0 is normal, 1 is menu mode
+    bool is_menu_active = false; // 0 is normal, 1 is menu mode
     bool tempInCelsius = true; // display temperature in Celsius?
 
     serial_speed accSpeed = serial_speed::baud_19200;
@@ -71,26 +78,29 @@ struct amp_state {
     int old_bias_current = -1;
 
     // temp
-    unsigned int t_avg[51] = {
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-    };
-    unsigned int t_tot = 0, t_ave = 0;
-    byte t_i = 0;
+    moving_average<unsigned int, 11, 1> temperature;
     char TEMPbuff[16];
-    int t_read = 0;
-    int otemp = -99;
+    int temp_read = 0;
+    int old_temp_read = -99;
 
     // meter calibration
     long M_CORR = 100;
 
     // attenuator status
-    char ATTN_P = 0;
-    byte ATTN_ST = 0;
+    bool attenuator_present = false;
+    bool attenuator_enabled = false;
 
     unsigned int temp_utp = 0, temp_dtp = 0;
     color_theme colors = color_theme::make_classic();
+
+    byte fan_speed = 0;
+    volatile unsigned int f_tot = 0;
+    volatile unsigned int r_tot = 0;
+    volatile unsigned int d_tot = 0;
+
+    volatile unsigned int f_pep = 0;
+    volatile unsigned int r_pep = 0;
+    volatile unsigned int d_pep = 0;
 };
 
 mode_type next_mode(mode_type mode);
@@ -168,5 +178,12 @@ struct amplifier {
     void configure_attenuator();
     void set_fan_speed(int i);
     void configure_adc();
+    void update_fan_speed();
+    void update_alerts();
+    void update_fwd_pwr_alert();
+    void update_rfl_pwr_alert();
+    void update_drive_pwr_alert();
+    void update_vdd_alert();
+    void update_idd_alert();
 };
 

@@ -21,6 +21,7 @@ struct colors {
     uint16_t text_ant_atu;
     uint16_t tx_sensor_tx;
     uint16_t tx_sensor_rx;
+    uint16_t band_text;
 };
 
 

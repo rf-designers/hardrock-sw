@@ -14,12 +14,12 @@
 long freqLong = 0;
 char freqStr[7];
 
-uint8_t uartIdx = 0, uart2Idx = 0;
-uint8_t readStart = 0, readStart2 = 0;
-char rxbuff[128]; // 128 byte circular Buffer for storing rx data
-char workingString[128];
-char rxbuff2[128]; // 128 byte circular Buffer for storing rx data
-char workingString2[128];
+volatile uint8_t uartIdx = 0, uart2Idx = 0;
+volatile uint8_t readStart = 0, readStart2 = 0;
+volatile char rxbuff[128]; // 128 byte circular Buffer for storing rx data
+volatile char workingString[128];
+volatile char rxbuff2[128]; // 128 byte circular Buffer for storing rx data
+volatile char workingString2[128];
 
 
 //extern char rxbuff[128]; // 128 byte circular Buffer for storing rx data
@@ -75,9 +75,9 @@ void handle_usb_message(char uart) {
     int i;
 
     if (uart == 1) {
-        workStringPtr = workingString;
+        workStringPtr = const_cast<char *>(workingString);
     } else {
-        workStringPtr = workingString2;
+        workStringPtr = const_cast<char *>(workingString2);
     }
 
     // convert working string to uppercase...
@@ -156,14 +156,14 @@ void handle_usb_message(char uart) {
             if (found[4] == '0') {
                 amp.state.mode = mode_type::standby;
                 EEPROM.write(eemode, mode_to_eeprom(amp.state.mode));
-                draw_mode();
+                draw_ptt_mode();
                 amp.disable_ptt_detector();
             }
 
             if (found[4] == '1') {
                 amp.state.mode = mode_type::ptt;
                 EEPROM.write(eemode, mode_to_eeprom(amp.state.mode));
-                draw_mode();
+                draw_ptt_mode();
                 amp.enable_ptt_detector();
             }
         }
@@ -279,9 +279,9 @@ void handle_usb_message(char uart) {
             int tread;
 
             if (amp.state.tempInCelsius) {
-                tread = amp.state.t_ave;
+                tread = amp.state.temperature.get();
             } else {
-                tread = ((amp.state.t_ave * 9) / 5) + 320;
+                tread = ((amp.state.temperature.get() * 9) / 5) + 320;
             }
 
             tread /= 10;
@@ -348,7 +348,7 @@ void handle_usb_message(char uart) {
             const auto stS = read_power(power_type::vswr);
             const auto stV = read_voltage() / 40;
             const auto stI = read_current() / 20;
-            auto stT = amp.state.t_ave / 10;
+            auto stT = amp.state.temperature.get() / 10;
             if (!amp.state.tempInCelsius) {
                 stT = ((stT * 9) / 5) + 32;
             }
@@ -356,9 +356,14 @@ void handle_usb_message(char uart) {
             sprintf(tbuff, "HRST-%03d-%03d-%03d-%03d-%03d-%03d-%03d-%01d-%02d-%01d-%01d%01d%01d%01d%01d%01d%01d%01d-",
                     stF, stR, stD, stS, stV, stI, stT, mode_to_eeprom(amp.state.mode), amp.state.band,
                     amp.state.antForBand[amp.state.band],
-                    amp.state.tx_is_on ? 1 : 0, amp.state.F_alert,
-                    amp.state.R_alert, amp.state.D_alert,
-                    amp.state.V_alert, amp.state.I_alert, amp.atu.is_tuning() ? 1 : 0, amp.atu.is_active() ? 1 : 0);
+                    amp.state.tx_is_on ? 1 : 0,
+                    amp.state.alerts[alert_fwd_pwr],
+                    amp.state.alerts[alert_rfl_pwr],
+                    amp.state.alerts[alert_drive_pwr],
+                    amp.state.alerts[alert_vdd],
+                    amp.state.alerts[alert_idd],
+                    amp.atu.is_tuning() ? 1 : 0,
+                    amp.atu.is_active() ? 1 : 0);
             UART_send(uart, tbuff);
             UART_send_line(uart);
         }

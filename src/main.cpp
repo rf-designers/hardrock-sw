@@ -8,12 +8,13 @@
 #include "hr500_sensors.h"
 #include "transceivers.h"
 #include <HR500.h>
-#include <HR500X.h>
 #include <TimerOne.h>
 #include <Wire.h>
 #include <avr/sleep.h>
 #include <avr/wdt.h>
 #include <avr/io.h>
+#include <avr/power.h>
+#include "amp_view.h"
 
 #ifndef BODS
 #define BODS 7
@@ -24,52 +25,23 @@
 #endif
 
 
-// Flags to indicate data received on Serial or Serial2
-volatile bool serialEvent = false;
-volatile bool serial2Event = false;
-
-// Interrupt Service Routine for Serial RX (Pin 0)
-void serialRxISR() {
-    serialEvent = true;
-}
-
-// Interrupt Service Routine for Serial2 RX (Pin 17)
-void serial2RxISR() {
-    serial2Event = true;
-}
-
-
 ISR(WDT_vect) {
     wdt_reset();
+    WDTCSR |= 1 << WDIE; // after each interrupt changes mode to System Reset Mode and that's why needs to be re-enabled
 }
 
 amplifier amp;
+amp_view view;
 
 int analog_read(byte pin);
 extern void handle_acc_comms();
 extern void handle_usb_comms();
-void update_alarms();
 
 constexpr int volts_to_voltage_reading(const int volts);
-void update_fan_speed();
-byte FAN_SP = 0;
 char ATU_STAT;
 
-volatile unsigned int f_tot = 0, f_ave = 0;
-volatile unsigned int f_avg[] = {
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-};
-volatile byte f_i = 0;
-volatile unsigned int r_tot = 0;
-volatile unsigned int d_tot = 0;
-
-volatile unsigned int f_pep = 0;
-volatile unsigned int r_pep = 0;
-volatile unsigned int d_pep = 0;
-
-
-volatile bool shouldHandlePttChange = false;
+moving_average<unsigned int, 25> fwd_pwr;
+volatile bool should_handle_ptt_change = false;
 
 // Countdown timer for re-enabling PTT detector interrupt. This gets updated in
 // the timer ISR
@@ -80,59 +52,55 @@ byte OLD_COR = 0;
 
 // This interrupt driven function reads data from the wattmeter
 void timer_isr() {
+    sleep_disable();
+
     if (amp.state.tx_is_on) {
         // read forward power
         long s_calc = static_cast<long>(analogRead(12)) * amp.state.M_CORR;
-        f_avg[f_i] = s_calc / static_cast<long>(100);
+        fwd_pwr.add(s_calc / static_cast<long>(100));
 
-        f_ave += f_avg[f_i++]; // Add in the new sample
+        const unsigned int ftmp = fwd_pwr.get();
 
-        if (f_i > 24)
-            f_i = 0; // Update the index value
-
-        f_ave -= f_avg[f_i]; // Subtract off the 51st value
-        const unsigned int ftmp = f_ave / 25;
-
-        if (ftmp > f_tot) {
-            f_tot = ftmp;
-            f_pep = 75;
+        if (ftmp > amp.state.f_tot) {
+            amp.state.f_tot = ftmp;
+            amp.state.f_pep = 75;
         } else {
-            if (f_pep > 0)
-                f_pep--;
-            else if (f_tot > 0)
-                f_tot--;
+            if (amp.state.f_pep > 0)
+                amp.state.f_pep--;
+            else if (amp.state.f_tot > 0)
+                amp.state.f_tot--;
         }
 
         // read reflected power
         s_calc = static_cast<long>(analogRead(13)) * amp.state.M_CORR;
         const unsigned int rtmp = s_calc / static_cast<long>(100);
 
-        if (rtmp > r_tot) {
-            r_tot = rtmp;
-            r_pep = 75;
+        if (rtmp > amp.state.r_tot) {
+            amp.state.r_tot = rtmp;
+            amp.state.r_pep = 75;
         } else {
-            if (r_pep > 0)
-                r_pep--;
-            else if (r_tot > 0)
-                r_tot--;
+            if (amp.state.r_pep > 0)
+                amp.state.r_pep--;
+            else if (amp.state.r_tot > 0)
+                amp.state.r_tot--;
         }
     } else {
-        f_tot = 0;
-        r_tot = 0;
+        amp.state.f_tot = 0;
+        amp.state.r_tot = 0;
     }
 
     // read drive power
     long dtmp = analogRead(15);
     dtmp = (dtmp * static_cast<long>(d_lin[amp.state.band])) / static_cast<long>(100);
 
-    if (dtmp > d_tot) {
-        d_tot = dtmp;
-        d_pep = 75;
+    if (dtmp > amp.state.d_tot) {
+        amp.state.d_tot = dtmp;
+        amp.state.d_pep = 75;
     } else {
-        if (d_pep > 0)
-            d_pep--;
-        else if (d_tot > 0)
-            d_tot--;
+        if (amp.state.d_pep > 0)
+            amp.state.d_pep--;
+        else if (amp.state.d_tot > 0)
+            amp.state.d_tot--;
     }
 
     // handle touching repeat
@@ -159,7 +127,7 @@ int analog_read(byte pin) {
 }
 
 void wake_up_from_sleep() {
-    // Briefly disable sleep mode to allow further processing
+    // disable sleep mode to allow further processing
     sleep_disable();
     EIFR |= 0b11111111; // clear interrupt flags so that we can have multiple subsequent touches
 }
@@ -182,27 +150,35 @@ void config_wakeup_pins() {
     pinMode(19, INPUT);
     attachInterrupt(digitalPinToInterrupt(19), wake_up_from_sleep, FALLING);
 
-    // set_sleep_mode(SLEEP_MODE_PWR_DOWN);
-    set_sleep_mode(SLEEP_MODE_IDLE);
+//    set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+    set_sleep_mode(SLEEP_MODE_PWR_SAVE);
 
     interrupts();
 }
 
 void config_watchdog_timer() {
-    // Clear the reset flag
+    // Clear the watchdog timer flag
     MCUSR &= ~(1 << WDRF);
 
     wdt_reset();
-    // Configure the watchdog timer to interrupt mode only (no reset)
-    WDTCSR |= (1 << WDCE) | (1 << WDE);
-    WDTCSR = (1 << WDIE) | (1 << WDP2) | (1 << WDP1); // 1second
 
+    // Configure the watchdog timer to interrupt mode only (no reset)
     // Set the watchdog timer to wake up every second
-    // wdt_enable(WDTO_1S);
+//    WDTCSR |= (1 << WDCE) | (1 << WDE);
+//    WDTCSR = (1 << WDIE) | (1 << WDP2) | (1 << WDP1); // 1second
+
+    // Enable the watchdog timer in interrupt mode
+//    WDTCSR |= (1 << WDCE) | (1 << WDE);
+    // Set the desired prescaler (adjust for 250ms timeout)
+//    WDTCSR = (1 << WDIE) | (1 << WDP3) | (1 << WDP0);
+
+    wdt_enable(WDTO_250MS);
+    WDTCSR |= 1 << WDIE; // after each interrupt changes mode to System Reset Mode and that's why needs to be re-enabled
 }
 
 
 void setup() {
+    view.amp = &amp;
     amp.setup();
     amp.load_eeprom_config();
     amp.configure_attenuator();
@@ -225,57 +201,107 @@ void setup() {
     amp.lcd[1].lcd_init(amp.state.colors.named.bg);
 
     amp.set_fan_speed(0);
-    draw_meter();
+//    draw_meter();
 
     amp.atu.detect();
 
-    draw_home();
+//    draw_home();
+    view.refresh();
+
     amp.lcd[0].fill_rect(20, 34, 25, 10, amp.state.colors.named.alarm[1]);
     amp.lcd[0].fill_rect(84, 34, 25, 10, amp.state.colors.named.alarm[1]);
 
-    if (amp.state.ATTN_ST == 0)
+    if (!amp.state.attenuator_enabled)
         amp.lcd[0].fill_rect(148, 34, 25, 10, amp.state.colors.named.alarm[1]);
 
     amp.lcd[0].fill_rect(212, 34, 25, 10, amp.state.colors.named.alarm[1]);
     amp.lcd[0].fill_rect(276, 34, 25, 10, amp.state.colors.named.alarm[1]);
 
-    shouldHandlePttChange = false;
+    should_handle_ptt_change = false;
 
     while (amp.ts1.touched());
     while (amp.ts2.touched());
 
     amp.set_band();
 
-//    config_wakeup_pins();
-//    config_watchdog_timer();
+    config_wakeup_pins();
+    config_watchdog_timer();
 
     // Attach interrupts to RX pins
-    attachInterrupt(digitalPinToInterrupt(0), serialRxISR, FALLING); // RX for Serial
-    attachInterrupt(digitalPinToInterrupt(17), serial2RxISR, FALLING); // RX for Serial2
+//    attachInterrupt(digitalPinToInterrupt(0), serialRxISR, FALLING); // RX for Serial
+//    attachInterrupt(digitalPinToInterrupt(17), serial2RxISR, FALLING); // RX for Serial2
+
+    // Enable pin change interrupts for PCINT0 group (includes pins D0-D7)
+    PCICR |= (1 << PCIE0);
+    // Enable pin change interrupt for pin 0 (PCINT0)
+    PCMSK0 |= (1 << PCINT0);
+
+//    power_adc_disable();
+//    power_spi_disable();
+//    power_usart0_disable();
+//    power_usart2_disable();
+//    power_timer1_disable();
+    power_timer2_disable();
+    power_timer3_disable();
+    power_timer4_disable();
+    power_timer5_disable();
+//    power_twi_disable();
 }
 
 ISR(PCINT0_vect) {
     sleep_disable();
 
+//    handle_usb_comms();
+
     if (amp.state.mode == mode_type::standby) return; // Mode is STBY
-    if (amp.state.isMenuActive) return; // Menu is active
+    if (amp.state.is_menu_active) return; // Menu is active
     if (amp.state.band == 0) return; // Band is undefined
     if (amp.atu.is_tuning()) return; // ATU is working
 
     // timeToEnablePTTDetector = 20;
     // amp.disablePTTDetector();
 
-    shouldHandlePttChange = true; // signal to main thread
-
-    const auto pttEnabledNow = digitalRead(PTT_DET) == 1;
-    if (pttEnabledNow && !amp.state.pttEnabled) {
-        amp.state.pttEnabled = true;
+    should_handle_ptt_change = true; // signal to main thread
+    const auto ptt_enabled_now = digitalRead(PTT_DET) == 1;
+    if (ptt_enabled_now && !amp.state.ptt_enabled) {
+        amp.state.ptt_enabled = true;
         RF_ACTIVE
         amp.lpf.send_relay_data(amp.lpf.serial_data + 0x10);
         BIAS_ON
         amp.state.tx_is_on = true;
     } else {
-        amp.state.pttEnabled = false;
+        amp.state.ptt_enabled = false;
+        BIAS_OFF
+        amp.state.tx_is_on = false;
+        amp.lpf.send_relay_data(amp.lpf.serial_data);
+        RF_BYPASS
+    }
+}
+
+
+ISR(PCINT2_vect) {
+    sleep_disable();
+
+//    handle_usb_comms();
+
+    if (amp.state.mode == mode_type::standby) return; // Mode is STBY
+    if (amp.state.is_menu_active) return; // Menu is active
+    if (amp.state.band == 0) return; // Band is undefined
+    if (amp.atu.is_tuning()) return; // ATU is working
+
+    // timeToEnablePTTDetector = 20;
+    // amp.disablePTTDetector();
+
+    should_handle_ptt_change = true; // signal to main thread
+    const auto ptt_enabled_now = digitalRead(PTT_DET) == 1;
+    if (ptt_enabled_now && !amp.state.ptt_enabled) {
+        amp.state.ptt_enabled = true;
+        RF_ACTIVE
+        amp.lpf.send_relay_data(amp.lpf.serial_data + 0x10);
+        BIAS_ON
+        amp.state.tx_is_on = true;
+    } else {
+        amp.state.ptt_enabled = false;
         BIAS_OFF
         amp.state.tx_is_on = false;
         amp.lpf.send_relay_data(amp.lpf.serial_data);
@@ -284,39 +310,39 @@ ISR(PCINT0_vect) {
 }
 
 void loop() {
-    static int a_count = 0;
-    if (++a_count == 10) {
-        a_count = 0;
-        update_alarms();
-        update_fan_speed();
+//    static int a_count = 0;
+//    if (++a_count == 10) {
+//        a_count = 0;
+    amp.update_alerts();
+    amp.update_fan_speed();
+//    }
+
+//    static int t_count = 0;
+//    if (++t_count == 3) {
+//        t_count = 0;
+
+    amp.update_meter_drawing();
+    if (amp.state.biasMeter) {
+        amp.update_bias_reading();
     }
 
-    static int t_count = 0;
-    if (++t_count == 3) {
-        t_count = 0;
-
-        amp.update_meter_drawing();
-        if (amp.state.biasMeter) {
-            amp.update_bias_reading();
-        }
-
-        if (amp.state.swr_display_counter++ == 20 && f_tot > 250 && amp.state.tx_is_on) {
-            amp.state.swr_display_counter = 0;
-            amp.update_swr();
-        }
-
-        static int temperature_display_counter = 0;
-        if (temperature_display_counter++ == 200) {
-            temperature_display_counter = 0;
-            amp.update_temperature();
-        }
+    if (amp.state.swr_display_counter++ == 20 && amp.state.f_tot > 250 && amp.state.tx_is_on) {
+        amp.state.swr_display_counter = 0;
+        amp.update_swr();
     }
 
-    if (shouldHandlePttChange) {
-        shouldHandlePttChange = false;
+//        static int temperature_display_counter = 0;
+//        if (temperature_display_counter++ == 200) {
+//            temperature_display_counter = 0;
+    amp.update_temperature();
+//        }
+//    }
+
+    if (should_handle_ptt_change) {
+        should_handle_ptt_change = false;
 
         const auto ptt_enabled_now = digitalRead(PTT_DET) == 1;
-        if (amp.state.pttEnabled) {
+        if (amp.state.ptt_enabled) {
             if (amp.state.mode != mode_type::standby) {
                 amp.switch_to_tx();
             }
@@ -354,11 +380,11 @@ void loop() {
 
     amp.handle_trx_band_detection();
 
-    if (amp.state.touch_enable_counter == 0) {
-        amp.handle_ts1();
-        amp.handle_ts2();
-        amp.state.touch_enable_counter = 300;
-    }
+//    if (amp.state.touch_enable_counter == 0) {
+    amp.handle_ts1();
+    amp.handle_ts2();
+//        amp.state.touch_enable_counter = 300;
+//    }
 
     const auto atuBusy = digitalRead(ATU_BUSY) == 1;
     if (amp.atu.is_tuning() && !atuBusy) {
@@ -368,119 +394,14 @@ void loop() {
     handle_acc_comms();
     handle_usb_comms();
 
-//    if (!amp.state.txIsOn) {
-//        goToSleep();
-//    }
-}
+    view.refresh();
 
-void update_fan_speed() {
-    if (amp.state.t_ave > amp.state.temp_utp)
-        amp.set_fan_speed(++FAN_SP);
-    else if (amp.state.t_ave < amp.state.temp_dtp)
-        amp.set_fan_speed(--FAN_SP);
-}
-
-void update_alarms() {
-    // forward alert
-    unsigned int f_yel = 600, f_red = 660;
-
-    if (amp.state.band == 10) {
-        f_yel = 410;
-        f_red = 482;
-    }
-
-    // establish current forward power alert
-    if (f_tot > f_red) {
-        amp.state.F_alert = 3;
-        amp.trip_set();
-    } else if (f_tot > f_yel && amp.state.F_alert == 1) {
-        amp.state.F_alert = 2;
-    }
-
-    // see if we need to redisplay the current status
-    if (amp.state.F_alert != amp.state.OF_alert) {
-        amp.state.OF_alert = amp.state.F_alert;
-        amp.lcd[0].fill_rect(20, 34, 25, 10, amp.state.colors.named.alarm[amp.state.F_alert]);
-    }
-
-    // reflected alert
-    if (r_tot > 590) {
-        amp.state.R_alert = 3;
-        amp.trip_set();
-    } else if (r_tot > 450 && amp.state.R_alert == 1) {
-        amp.state.R_alert = 2;
-    }
-
-    if (amp.state.R_alert != amp.state.OR_alert) {
-        amp.state.OR_alert = amp.state.R_alert;
-        amp.lcd[0].fill_rect(84, 34, 25, 10, amp.state.colors.named.alarm[amp.state.R_alert]);
-    }
-
-    // drive alert
-    if (d_tot > 1100) {
-        amp.state.D_alert = 3;
-    } else if (d_tot > 900 && amp.state.D_alert == 1) {
-        amp.state.D_alert = 2;
-    }
-
-    if (amp.state.ATTN_ST == 1)
-        amp.state.D_alert = 0;
-
-    if (!amp.state.tx_is_on)
-        amp.state.D_alert = 0;
-
-    if (amp.state.D_alert != amp.state.OD_alert) {
-        amp.state.OD_alert = amp.state.D_alert;
-
-        if (amp.state.D_alert == 3 && amp.state.tx_is_on) {
-                amp.trip_set();
-        }
-
-        amp.lcd[0].fill_rect(148, 34, 25, 10, amp.state.colors.named.alarm[amp.state.D_alert]);
-    }
-
-    // voltage alert
-    amp.state.V_alert = 1;
-
-    const int dc_vol = read_voltage();
-    if (dc_vol < volts_to_voltage_reading(45) ||
-        dc_vol > volts_to_voltage_reading(75)) {
-        amp.state.V_alert = 2;
-    }
-
-    if (amp.state.V_alert != amp.state.OV_alert) {
-        amp.state.OV_alert = amp.state.V_alert;
-
-        unsigned int r_col = GREEN;
-        if (amp.state.V_alert == 2) {
-            r_col = YELLOW;
-        }
-
-        amp.lcd[0].fill_rect(212, 34, 25, 10, r_col);
-    }
-
-    // current alert
-    int dc_cur = read_current();
-    int MC1 = 180 * amp.state.MAX_CUR;
-    int MC2 = 200 * amp.state.MAX_CUR;
-
-    if (dc_cur > MC2) {
-        amp.state.I_alert = 3;
-        amp.trip_set();
-    } else if (dc_cur > MC1 && amp.state.I_alert == 1) {
-        amp.state.I_alert = 2;
-    }
-
-
-    if (amp.state.I_alert != amp.state.OI_alert) {
-        amp.state.OI_alert = amp.state.I_alert;
-        amp.lcd[0].fill_rect(276, 34, 25, 10, amp.state.colors.named.alarm[amp.state.I_alert]);
+    if (!amp.state.tx_is_on) {
+        go_to_sleep();
     }
 }
 
-constexpr int volts_to_voltage_reading(const int volts) {
-    return volts * 40; // voltage reading offers 25mV resolution
-}
+
 
 
 

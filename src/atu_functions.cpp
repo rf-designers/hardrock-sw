@@ -29,7 +29,7 @@ void on_tune_button_pressed() {
 
         // If the TX is on, turn it off
         if (amp.state.tx_is_on) {
-            amp.state.pttEnabled = false;
+            amp.state.ptt_enabled = false;
             BIAS_OFF
             amp.state.tx_is_on = false;
             amp.lpf.send_relay_data(amp.lpf.serial_data);

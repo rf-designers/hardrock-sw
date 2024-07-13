@@ -22,6 +22,7 @@ color_theme color_theme::make_default() {
     set.named.text_ant_atu = LBLUE;
     set.named.tx_sensor_rx = GREEN;
     set.named.tx_sensor_tx = RED;
+    set.named.band_text = ORANGE;
     return set;
 }
 
@@ -47,5 +48,6 @@ color_theme color_theme::make_classic() {
     set.named.text_ant_atu = LBLUE;
     set.named.tx_sensor_rx = GREEN;
     set.named.tx_sensor_tx = RED;
+    set.named.band_text = ORANGE;
     return set;
 }
