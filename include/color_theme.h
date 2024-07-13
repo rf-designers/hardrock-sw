@@ -31,5 +31,5 @@ struct color_theme {
     };
 
     static color_theme make_default();
-    static color_theme make_theme(int which);
+    static color_theme make_classic();
 };

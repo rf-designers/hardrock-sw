@@ -133,15 +133,16 @@ void draw_rx_buttons(uint16_t color) {
 void draw_button(display_board &b, int x, int y, int w, int h) {
     if (h < 8 || w < 8) return;
 
-    b.draw_v_line(x, y, h, amp.state.colors.named.panel_fg2);
-    b.draw_v_line(x + 1, y + 1, h - 2, amp.state.colors.named.panel_fg2);
-    b.draw_v_line(x + w, y, h, amp.state.colors.named.panel_fg1);
-    b.draw_v_line(x + w - 1, y + 1, h - 2, amp.state.colors.named.panel_fg1);
-    b.draw_h_line(x, y, w, amp.state.colors.named.panel_fg2);
-    b.draw_h_line(x + 1, y + 1, w - 2, amp.state.colors.named.panel_fg2);
-    b.draw_h_line(x, y + h, w, amp.state.colors.named.panel_fg1);
-    b.draw_h_line(x + 1, y + h - 1, w - 2, amp.state.colors.named.panel_fg1);
+//    b.draw_v_line(x, y, h, amp.state.colors.named.panel_fg2);
+//    b.draw_v_line(x + 1, y + 1, h - 2, amp.state.colors.named.panel_fg2);
+//    b.draw_v_line(x + w, y, h, amp.state.colors.named.panel_fg1);
+//    b.draw_v_line(x + w - 1, y + 1, h - 2, amp.state.colors.named.panel_fg1);
+//    b.draw_h_line(x, y, w, amp.state.colors.named.panel_fg2);
+//    b.draw_h_line(x + 1, y + 1, w - 2, amp.state.colors.named.panel_fg2);
+//    b.draw_h_line(x, y + h, w, amp.state.colors.named.panel_fg1);
+//    b.draw_h_line(x + 1, y + h - 1, w - 2, amp.state.colors.named.panel_fg1);
 
+    b.draw_h_line(x, y + h, w, amp.state.colors.named.button_bg);
     b.fill_rect(x + 2, y + 2, w - 4, h - 4, amp.state.colors.named.button_bg);
 }
 
@@ -152,14 +153,19 @@ void draw_button_down(int button) {
     int h = 30;
     int l_start = 83, l_height = 11, l_color = amp.state.colors.named.meter_ticks;
 
-    amp.lcd[0].draw_v_line(x, y, h, amp.state.colors.named.panel_fg1);
-    amp.lcd[0].draw_v_line(x + 1, y + 1, h - 2, amp.state.colors.named.panel_fg1);
-    amp.lcd[0].draw_v_line(x + w, y, h, amp.state.colors.named.panel_fg2);
-    amp.lcd[0].draw_v_line(x + w - 1, y + 1, h - 2, amp.state.colors.named.panel_fg2);
-    amp.lcd[0].draw_h_line(x, y, w, amp.state.colors.named.panel_fg1);
-    amp.lcd[0].draw_h_line(x + 1, y + 1, w - 2, amp.state.colors.named.panel_fg1);
-    amp.lcd[0].draw_h_line(x, y + h, w, amp.state.colors.named.panel_fg2);
-    amp.lcd[0].draw_h_line(x + 1, y + h - 1, w - 2, amp.state.colors.named.panel_fg2);
+//    amp.lcd[0].draw_v_line(x, y, h, amp.state.colors.named.panel_fg1);
+//    amp.lcd[0].draw_v_line(x + 1, y + 1, h - 2, amp.state.colors.named.panel_fg1);
+//    amp.lcd[0].draw_v_line(x + w, y, h, amp.state.colors.named.panel_fg2);
+//    amp.lcd[0].draw_v_line(x + w - 1, y + 1, h - 2, amp.state.colors.named.panel_fg2);
+//
+//    amp.lcd[0].draw_h_line(x, y, w, amp.state.colors.named.panel_fg1);
+//    amp.lcd[0].draw_h_line(x + 1, y + 1, w - 2, amp.state.colors.named.panel_fg1);
+//    amp.lcd[0].draw_h_line(x, y + h, w, amp.state.colors.named.panel_fg2);
+//    amp.lcd[0].draw_h_line(x + 1, y + h - 1, w - 2, amp.state.colors.named.panel_fg2);
+
+    amp.lcd[0].draw_h_line(x, y+h, w, amp.state.colors.named.alarm[2]);
+
+
     amp.lcd[0].fill_rect(9, 60, 301, 34, amp.state.colors.named.meter_bg);
 
     if (button == 1 || button == 2 || button == 3) {
@@ -263,27 +269,30 @@ void draw_button_up(const int button) {
     int w = 44;
     int h = 30;
 
-    amp.lcd[0].draw_v_line(x, y, h, amp.state.colors.named.panel_fg2);
-    amp.lcd[0].draw_v_line(x + 1, y + 1, h - 2, amp.state.colors.named.panel_fg2);
-    amp.lcd[0].draw_v_line(x + w, y, h, amp.state.colors.named.panel_fg1);
-    amp.lcd[0].draw_v_line(x + w - 1, y + 1, h - 2, amp.state.colors.named.panel_fg1);
-    amp.lcd[0].draw_h_line(x, y, w, amp.state.colors.named.panel_fg2);
-    amp.lcd[0].draw_h_line(x + 1, y + 1, w - 2, amp.state.colors.named.panel_fg2);
-    amp.lcd[0].draw_h_line(x, y + h, w, amp.state.colors.named.panel_fg1);
-    amp.lcd[0].draw_h_line(x + 1, y + h - 1, w - 2, amp.state.colors.named.panel_fg1);
+//    amp.lcd[0].draw_v_line(x, y, h, amp.state.colors.named.panel_fg2);
+//    amp.lcd[0].draw_v_line(x + 1, y + 1, h - 2, amp.state.colors.named.panel_fg2);
+//    amp.lcd[0].draw_v_line(x + w, y, h, amp.state.colors.named.panel_fg1);
+//    amp.lcd[0].draw_v_line(x + w - 1, y + 1, h - 2, amp.state.colors.named.panel_fg1);
+//    amp.lcd[0].draw_h_line(x, y, w, amp.state.colors.named.panel_fg2);
+//    amp.lcd[0].draw_h_line(x + 1, y + 1, w - 2, amp.state.colors.named.panel_fg2);
+//    amp.lcd[0].draw_h_line(x, y + h, w, amp.state.colors.named.panel_fg1);
+//    amp.lcd[0].draw_h_line(x + 1, y + h - 1, w - 2, amp.state.colors.named.panel_fg1);
+
+    amp.lcd[0].draw_h_line(x, y + h, w, amp.state.colors.named.button_bg);
+
 }
 
 void draw_panel(display_board &b, const int x, const int y, const int w, const int h) {
     if (w < 8 || h < 8) return;
 
     b.draw_v_line(x, y, h, amp.state.colors.named.panel_fg1);
-    b.draw_v_line(x + 1, y + 1, h - 2, amp.state.colors.named.panel_fg1);
-    b.draw_v_line(x + w, y, h, amp.state.colors.named.panel_fg2);
-    b.draw_v_line(x + w - 1, y + 1, h - 2, amp.state.colors.named.panel_fg2);
-    b.draw_h_line(x, y, w, amp.state.colors.named.panel_fg1);
-    b.draw_h_line(x + 1, y + 1, w - 2, amp.state.colors.named.panel_fg1);
-    b.draw_h_line(x, y + h, w, amp.state.colors.named.panel_fg2);
-    b.draw_h_line(x + 1, y + h - 1, w - 2, amp.state.colors.named.panel_fg2);
+//    b.draw_v_line(x + 1, y + 1, h - 2, amp.state.colors.named.panel_fg1);
+//    b.draw_v_line(x + w, y, h, amp.state.colors.named.panel_fg2);
+//    b.draw_v_line(x + w - 1, y + 1, h - 2, amp.state.colors.named.panel_fg2);
+//    b.draw_h_line(x, y, w, amp.state.colors.named.panel_fg1);
+//    b.draw_h_line(x + 1, y + 1, w - 2, amp.state.colors.named.panel_fg1);
+    b.draw_h_line(x, y + h, w, amp.state.colors.named.panel_fg1);
+//    b.draw_h_line(x + 1, y + h - 1, w - 2, amp.state.colors.named.panel_fg2);
 
     b.fill_rect(x + 2, y + 2, w - 3, h - 3, amp.state.colors.named.panel_bg);
 }
