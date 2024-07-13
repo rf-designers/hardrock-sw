@@ -29,8 +29,8 @@ void draw_home() {
     draw_panel(amp.lcd[1], 5, 128, 88, 50);
     draw_panel(amp.lcd[1], 227, 128, 88, 50);
     draw_panel(amp.lcd[1], 140, 8, 40, 20);
-    draw_tx_panel(GREEN);
-    draw_rx_buttons(GBLUE);
+    draw_tx_sensor(amp.state.colors.named.tx_sensor_rx);
+    draw_rx_buttons(amp.state.colors.named.text_enabled);
     draw_mode();
 
     if (amp.state.band != 0)
@@ -44,13 +44,13 @@ void draw_home() {
 
 void draw_menu() {
     draw_button(amp.lcd[1], 130, 205, 60, 30);
-    amp.lcd[1].draw_string("EXIT", 135, 213, 2, GBLUE);
+    amp.lcd[1].draw_string("EXIT", 135, 213, 2, amp.state.colors.named.text_enabled);
 
     draw_button(amp.lcd[1], 14, 8, 40, 44);
-    amp.lcd[1].draw_string("<", 24, 18, 4, GBLUE);
+    amp.lcd[1].draw_string("<", 24, 18, 4, amp.state.colors.named.text_enabled);
 
     draw_button(amp.lcd[1], 266, 8, 40, 44);
-    amp.lcd[1].draw_string(">", 274, 18, 4, GBLUE);
+    amp.lcd[1].draw_string(">", 274, 18, 4, amp.state.colors.named.text_enabled);
 
     draw_panel(amp.lcd[1], 60, 8, 200, 44);
     draw_panel(amp.lcd[1], 60, 68, 200, 44);
@@ -59,7 +59,7 @@ void draw_menu() {
     amp.lcd[1].draw_string(item_disp[amp.state.menuChoice], 65, 80, 2, LGRAY);
     draw_button(amp.lcd[1], 120, 125, 80, 30);
 
-    amp.lcd[1].draw_string("SELECT", 124, 132, 2, GBLUE);
+    amp.lcd[1].draw_string("SELECT", 124, 132, 2, amp.state.colors.named.text_enabled);
 
     amp.state.menuSelected = false;
 
@@ -70,43 +70,43 @@ void draw_menu() {
 }
 
 void draw_meter() {
-    amp.lcd[0].draw_string("FWD", 14, 8, 2, GBLUE);
+    amp.lcd[0].draw_string("FWD", 14, 8, 2, amp.state.colors.named.text_enabled);
     draw_panel(amp.lcd[0], 18, 32, 29, 14);
 
-    amp.lcd[0].draw_string("RFL", 78, 8, 2, GBLUE);
+    amp.lcd[0].draw_string("RFL", 78, 8, 2, amp.state.colors.named.text_enabled);
     draw_panel(amp.lcd[0], 82, 32, 29, 14);
 
-    amp.lcd[0].draw_string("DRV", 142, 8, 2, GBLUE);
+    amp.lcd[0].draw_string("DRV", 142, 8, 2, amp.state.colors.named.text_enabled);
     draw_panel(amp.lcd[0], 146, 32, 29, 14);
 
-    amp.lcd[0].draw_string("VDD", 206, 8, 2, GBLUE);
+    amp.lcd[0].draw_string("VDD", 206, 8, 2, amp.state.colors.named.text_enabled);
     draw_panel(amp.lcd[0], 210, 32, 29, 14);
 
-    amp.lcd[0].draw_string("IDD", 270, 8, 2, GBLUE);
+    amp.lcd[0].draw_string("IDD", 270, 8, 2, amp.state.colors.named.text_enabled);
     draw_panel(amp.lcd[0], 274, 32, 29, 14);
 
     draw_panel(amp.lcd[0], 7, 58, 304, 64);
 
     draw_button(amp.lcd[0], 10, 141, 44, 30);
-    amp.lcd[0].draw_string("FWD", 13, 150, 2, GBLUE);
+    amp.lcd[0].draw_string("FWD", 13, 150, 2, amp.state.colors.named.text_enabled);
 
     draw_button(amp.lcd[0], 74, 141, 44, 30);
-    amp.lcd[0].draw_string("RFL", 77, 150, 2, GBLUE);
+    amp.lcd[0].draw_string("RFL", 77, 150, 2, amp.state.colors.named.text_enabled);
 
     draw_button(amp.lcd[0], 138, 141, 44, 30);
-    amp.lcd[0].draw_string("DRV", 141, 150, 2, GBLUE);
+    amp.lcd[0].draw_string("DRV", 141, 150, 2, amp.state.colors.named.text_enabled);
 
     draw_button(amp.lcd[0], 202, 141, 44, 30);
-    amp.lcd[0].draw_string("VDD", 205, 150, 2, GBLUE);
+    amp.lcd[0].draw_string("VDD", 205, 150, 2, amp.state.colors.named.text_enabled);
 
     draw_button(amp.lcd[0], 266, 141, 44, 30);
-    amp.lcd[0].draw_string("IDD", 269, 150, 2, GBLUE);
+    amp.lcd[0].draw_string("IDD", 269, 150, 2, amp.state.colors.named.text_enabled);
 
     draw_button_down(amp.state.meterSelection);
-    amp.lcd[0].draw_string("SWR:", 10, 205, 2, GBLUE);
+    amp.lcd[0].draw_string("SWR:", 10, 205, 2, amp.state.colors.named.text_enabled);
 
     draw_panel(amp.lcd[0], 63, 196, 80, 30);
-    amp.lcd[0].draw_string("TEMP:", 165, 205, 2, GBLUE);
+    amp.lcd[0].draw_string("TEMP:", 165, 205, 2, amp.state.colors.named.text_enabled);
     draw_panel(amp.lcd[0], 230, 196, 80, 30);
 }
 
@@ -120,14 +120,13 @@ void draw_rx_buttons(uint16_t color) {
 
     if (amp.atu.is_present()) {
         amp.lcd[1].draw_string("MENU", 135, 93, 2, color);
-        amp.lcd[1].draw_string("TUNE", 122, 199, 3, GBLUE);
+        amp.lcd[1].draw_string("TUNE", 122, 199, 3, amp.state.colors.named.text_enabled);
         //Tft.drawString((char*)"----", 122, 142,  3, LBLUE);
     } else {
         amp.lcd[1].draw_string("MENU", 135, 143, 2, color);
     }
 
-    if (!amp.atu.is_present()) color = DGRAY;
-
+    if (!amp.atu.is_present()) color = amp.state.colors.named.text_disabled;
     amp.lcd[1].draw_string("ATU", 244, 199, 3, color);
 }
 
@@ -142,7 +141,8 @@ void draw_button(display_board &b, int x, int y, int w, int h) {
     b.draw_h_line(x + 1, y + 1, w - 2, amp.state.colors.named.panel_fg2);
     b.draw_h_line(x, y + h, w, amp.state.colors.named.panel_fg1);
     b.draw_h_line(x + 1, y + h - 1, w - 2, amp.state.colors.named.panel_fg1);
-    b.fill_rect(x + 2, y + 2, w - 4, h - 4, amp.state.colors.named.panel_bg);
+
+    b.fill_rect(x + 2, y + 2, w - 4, h - 4, amp.state.colors.named.button_bg);
 }
 
 void draw_button_down(int button) {
@@ -284,10 +284,11 @@ void draw_panel(display_board &b, const int x, const int y, const int w, const i
     b.draw_h_line(x + 1, y + 1, w - 2, amp.state.colors.named.panel_fg1);
     b.draw_h_line(x, y + h, w, amp.state.colors.named.panel_fg2);
     b.draw_h_line(x + 1, y + h - 1, w - 2, amp.state.colors.named.panel_fg2);
+
     b.fill_rect(x + 2, y + 2, w - 3, h - 3, amp.state.colors.named.panel_bg);
 }
 
-void draw_tx_panel(const uint16_t pcolor) {
+void draw_tx_sensor(const uint16_t pcolor) {
     if (amp.state.isMenuActive)
         return;
 
@@ -331,41 +332,41 @@ void draw_band(const byte band, const uint16_t color) {
 void draw_ant() {
     if (amp.state.isMenuActive) return;
 
-    amp.lcd[1].fill_rect(43, 142, 16, 21, MGRAY);
+    amp.lcd[1].fill_rect(43, 142, 16, 21, amp.state.colors.named.panel_bg);
 
     if (amp.state.antForBand[amp.state.band] == 1) {
-        amp.lcd[1].draw_string("1", 41, 142, 3, LBLUE);
+        amp.lcd[1].draw_string("1", 41, 142, 3, amp.state.colors.named.text_ant_atu);
         Serial3.println("*N1");
         SEL_ANT1;
     }
 
     if (amp.state.antForBand[amp.state.band] == 2) {
-        amp.lcd[1].draw_string("2", 41, 142, 3, LBLUE);
+        amp.lcd[1].draw_string("2", 41, 142, 3, amp.state.colors.named.text_ant_atu);
         Serial3.println("*N2");
         SEL_ANT2;
     }
 
     if (amp.atu.is_present()) {
-        amp.lcd[1].fill_rect(121, 142, 74, 21, MGRAY);
+        amp.lcd[1].fill_rect(121, 142, 74, 21, amp.state.colors.named.text_ant_atu);
     }
 }
 
 void draw_atu() {
     if (amp.state.isMenuActive) return;
 
-    amp.lcd[1].fill_rect(244, 142, 54, 21, MGRAY);
+    amp.lcd[1].fill_rect(244, 142, 54, 21, amp.state.colors.named.panel_bg);
 
     if (amp.atu.is_present()) {
         if (amp.atu.is_active()) {
-            amp.lcd[1].draw_string("ON", 244, 142, 3, LBLUE);
+            amp.lcd[1].draw_string("ON", 244, 142, 3, amp.state.colors.named.text_ant_atu);
             Serial3.println("*Y0");
         } else {
-            amp.lcd[1].draw_string("BYP", 244, 142, 3, LBLUE);
+            amp.lcd[1].draw_string("BYP", 244, 142, 3, amp.state.colors.named.text_ant_atu);
             Serial3.println("*Y1");
         }
 
         EEPROM.write(eeatub, amp.atu.is_active());
     } else {
-        amp.lcd[1].draw_string("---", 244, 142, 3, LBLUE);
+        amp.lcd[1].draw_string("---", 244, 142, 3, amp.state.colors.named.text_ant_atu);
     }
 }

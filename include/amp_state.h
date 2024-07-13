@@ -90,7 +90,7 @@ struct amp_state {
     byte ATTN_ST = 0;
 
     unsigned int temp_utp = 0, temp_dtp = 0;
-    color_theme colors{};
+    color_theme colors = color_theme::make_default();
 };
 
 mode_type next_mode(mode_type mode);

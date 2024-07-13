@@ -585,13 +585,13 @@ void amplifier::switch_to_tx() {
     RESET_PULSE
     state.swr_display_counter = 19;
 
-    draw_rx_buttons(DGRAY);
-    draw_tx_panel(RED);
+    draw_rx_buttons(state.colors.named.text_disabled);
+    draw_tx_sensor(state.colors.named.tx_sensor_tx);
 }
 
 void amplifier::switch_to_rx() {
-    draw_rx_buttons(GBLUE);
-    draw_tx_panel(GREEN);
+    draw_rx_buttons(state.colors.named.text_enabled);
+    draw_tx_sensor(state.colors.named.tx_sensor_rx);
     trip_clear();
     RESET_PULSE
 
