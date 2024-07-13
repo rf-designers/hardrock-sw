@@ -6,31 +6,31 @@
 #include <SPI.h>
 
 //Basic Colors
-#define WHITE          0xFFFF
-#define LGRAY  		   0xD69A
-#define GRAY  		   0x738E
-#define MGRAY  		   0x52AA
-#define DGRAY  		   0x4228
-#define BLACK          0x0000
+#define WHITE          0xFFFFUL
+#define LGRAY  		   0xD69AUL
+#define GRAY  		   0x738EUL
+#define MGRAY  		   0x52AAUL
+#define DGRAY  		   0x4228UL
+#define BLACK          0x0000UL
 
-#define BLUE           0x001F
-#define LBLUE          0x843F
-#define DBLUE		   0X000c
-#define GBLUE		   0X07FF
+#define BLUE           0x001FUL
+#define LBLUE          0x843FUL
+#define DBLUE		   0X000cUL
+#define GBLUE		   0X07FFUL
 
-#define BRED           0XF81F
-#define GRED 		   0XFFE0
-#define RED            0xF800
-#define BRRED 		   0XFC07
-#define DRED		   0xc800
+#define BRED           0XF81FUL
+#define GRED 		   0XFFE0UL
+#define RED            0xF800UL
+#define BRRED 		   0XFC07UL
+#define DRED		   0xc800UL
 
-#define MAGENTA        0xF81F
-#define GREEN          0x07E0
-#define CYAN           0x7FFF
-#define YELLOW         0xFFE0
-#define ORANGE         0xFF00
-#define BROWN 		   0XBC40
-#define PURPLE		   0xb17f
+#define MAGENTA        0xF81FUL
+#define GREEN          0x07E0UL
+#define CYAN           0x7FFFUL
+#define YELLOW         0xFFE0UL
+#define ORANGE         0xFF00UL
+#define BROWN 		   0XBC40UL
+#define PURPLE		   0xb17fUL
 
 #define LCD_CMD      0
 #define LCD_DATA     1

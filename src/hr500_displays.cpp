@@ -134,15 +134,15 @@ void draw_rx_buttons(uint16_t color) {
 void draw_button(display_board &b, int x, int y, int w, int h) {
     if (h < 8 || w < 8) return;
 
-    b.draw_v_line(x, y, h, LGRAY);
-    b.draw_v_line(x + 1, y + 1, h - 2, LGRAY);
-    b.draw_v_line(x + w, y, h, DGRAY);
-    b.draw_v_line(x + w - 1, y + 1, h - 2, DGRAY);
-    b.draw_h_line(x, y, w, LGRAY);
-    b.draw_h_line(x + 1, y + 1, w - 2, LGRAY);
-    b.draw_h_line(x, y + h, w, DGRAY);
-    b.draw_h_line(x + 1, y + h - 1, w - 2, DGRAY);
-    b.fill_rect(x + 2, y + 2, w - 4, h - 4, GRAY);
+    b.draw_v_line(x, y, h, amp.state.colors.named.panel_fg2);
+    b.draw_v_line(x + 1, y + 1, h - 2, amp.state.colors.named.panel_fg2);
+    b.draw_v_line(x + w, y, h, amp.state.colors.named.panel_fg1);
+    b.draw_v_line(x + w - 1, y + 1, h - 2, amp.state.colors.named.panel_fg1);
+    b.draw_h_line(x, y, w, amp.state.colors.named.panel_fg2);
+    b.draw_h_line(x + 1, y + 1, w - 2, amp.state.colors.named.panel_fg2);
+    b.draw_h_line(x, y + h, w, amp.state.colors.named.panel_fg1);
+    b.draw_h_line(x + 1, y + h - 1, w - 2, amp.state.colors.named.panel_fg1);
+    b.fill_rect(x + 2, y + 2, w - 4, h - 4, amp.state.colors.named.panel_bg);
 }
 
 void draw_button_down(int button) {
@@ -150,17 +150,17 @@ void draw_button_down(int button) {
     int y = 141;
     int w = 44;
     int h = 30;
-    int l_start = 83, l_height = 11, l_color = BLACK;
+    int l_start = 83, l_height = 11, l_color = amp.state.colors.named.meter_ticks;
 
-    amp.lcd[0].draw_v_line(x, y, h, DGRAY);
-    amp.lcd[0].draw_v_line(x + 1, y + 1, h - 2, DGRAY);
-    amp.lcd[0].draw_v_line(x + w, y, h, LGRAY);
-    amp.lcd[0].draw_v_line(x + w - 1, y + 1, h - 2, LGRAY);
-    amp.lcd[0].draw_h_line(x, y, w, DGRAY);
-    amp.lcd[0].draw_h_line(x + 1, y + 1, w - 2, DGRAY);
-    amp.lcd[0].draw_h_line(x, y + h, w, LGRAY);
-    amp.lcd[0].draw_h_line(x + 1, y + h - 1, w - 2, LGRAY);
-    amp.lcd[0].fill_rect(9, 60, 301, 34, 0xFFDC);
+    amp.lcd[0].draw_v_line(x, y, h, amp.state.colors.named.panel_fg1);
+    amp.lcd[0].draw_v_line(x + 1, y + 1, h - 2, amp.state.colors.named.panel_fg1);
+    amp.lcd[0].draw_v_line(x + w, y, h, amp.state.colors.named.panel_fg2);
+    amp.lcd[0].draw_v_line(x + w - 1, y + 1, h - 2, amp.state.colors.named.panel_fg2);
+    amp.lcd[0].draw_h_line(x, y, w, amp.state.colors.named.panel_fg1);
+    amp.lcd[0].draw_h_line(x + 1, y + 1, w - 2, amp.state.colors.named.panel_fg1);
+    amp.lcd[0].draw_h_line(x, y + h, w, amp.state.colors.named.panel_fg2);
+    amp.lcd[0].draw_h_line(x + 1, y + h - 1, w - 2, amp.state.colors.named.panel_fg2);
+    amp.lcd[0].fill_rect(9, 60, 301, 34, amp.state.colors.named.meter_bg);
 
     if (button == 1 || button == 2 || button == 3) {
         for (int i = 19; i < 300; i += 56) {
@@ -208,49 +208,49 @@ void draw_button_down(int button) {
 
     switch (button) {
         case 1:
-            amp.lcd[0].display_string(16, 59, (uint8_t *) "0", FONT_1608, BLACK);
-            amp.lcd[0].display_string(30, 61, (uint8_t *) "WATTS", FONT_1206, BLACK);
-            amp.lcd[0].display_string(64, 59, (uint8_t *) "100", FONT_1608, BLACK);
-            amp.lcd[0].display_string(120, 59, (uint8_t *) "200", FONT_1608, BLACK);
-            amp.lcd[0].display_string(176, 59, (uint8_t *) "300", FONT_1608, BLACK);
-            amp.lcd[0].display_string(232, 59, (uint8_t *) "400", FONT_1608, BLACK);
-            amp.lcd[0].display_string(286, 59, (uint8_t *) "500", FONT_1608, BLACK);
+            amp.lcd[0].display_string(16, 59, (uint8_t *) "0", FONT_1608, amp.state.colors.named.meter_ticks);
+            amp.lcd[0].display_string(30, 61, (uint8_t *) "WATTS", FONT_1206, amp.state.colors.named.meter_ticks);
+            amp.lcd[0].display_string(64, 59, (uint8_t *) "100", FONT_1608, amp.state.colors.named.meter_ticks);
+            amp.lcd[0].display_string(120, 59, (uint8_t *) "200", FONT_1608, amp.state.colors.named.meter_ticks);
+            amp.lcd[0].display_string(176, 59, (uint8_t *) "300", FONT_1608, amp.state.colors.named.meter_ticks);
+            amp.lcd[0].display_string(232, 59, (uint8_t *) "400", FONT_1608, amp.state.colors.named.meter_ticks);
+            amp.lcd[0].display_string(286, 59, (uint8_t *) "500", FONT_1608, amp.state.colors.named.meter_ticks);
             break;
         case 2:
-            amp.lcd[0].display_string(16, 59, (uint8_t *) "0", FONT_1608, BLACK);
-            amp.lcd[0].display_string(30, 61, (uint8_t *) "WATTS", FONT_1206, BLACK);
-            amp.lcd[0].display_string(67, 59, (uint8_t *) "10", FONT_1608, BLACK);
-            amp.lcd[0].display_string(123, 59, (uint8_t *) "20", FONT_1608, BLACK);
-            amp.lcd[0].display_string(179, 59, (uint8_t *) "30", FONT_1608, BLACK);
-            amp.lcd[0].display_string(235, 59, (uint8_t *) "40", FONT_1608, BLACK);
-            amp.lcd[0].display_string(291, 59, (uint8_t *) "50", FONT_1608, BLACK);
+            amp.lcd[0].display_string(16, 59, (uint8_t *) "0", FONT_1608, amp.state.colors.named.meter_ticks);
+            amp.lcd[0].display_string(30, 61, (uint8_t *) "WATTS", FONT_1206, amp.state.colors.named.meter_ticks);
+            amp.lcd[0].display_string(67, 59, (uint8_t *) "10", FONT_1608, amp.state.colors.named.meter_ticks);
+            amp.lcd[0].display_string(123, 59, (uint8_t *) "20", FONT_1608, amp.state.colors.named.meter_ticks);
+            amp.lcd[0].display_string(179, 59, (uint8_t *) "30", FONT_1608, amp.state.colors.named.meter_ticks);
+            amp.lcd[0].display_string(235, 59, (uint8_t *) "40", FONT_1608, amp.state.colors.named.meter_ticks);
+            amp.lcd[0].display_string(291, 59, (uint8_t *) "50", FONT_1608, amp.state.colors.named.meter_ticks);
             break;
 
         case 3:
-            amp.lcd[0].display_string(16, 59, (uint8_t *) "0", FONT_1608, BLACK);
-            amp.lcd[0].display_string(30, 61, (uint8_t *) "WATTS", FONT_1206, BLACK);
-            amp.lcd[0].display_string(72, 59, (uint8_t *) "2", FONT_1608, BLACK);
-            amp.lcd[0].display_string(128, 59, (uint8_t *) "4", FONT_1608, BLACK);
-            amp.lcd[0].display_string(184, 59, (uint8_t *) "6", FONT_1608, BLACK);
-            amp.lcd[0].display_string(240, 59, (uint8_t *) "8", FONT_1608, BLACK);
-            amp.lcd[0].display_string(291, 59, (uint8_t *) "10", FONT_1608, BLACK);
+            amp.lcd[0].display_string(16, 59, (uint8_t *) "0", FONT_1608, amp.state.colors.named.meter_ticks);
+            amp.lcd[0].display_string(30, 61, (uint8_t *) "WATTS", FONT_1206, amp.state.colors.named.meter_ticks);
+            amp.lcd[0].display_string(72, 59, (uint8_t *) "2", FONT_1608, amp.state.colors.named.meter_ticks);
+            amp.lcd[0].display_string(128, 59, (uint8_t *) "4", FONT_1608, amp.state.colors.named.meter_ticks);
+            amp.lcd[0].display_string(184, 59, (uint8_t *) "6", FONT_1608, amp.state.colors.named.meter_ticks);
+            amp.lcd[0].display_string(240, 59, (uint8_t *) "8", FONT_1608, amp.state.colors.named.meter_ticks);
+            amp.lcd[0].display_string(291, 59, (uint8_t *) "10", FONT_1608, amp.state.colors.named.meter_ticks);
             break;
         case 4:
-            amp.lcd[0].display_string(16, 59, (uint8_t *) "0", FONT_1608, BLACK);
-            amp.lcd[0].display_string(30, 61, (uint8_t *) "VOLTS", FONT_1206, BLACK);
-            amp.lcd[0].display_string(67, 59, (uint8_t *) "12", FONT_1608, BLACK);
-            amp.lcd[0].display_string(123, 59, (uint8_t *) "24", FONT_1608, BLACK);
-            amp.lcd[0].display_string(179, 59, (uint8_t *) "36", FONT_1608, BLACK);
-            amp.lcd[0].display_string(235, 59, (uint8_t *) "48", FONT_1608, BLACK);
-            amp.lcd[0].display_string(291, 59, (uint8_t *) "60", FONT_1608, BLACK);
+            amp.lcd[0].display_string(16, 59, (uint8_t *) "0", FONT_1608, amp.state.colors.named.meter_ticks);
+            amp.lcd[0].display_string(30, 61, (uint8_t *) "VOLTS", FONT_1206, amp.state.colors.named.meter_ticks);
+            amp.lcd[0].display_string(67, 59, (uint8_t *) "12", FONT_1608, amp.state.colors.named.meter_ticks);
+            amp.lcd[0].display_string(123, 59, (uint8_t *) "24", FONT_1608, amp.state.colors.named.meter_ticks);
+            amp.lcd[0].display_string(179, 59, (uint8_t *) "36", FONT_1608, amp.state.colors.named.meter_ticks);
+            amp.lcd[0].display_string(235, 59, (uint8_t *) "48", FONT_1608, amp.state.colors.named.meter_ticks);
+            amp.lcd[0].display_string(291, 59, (uint8_t *) "60", FONT_1608, amp.state.colors.named.meter_ticks);
             break;
         case 5:
-            amp.lcd[0].display_string(16, 59, (uint8_t *) "0", FONT_1608, BLACK);
-            amp.lcd[0].display_string(40, 61, (uint8_t *) "AMPS", FONT_1206, BLACK);
-            amp.lcd[0].display_string(86, 59, (uint8_t *) "5", FONT_1608, BLACK);
-            amp.lcd[0].display_string(151, 59, (uint8_t *) "10", FONT_1608, BLACK);
-            amp.lcd[0].display_string(221, 59, (uint8_t *) "15", FONT_1608, BLACK);
-            amp.lcd[0].display_string(291, 59, (uint8_t *) "20", FONT_1608, BLACK);
+            amp.lcd[0].display_string(16, 59, (uint8_t *) "0", FONT_1608, amp.state.colors.named.meter_ticks);
+            amp.lcd[0].display_string(40, 61, (uint8_t *) "AMPS", FONT_1206, amp.state.colors.named.meter_ticks);
+            amp.lcd[0].display_string(86, 59, (uint8_t *) "5", FONT_1608, amp.state.colors.named.meter_ticks);
+            amp.lcd[0].display_string(151, 59, (uint8_t *) "10", FONT_1608, amp.state.colors.named.meter_ticks);
+            amp.lcd[0].display_string(221, 59, (uint8_t *) "15", FONT_1608, amp.state.colors.named.meter_ticks);
+            amp.lcd[0].display_string(291, 59, (uint8_t *) "20", FONT_1608, amp.state.colors.named.meter_ticks);
             break;
 
     }
@@ -263,28 +263,28 @@ void draw_button_up(const int button) {
     int w = 44;
     int h = 30;
 
-    amp.lcd[0].draw_v_line(x, y, h, LGRAY);
-    amp.lcd[0].draw_v_line(x + 1, y + 1, h - 2, LGRAY);
-    amp.lcd[0].draw_v_line(x + w, y, h, DGRAY);
-    amp.lcd[0].draw_v_line(x + w - 1, y + 1, h - 2, DGRAY);
-    amp.lcd[0].draw_h_line(x, y, w, LGRAY);
-    amp.lcd[0].draw_h_line(x + 1, y + 1, w - 2, LGRAY);
-    amp.lcd[0].draw_h_line(x, y + h, w, DGRAY);
-    amp.lcd[0].draw_h_line(x + 1, y + h - 1, w - 2, DGRAY);
+    amp.lcd[0].draw_v_line(x, y, h, amp.state.colors.named.panel_fg2);
+    amp.lcd[0].draw_v_line(x + 1, y + 1, h - 2, amp.state.colors.named.panel_fg2);
+    amp.lcd[0].draw_v_line(x + w, y, h, amp.state.colors.named.panel_fg1);
+    amp.lcd[0].draw_v_line(x + w - 1, y + 1, h - 2, amp.state.colors.named.panel_fg1);
+    amp.lcd[0].draw_h_line(x, y, w, amp.state.colors.named.panel_fg2);
+    amp.lcd[0].draw_h_line(x + 1, y + 1, w - 2, amp.state.colors.named.panel_fg2);
+    amp.lcd[0].draw_h_line(x, y + h, w, amp.state.colors.named.panel_fg1);
+    amp.lcd[0].draw_h_line(x + 1, y + h - 1, w - 2, amp.state.colors.named.panel_fg1);
 }
 
 void draw_panel(display_board &b, const int x, const int y, const int w, const int h) {
     if (w < 8 || h < 8) return;
 
-    b.draw_v_line(x, y, h, DGRAY);
-    b.draw_v_line(x + 1, y + 1, h - 2, DGRAY);
-    b.draw_v_line(x + w, y, h, LGRAY);
-    b.draw_v_line(x + w - 1, y + 1, h - 2, LGRAY);
-    b.draw_h_line(x, y, w, DGRAY);
-    b.draw_h_line(x + 1, y + 1, w - 2, DGRAY);
-    b.draw_h_line(x, y + h, w, LGRAY);
-    b.draw_h_line(x + 1, y + h - 1, w - 2, LGRAY);
-    b.fill_rect(x + 2, y + 2, w - 3, h - 3, MGRAY);
+    b.draw_v_line(x, y, h, amp.state.colors.named.panel_fg1);
+    b.draw_v_line(x + 1, y + 1, h - 2, amp.state.colors.named.panel_fg1);
+    b.draw_v_line(x + w, y, h, amp.state.colors.named.panel_fg2);
+    b.draw_v_line(x + w - 1, y + 1, h - 2, amp.state.colors.named.panel_fg2);
+    b.draw_h_line(x, y, w, amp.state.colors.named.panel_fg1);
+    b.draw_h_line(x + 1, y + 1, w - 2, amp.state.colors.named.panel_fg1);
+    b.draw_h_line(x, y + h, w, amp.state.colors.named.panel_fg2);
+    b.draw_h_line(x + 1, y + h - 1, w - 2, amp.state.colors.named.panel_fg2);
+    b.fill_rect(x + 2, y + 2, w - 3, h - 3, amp.state.colors.named.panel_bg);
 }
 
 void draw_tx_panel(const uint16_t pcolor) {
@@ -297,17 +297,17 @@ void draw_tx_panel(const uint16_t pcolor) {
 void draw_mode() {
     if (amp.state.isMenuActive) return;
 
-    amp.lcd[1].fill_rect(38, 21, 54, 21, MGRAY);
+    amp.lcd[1].fill_rect(38, 21, 54, 21, amp.state.colors.named.panel_bg);
 
     switch (amp.state.mode) {
         case mode_type::standby:
-            amp.lcd[1].draw_string("OFF", 36, 21, 3, YELLOW);
+            amp.lcd[1].draw_string("OFF", 36, 21, 3, amp.state.colors.named.alarm[2]);
             break;
         case mode_type::ptt:
-            amp.lcd[1].draw_string("PTT", 36, 21, 3, GREEN);
+            amp.lcd[1].draw_string("PTT", 36, 21, 3, amp.state.colors.named.alarm[1]);
             break;
         case mode_type::qrp:
-            amp.lcd[1].draw_string("QRP", 36, 21, 3, GREEN);
+            amp.lcd[1].draw_string("QRP", 36, 21, 3, amp.state.colors.named.alarm[1]);
             break;
     }
 }

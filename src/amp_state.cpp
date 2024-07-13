@@ -313,28 +313,30 @@ void amplifier::handle_ts2() {
             case 0:
             case 1:
                 if (!state.menuSelected) {
-                    lcd[1].draw_string(menu_items[state.menuChoice], 65, 20, 2, MGRAY);
-                    lcd[1].draw_string(item_disp[state.menuChoice], 65, 80, 2, MGRAY);
+                    // erase old
+                    lcd[1].draw_string(menu_items[state.menuChoice], 65, 20, 2, state.colors.named.menu_1);
+                    lcd[1].draw_string(item_disp[state.menuChoice], 65, 80, 2, state.colors.named.menu_1);
 
                     if (state.menuChoice-- == 0)
                         state.menuChoice = menu_max;
 
-                    lcd[1].draw_string(menu_items[state.menuChoice], 65, 20, 2, WHITE);
-                    lcd[1].draw_string(item_disp[state.menuChoice], 65, 80, 2, LGRAY);
+                    lcd[1].draw_string(menu_items[state.menuChoice], 65, 20, 2, state.colors.named.menu_2);
+                    lcd[1].draw_string(item_disp[state.menuChoice], 65, 80, 2, state.colors.named.menu_3);
                 }
                 break;
 
             case 3:
             case 4:
                 if (!state.menuSelected) {
-                    lcd[1].draw_string(menu_items[state.menuChoice], 65, 20, 2, MGRAY);
-                    lcd[1].draw_string(item_disp[state.menuChoice], 65, 80, 2, MGRAY);
+                    // erase old
+                    lcd[1].draw_string(menu_items[state.menuChoice], 65, 20, 2, state.colors.named.menu_1);
+                    lcd[1].draw_string(item_disp[state.menuChoice], 65, 80, 2, state.colors.named.menu_1);
 
                     if (++state.menuChoice > menu_max)
                         state.menuChoice = 0;
 
-                    lcd[1].draw_string(menu_items[state.menuChoice], 65, 20, 2, WHITE);
-                    lcd[1].draw_string(item_disp[state.menuChoice], 65, 80, 2, LGRAY);
+                    lcd[1].draw_string(menu_items[state.menuChoice], 65, 20, 2, state.colors.named.menu_2);
+                    lcd[1].draw_string(item_disp[state.menuChoice], 65, 80, 2, state.colors.named.menu_3);
                 }
 
                 break;

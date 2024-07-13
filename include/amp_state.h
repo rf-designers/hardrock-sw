@@ -1,9 +1,11 @@
 #pragma once
 
 #include <Arduino.h>
+#include <display_board.h>
 #include <HR500V1.h>
 #include <HR500X.h>
-#include "display_board.h"
+#include "color_theme.h"
+
 
 enum class mode_type : uint8_t {
     standby = 0,
@@ -28,15 +30,15 @@ enum class serial_speed : uint8_t {
 };
 
 struct amp_state {
-    volatile bool tx_is_on;
+    volatile bool tx_is_on = false;
     mode_type mode = mode_type::standby; // 0 - OFF, 1 - PTT
-    mode_type old_mode;
+    mode_type old_mode = mode_type::standby;
 
     volatile byte band = 6;
     byte oldBand = 0;
 
 
-    volatile bool pttEnabled;
+    volatile bool pttEnabled = false;
 
     int swr_display_counter = 19;
     char RL_TXT[4] = {"-.-"};
@@ -53,15 +55,15 @@ struct amp_state {
     byte OI_alert = 0, OV_alert = 0, OF_alert = 0, OR_alert = 0, OD_alert = 0;
 
     byte meterSelection = 0; // 1 - FWD; 2 - RFL; 3 - DRV; 4 - VDD; 5 - IDD
-    byte oldMeterSelection;
+    byte oldMeterSelection = 0;
 
     byte trx_type = 0;
     byte antForBand[11] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}; // antenna selection for each band
-    bool isMenuActive; // 0 is normal, 1 is menu mode
+    bool isMenuActive = false; // 0 is normal, 1 is menu mode
     bool tempInCelsius = true; // display temperature in Celsius?
 
-    serial_speed accSpeed;
-    serial_speed usbSpeed;
+    serial_speed accSpeed = serial_speed::baud_19200;
+    serial_speed usbSpeed = serial_speed::baud_19200;
 
     unsigned int F_bar = 9, OF_bar = 9;
 
@@ -74,10 +76,10 @@ struct amp_state {
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
     };
-    unsigned int t_tot = 0, t_ave;
+    unsigned int t_tot = 0, t_ave = 0;
     byte t_i = 0;
     char TEMPbuff[16];
-    int t_read;
+    int t_read = 0;
     int otemp = -99;
 
     // meter calibration
@@ -87,8 +89,8 @@ struct amp_state {
     char ATTN_P = 0;
     byte ATTN_ST = 0;
 
-    unsigned int temp_utp, temp_dtp;
-
+    unsigned int temp_utp = 0, temp_dtp = 0;
+    color_theme colors{};
 };
 
 mode_type next_mode(mode_type mode);
@@ -149,9 +151,9 @@ struct amplifier {
     void switch_to_tx();
     void switch_to_rx();
 
-    amp_state state;
-    atu_board atu;
-    lpf_board lpf;
+    amp_state state{};
+    atu_board atu{};
+    lpf_board lpf{};
     display_board lcd[2] = {display_board{new lcd1}, display_board{new lcd2}};
     XPT2046_Touchscreen ts1{TP1_CS};
     XPT2046_Touchscreen ts2{TP2_CS};

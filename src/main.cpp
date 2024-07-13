@@ -221,8 +221,8 @@ void setup() {
     Wire.setClock(400000);
     amp.trip_clear();
 
-    amp.lcd[0].lcd_init(GRAY);
-    amp.lcd[1].lcd_init(GRAY);
+    amp.lcd[0].lcd_init(amp.state.colors.named.bg);
+    amp.lcd[1].lcd_init(amp.state.colors.named.bg);
 
     amp.set_fan_speed(0);
     draw_meter();
@@ -230,14 +230,14 @@ void setup() {
     amp.atu.detect();
 
     draw_home();
-    amp.lcd[0].fill_rect(20, 34, 25, 10, GREEN);
-    amp.lcd[0].fill_rect(84, 34, 25, 10, GREEN);
+    amp.lcd[0].fill_rect(20, 34, 25, 10, amp.state.colors.named.alarm[1]);
+    amp.lcd[0].fill_rect(84, 34, 25, 10, amp.state.colors.named.alarm[1]);
 
     if (amp.state.ATTN_ST == 0)
-        amp.lcd[0].fill_rect(148, 34, 25, 10, GREEN);
+        amp.lcd[0].fill_rect(148, 34, 25, 10, amp.state.colors.named.alarm[1]);
 
-    amp.lcd[0].fill_rect(212, 34, 25, 10, GREEN);
-    amp.lcd[0].fill_rect(276, 34, 25, 10, GREEN);
+    amp.lcd[0].fill_rect(212, 34, 25, 10, amp.state.colors.named.alarm[1]);
+    amp.lcd[0].fill_rect(276, 34, 25, 10, amp.state.colors.named.alarm[1]);
 
     shouldHandlePttChange = false;
 
@@ -396,14 +396,7 @@ void update_alarms() {
     // see if we need to redisplay the current status
     if (amp.state.F_alert != amp.state.OF_alert) {
         amp.state.OF_alert = amp.state.F_alert;
-        int r_col = GREEN;
-
-        if (amp.state.F_alert == 2) {
-            r_col = YELLOW;
-        } else if (amp.state.F_alert == 3) {
-            r_col = RED;
-        }
-        amp.lcd[0].fill_rect(20, 34, 25, 10, r_col);
+        amp.lcd[0].fill_rect(20, 34, 25, 10, amp.state.colors.named.alarm[amp.state.F_alert]);
     }
 
     // reflected alert
@@ -416,15 +409,7 @@ void update_alarms() {
 
     if (amp.state.R_alert != amp.state.OR_alert) {
         amp.state.OR_alert = amp.state.R_alert;
-        unsigned int r_col = GREEN;
-
-        if (amp.state.R_alert == 2)
-            r_col = YELLOW;
-
-        if (amp.state.R_alert == 3)
-            r_col = RED;
-
-        amp.lcd[0].fill_rect(84, 34, 25, 10, r_col);
+        amp.lcd[0].fill_rect(84, 34, 25, 10, amp.state.colors.named.alarm[amp.state.R_alert]);
     }
 
     // drive alert
@@ -443,20 +428,11 @@ void update_alarms() {
     if (amp.state.D_alert != amp.state.OD_alert) {
         amp.state.OD_alert = amp.state.D_alert;
 
-        unsigned int r_col = GREEN;
-        if (amp.state.ATTN_ST == 1) {
-            r_col = DGRAY;
-        } else if (amp.state.D_alert == 2) {
-            r_col = YELLOW;
-
-        } else if (amp.state.D_alert == 3) {
-            r_col = RED;
-            if (amp.state.tx_is_on) {
+        if (amp.state.D_alert == 3 && amp.state.tx_is_on) {
                 amp.trip_set();
-            }
         }
 
-        amp.lcd[0].fill_rect(148, 34, 25, 10, r_col);
+        amp.lcd[0].fill_rect(148, 34, 25, 10, amp.state.colors.named.alarm[amp.state.D_alert]);
     }
 
     // voltage alert
@@ -494,15 +470,7 @@ void update_alarms() {
 
     if (amp.state.I_alert != amp.state.OI_alert) {
         amp.state.OI_alert = amp.state.I_alert;
-        unsigned int r_col = GREEN;
-
-        if (amp.state.I_alert == 2) {
-            r_col = YELLOW;
-        } else if (amp.state.I_alert == 3) {
-            r_col = RED;
-        }
-
-        amp.lcd[0].fill_rect(276, 34, 25, 10, r_col);
+        amp.lcd[0].fill_rect(276, 34, 25, 10, amp.state.colors.named.alarm[amp.state.I_alert]);
     }
 }
 

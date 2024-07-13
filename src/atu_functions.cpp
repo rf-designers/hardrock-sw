@@ -57,23 +57,23 @@ void on_tune_end() {
 
     switch (ATU_STAT) {
         case 'F':
-            amp.lcd[1].draw_string("FAILED", 122, 142, 2, RED);
+            amp.lcd[1].draw_string("FAILED", 122, 142, 2, amp.state.colors.named.alarm[3]);
             break;
         case 'E':
-            amp.lcd[1].draw_string("HI SWR", 122, 142, 2, RED);
+            amp.lcd[1].draw_string("HI SWR", 122, 142, 2, amp.state.colors.named.alarm[3]);
             break;
         case 'H':
-            amp.lcd[1].draw_string("HI PWR", 122, 142, 2, YELLOW);
+            amp.lcd[1].draw_string("HI PWR", 122, 142, 2, amp.state.colors.named.alarm[2]);
             break;
         case 'L':
-            amp.lcd[1].draw_string("LO PWR", 122, 142, 2, YELLOW);
+            amp.lcd[1].draw_string("LO PWR", 122, 142, 2, amp.state.colors.named.alarm[2]);
             break;
         case 'A':
-            amp.lcd[1].draw_string("CANCEL", 122, 142, 2, GREEN);
+            amp.lcd[1].draw_string("CANCEL", 122, 142, 2, amp.state.colors.named.alarm[1]);
             break;
         case 'T':
         case 'S': {
-            amp.lcd[1].draw_string("TUNED", 128, 142, 2, GREEN);
+            amp.lcd[1].draw_string("TUNED", 128, 142, 2, amp.state.colors.named.alarm[1]);
 
             amp.atu.query("*F", ATU_buff, 8);
             unsigned char RL_CH = (ATU_buff[0] - 48) * 100 + (ATU_buff[1] - 48) * 10 + (ATU_buff[2] - 48);
