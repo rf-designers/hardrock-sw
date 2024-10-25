@@ -1,0 +1,83 @@
+1) extra noise on RX when passing through the amp
+2) extra hardware protection to kill the power to the Qs when something goes wrong
+
+
+
+    P.1 when amp enters power saving, it won't wake up whenever the externally connected transceiver sends data on serial and it needs to
+    S.1 -
+
+--------------------------------------
+
+    P.2. we want additional hardware additional protection to cut off the Q vcc when anything goes wrong.
+
+    P.2.1: defining what can "go wrong"
+        - RFL too high
+        - FWD too high
+        - DC power (U*I) too high
+    P.2.2: what sensors data we have available
+
+        - the power board has an LTC2945M chip on it which gives power to the finals (https://eu.mouser.com/datasheet/2/609/ltc2945-2956028.pdf)
+        - it can have limits set and alerts triggered when limits exceeded
+        - the ~ALERT of the chip is pulled up to +5V and routed from the power board to the control board and to the LPF board
+        - additionally, ~ALERT is used to a 74LVC2G00DP (Power board's U202,  https://ro.mouser.com/datasheet/2/916/74LVC2G00-1545549.pdf) which is configured as a latch; ~ALERT disables the power to the final transistors and ~RESET enables the power to the final transistors.
+        - the ~RESET pulse comes from the arduino mega, pin D23 (look for RESET_PULSE macro being called)
+
+        - current and voltage:
+            - the amplifier reads current and voltage at certain intervals and then triggers a trip if need be
+            - TODO: the chip can have thresholds set for current, voltage and power readings
+                    we should set those from the software and we will have an ~ALERT triggered when the limits are passed
+                    the SW can find out about this condition by routing ~TRIP to an interrupt pin and then read the fault condition from the chip in order to update the display
+
+
+        - FWD, RFL voltages:
+            - they come as voltages from the LPF board
+            - A12 reads FWD_DET
+            - A13 reads RFL_DET
+            - A15 reads DRV_PWR
+            - the reading happens on timerIsr()
+            - inside main loop(), the read and averaged data is used to decide whether an alert needs to be triggered
+            - if an alert needs to be triggered, trip_set() is invoked, having as effect the cutting off of the Q power
+
+
+
+    P.2.3: integration with software
+        - Pins 2 and 3 labeled as RFL_TRIP and FWD_TRIP go from control board to LPF board but are unused
+        - those pins are assigned to hardware external interrupts (2 -> PCINT0, 3 -> PCINT1)
+    P.2.4: resetting the trip?
+
+
+
+
+Ideas:
+
+--------------------
+
+Frederic: I would make 4 graphs + their printed value:
+            FWD, RFL, DC-POWER, DRV
+            And also indicate the band.
+            The DC I and DC U, can be shown in a table elsewhere, the DC Power is more important and is U*I
+Adrian: how often to read the data from sensors?
+Frederic: Quite often, say 10/second, or less if 10 is too much.
+
+--------------------
+
+Adrian: I need to do yet another hw improvement
+            the noise is gone when I use a sleep mode which powers off pretty much everything
+            I can wake up on touch screen presses and on wdt but can't wake up on Serial/Serial2/Serial3 traffic
+            so I'm thinking of creating a pin dedicated to wake up
+            I will need an external detector for the serial ports to wake up the thing
+
+Adrian: also thought about the little microcontroller solution for relaying the serial traffic and waking up the arduino
+        there are some things to fix: the speed and polarity of the second serial may vary
+        as it comes from different transceivers
+        what we know is that it will be a 0-5V signal
+        one possible solution is to enable I2C on this small mcu  and be told what to expect
+        (stm32l010c6)
+Frédéric: Yes, I2C is a good idea. Is the new processor capable to invert the signal? Or would you need an exor again.
+Adrian: it can do
+        other solution is to simply mirror all pin changes
+        blindly
+        and have the xor do its job as before
+        but then I would need them delayed a bit
+
+-------------------

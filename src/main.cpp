@@ -61,46 +61,46 @@ void timer_isr() {
 
         const unsigned int ftmp = fwd_pwr.get();
 
-        if (ftmp > amp.state.f_tot) {
-            amp.state.f_tot = ftmp;
-            amp.state.f_pep = 75;
+        if (ftmp > amp.state.fwd_tot) {
+            amp.state.fwd_tot = ftmp;
+            amp.state.fwd_pep = 75;
         } else {
-            if (amp.state.f_pep > 0)
-                amp.state.f_pep--;
-            else if (amp.state.f_tot > 0)
-                amp.state.f_tot--;
+            if (amp.state.fwd_pep > 0)
+                amp.state.fwd_pep--;
+            else if (amp.state.fwd_tot > 0)
+                amp.state.fwd_tot--;
         }
 
         // read reflected power
         s_calc = static_cast<long>(analogRead(13)) * amp.state.M_CORR;
         const unsigned int rtmp = s_calc / static_cast<long>(100);
 
-        if (rtmp > amp.state.r_tot) {
-            amp.state.r_tot = rtmp;
-            amp.state.r_pep = 75;
+        if (rtmp > amp.state.rfl_tot) {
+            amp.state.rfl_tot = rtmp;
+            amp.state.rfl_pep = 75;
         } else {
-            if (amp.state.r_pep > 0)
-                amp.state.r_pep--;
-            else if (amp.state.r_tot > 0)
-                amp.state.r_tot--;
+            if (amp.state.rfl_pep > 0)
+                amp.state.rfl_pep--;
+            else if (amp.state.rfl_tot > 0)
+                amp.state.rfl_tot--;
         }
     } else {
-        amp.state.f_tot = 0;
-        amp.state.r_tot = 0;
+        amp.state.fwd_tot = 0;
+        amp.state.rfl_tot = 0;
     }
 
     // read drive power
     long dtmp = analogRead(15);
     dtmp = (dtmp * static_cast<long>(d_lin[amp.state.band])) / static_cast<long>(100);
 
-    if (dtmp > amp.state.d_tot) {
-        amp.state.d_tot = dtmp;
-        amp.state.d_pep = 75;
+    if (dtmp > amp.state.drv_tot) {
+        amp.state.drv_tot = dtmp;
+        amp.state.drv_pep = 75;
     } else {
-        if (amp.state.d_pep > 0)
-            amp.state.d_pep--;
-        else if (amp.state.d_tot > 0)
-            amp.state.d_tot--;
+        if (amp.state.drv_pep > 0)
+            amp.state.drv_pep--;
+        else if (amp.state.drv_tot > 0)
+            amp.state.drv_tot--;
     }
 
     // handle touching repeat
@@ -150,8 +150,9 @@ void config_wakeup_pins() {
     pinMode(19, INPUT);
     attachInterrupt(digitalPinToInterrupt(19), wake_up_from_sleep, FALLING);
 
-//    set_sleep_mode(SLEEP_MODE_PWR_DOWN);
-    set_sleep_mode(SLEEP_MODE_PWR_SAVE);
+    set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+//    set_sleep_mode(SLEEP_MODE_ADC);
+//    set_sleep_mode(SLEEP_MODE_PWR_SAVE);
 
     interrupts();
 }
@@ -232,54 +233,89 @@ void setup() {
 //    attachInterrupt(digitalPinToInterrupt(17), serial2RxISR, FALLING); // RX for Serial2
 
     // Enable pin change interrupts for PCINT0 group (includes pins D0-D7)
-    PCICR |= (1 << PCIE0);
+//    PCICR |= (1 << PCIE0);
     // Enable pin change interrupt for pin 0 (PCINT0)
-    PCMSK0 |= (1 << PCINT0);
+//    PCMSK0 |= (1 << PCINT0);
 
 //    power_adc_disable();
 //    power_spi_disable();
 //    power_usart0_disable();
 //    power_usart2_disable();
 //    power_timer1_disable();
-    power_timer2_disable();
-    power_timer3_disable();
-    power_timer4_disable();
-    power_timer5_disable();
+//    power_timer2_disable();
+//    power_timer3_disable();
+//    power_timer4_disable();
+//    power_timer5_disable();
 //    power_twi_disable();
+    pinMode(9, OUTPUT);
+    digitalWrite(9, LOW);
 }
 
+// ISR(PCINT0_vect) {
+//     sleep_disable();
+//     digitalWrite(9, HIGH);
+//
+// //    handle_usb_comms();
+//
+//     if (amp.state.mode == mode_type::standby) return; // Mode is STBY
+//     if (amp.state.is_menu_active) return; // Menu is active
+//     if (amp.state.band == 0) return; // Band is undefined
+//     if (amp.atu.is_tuning()) return; // ATU is working
+//
+//     // timeToEnablePTTDetector = 20;
+//     // amp.disablePTTDetector();
+//
+//     should_handle_ptt_change = true; // signal to main thread
+//     const auto ptt_enabled_now = digitalRead(PTT_DET) == 1;
+//     if (ptt_enabled_now && !amp.state.ptt_enabled) {
+//         amp.state.ptt_enabled = true;
+//         RF_ACTIVE
+//         amp.lpf.send_relay_data(amp.lpf.serial_data + 0x10);
+//         BIAS_ON
+//         amp.state.tx_is_on = true;
+//     } else {
+//         amp.state.ptt_enabled = false;
+//         BIAS_OFF
+//         amp.state.tx_is_on = false;
+//         amp.lpf.send_relay_data(amp.lpf.serial_data);
+//         RF_BYPASS
+//     }
+// }
+//
+
+// ISR(PCINT2_vect) {
+//     sleep_disable();
+//
+// //    handle_usb_comms();
+//
+//     if (amp.state.mode == mode_type::standby) return; // Mode is STBY
+//     if (amp.state.is_menu_active) return; // Menu is active
+//     if (amp.state.band == 0) return; // Band is undefined
+//     if (amp.atu.is_tuning()) return; // ATU is working
+//
+//     // timeToEnablePTTDetector = 20;
+//     // amp.disablePTTDetector();
+//
+//     should_handle_ptt_change = true; // signal to main thread
+//     const auto ptt_enabled_now = digitalRead(PTT_DET) == 1;
+//     if (ptt_enabled_now && !amp.state.ptt_enabled) {
+//         amp.state.ptt_enabled = true;
+//         RF_ACTIVE
+//         amp.lpf.send_relay_data(amp.lpf.serial_data + 0x10);
+//         BIAS_ON
+//         amp.state.tx_is_on = true;
+//     } else {
+//         amp.state.ptt_enabled = false;
+//         BIAS_OFF
+//         amp.state.tx_is_on = false;
+//         amp.lpf.send_relay_data(amp.lpf.serial_data);
+//         RF_BYPASS
+//     }
+// }
+
+
+// Pin change interrupt, currently used by D11 which is the PTT signal
 ISR(PCINT0_vect) {
-    sleep_disable();
-
-//    handle_usb_comms();
-
-    if (amp.state.mode == mode_type::standby) return; // Mode is STBY
-    if (amp.state.is_menu_active) return; // Menu is active
-    if (amp.state.band == 0) return; // Band is undefined
-    if (amp.atu.is_tuning()) return; // ATU is working
-
-    // timeToEnablePTTDetector = 20;
-    // amp.disablePTTDetector();
-
-    should_handle_ptt_change = true; // signal to main thread
-    const auto ptt_enabled_now = digitalRead(PTT_DET) == 1;
-    if (ptt_enabled_now && !amp.state.ptt_enabled) {
-        amp.state.ptt_enabled = true;
-        RF_ACTIVE
-        amp.lpf.send_relay_data(amp.lpf.serial_data + 0x10);
-        BIAS_ON
-        amp.state.tx_is_on = true;
-    } else {
-        amp.state.ptt_enabled = false;
-        BIAS_OFF
-        amp.state.tx_is_on = false;
-        amp.lpf.send_relay_data(amp.lpf.serial_data);
-        RF_BYPASS
-    }
-}
-
-
-ISR(PCINT2_vect) {
     sleep_disable();
 
 //    handle_usb_comms();
@@ -326,7 +362,7 @@ void loop() {
         amp.update_bias_reading();
     }
 
-    if (amp.state.swr_display_counter++ == 20 && amp.state.f_tot > 250 && amp.state.tx_is_on) {
+    if (amp.state.swr_display_counter++ == 20 && amp.state.fwd_tot > 250 && amp.state.tx_is_on) {
         amp.state.swr_display_counter = 0;
         amp.update_swr();
     }
@@ -397,6 +433,7 @@ void loop() {
     view.refresh();
 
     if (!amp.state.tx_is_on) {
+        digitalWrite(9, LOW);
         go_to_sleep();
     }
 }

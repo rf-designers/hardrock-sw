@@ -101,11 +101,11 @@ bool atu_board::is_present() const {
     return present;
 }
 
-const char *atu_board::get_version() const {
+const char* atu_board::get_version() const {
     return version;
 }
 
-size_t atu_board::query(const char *command, char *response, size_t maxLength) {
+size_t atu_board::query(const char* command, char* response, size_t maxLength) {
     Serial3.setTimeout(100);
     Serial3.println(command);
     const size_t receivedBytes = Serial3.readBytesUntil(13, response, maxLength);
@@ -119,7 +119,7 @@ size_t atu_board::query(const char *command, char *response, size_t maxLength) {
     return receivedBytes;
 }
 
-void atu_board::println(const char *command) {
+void atu_board::println(const char* command) {
     Serial3.println(command);
 }
 
@@ -154,13 +154,18 @@ void amplifier::setup() {
     TP1_CS_HIGH
     SETUP_TP2_CS
     TP2_CS_HIGH
+
     SETUP_LCD_BL
     analogWrite(LCD_BL, 255);
+
     SETUP_BYP_RLY
     RF_BYPASS
+
     SETUP_FAN1
     SETUP_FAN2
+
     SETUP_F_COUNT
+
     SETUP_ANT_RLY
     SEL_ANT1
     SETUP_COR
@@ -184,16 +189,16 @@ void amplifier::setup() {
 }
 
 void amplifier::trip_clear() {
-    Wire.beginTransmission(LTCADDR); //clear any existing faults
+    Wire.beginTransmission(LTCADDR); // clear any existing faults
     Wire.write(0x04);
     Wire.endTransmission(false);
-    Wire.requestFrom(LTCADDR, 2, true);
+    Wire.requestFrom(LTCADDR, 2, true); // shouldn't this only read one byte?
     delay(1);
 
     Wire.read();
     delay(10);
 
-    Wire.beginTransmission(LTCADDR); //set alert register
+    Wire.beginTransmission(LTCADDR); // set alert register
     Wire.write(0x01);
     Wire.write(0x02);
     Wire.endTransmission();
@@ -202,11 +207,12 @@ void amplifier::trip_clear() {
 }
 
 void amplifier::trip_set() {
-    Wire.beginTransmission(LTCADDR); //establish a fault condition
+    Wire.beginTransmission(LTCADDR); // establish a fault condition
     Wire.write(0x03);
     Wire.write(0x02);
     Wire.endTransmission();
     Wire.requestFrom(LTCADDR, 2, true);
+
     delay(1);
 
     BIAS_OFF
@@ -273,31 +279,31 @@ void amplifier::handle_ts1() {
     if (ts1.touched()) {
         const byte pressedKey = get_touched_rectangle(1);
         switch (pressedKey) {
-            case 10:
-                state.meterSelection = 1;
-                break;
+        case 10:
+            state.meterSelection = 1;
+            break;
 
-            case 11:
-                state.meterSelection = 2;
-                break;
+        case 11:
+            state.meterSelection = 2;
+            break;
 
-            case 12:
-                state.meterSelection = 3;
-                break;
+        case 12:
+            state.meterSelection = 3;
+            break;
 
-            case 13:
-                state.meterSelection = 4;
-                break;
+        case 13:
+            state.meterSelection = 4;
+            break;
 
-            case 14:
-                state.meterSelection = 5;
-                break;
+        case 14:
+            state.meterSelection = 5;
+            break;
 
-            case 18:
-            case 19:
-                state.tempInCelsius = !state.tempInCelsius;
-                EEPROM.write(eecelsius, state.tempInCelsius ? 1 : 0);
-                break;
+        case 18:
+        case 19:
+            state.tempInCelsius = !state.tempInCelsius;
+            EEPROM.write(eecelsius, state.tempInCelsius ? 1 : 0);
+            break;
         }
 
         if (state.oldMeterSelection != state.meterSelection) {
@@ -319,149 +325,149 @@ void amplifier::handle_ts2() {
 
     if (state.is_menu_active) {
         switch (pressedKey) {
-            case 0:
-            case 1:
-                if (!state.menuSelected) {
-                    // erase old
-                    lcd[1].draw_string(menu_items[state.menuChoice], 65, 20, 2, state.colors.named.menu_1);
-                    lcd[1].draw_string(item_disp[state.menuChoice], 65, 80, 2, state.colors.named.menu_1);
+        case 0:
+        case 1:
+            if (!state.menuSelected) {
+                // erase old
+                lcd[1].draw_string(menu_items[state.menuChoice], 65, 20, 2, state.colors.named.menu_1);
+                lcd[1].draw_string(item_disp[state.menuChoice], 65, 80, 2, state.colors.named.menu_1);
 
-                    if (state.menuChoice-- == 0)
-                        state.menuChoice = menu_max;
+                if (state.menuChoice-- == 0)
+                    state.menuChoice = menu_max;
 
-                    lcd[1].draw_string(menu_items[state.menuChoice], 65, 20, 2, state.colors.named.menu_2);
-                    lcd[1].draw_string(item_disp[state.menuChoice], 65, 80, 2, state.colors.named.menu_3);
-                }
-                break;
+                lcd[1].draw_string(menu_items[state.menuChoice], 65, 20, 2, state.colors.named.menu_2);
+                lcd[1].draw_string(item_disp[state.menuChoice], 65, 80, 2, state.colors.named.menu_3);
+            }
+            break;
 
-            case 3:
-            case 4:
-                if (!state.menuSelected) {
-                    // erase old
-                    lcd[1].draw_string(menu_items[state.menuChoice], 65, 20, 2, state.colors.named.menu_1);
-                    lcd[1].draw_string(item_disp[state.menuChoice], 65, 80, 2, state.colors.named.menu_1);
+        case 3:
+        case 4:
+            if (!state.menuSelected) {
+                // erase old
+                lcd[1].draw_string(menu_items[state.menuChoice], 65, 20, 2, state.colors.named.menu_1);
+                lcd[1].draw_string(item_disp[state.menuChoice], 65, 80, 2, state.colors.named.menu_1);
 
-                    if (++state.menuChoice > menu_max)
-                        state.menuChoice = 0;
+                if (++state.menuChoice > menu_max)
+                    state.menuChoice = 0;
 
-                    lcd[1].draw_string(menu_items[state.menuChoice], 65, 20, 2, state.colors.named.menu_2);
-                    lcd[1].draw_string(item_disp[state.menuChoice], 65, 80, 2, state.colors.named.menu_3);
-                }
+                lcd[1].draw_string(menu_items[state.menuChoice], 65, 20, 2, state.colors.named.menu_2);
+                lcd[1].draw_string(item_disp[state.menuChoice], 65, 80, 2, state.colors.named.menu_3);
+            }
 
-                break;
+            break;
 
-            case 5:
-            case 6:
-                if (state.menuSelected) {
-                    menu_update(state.menuChoice, 0);
-                }
-                break;
+        case 5:
+        case 6:
+            if (state.menuSelected) {
+                menu_update(state.menuChoice, 0);
+            }
+            break;
 
-            case 8:
-            case 9:
-                if (state.menuSelected) {
-                    menu_update(state.menuChoice, 1);
-                }
-                break;
+        case 8:
+        case 9:
+            if (state.menuSelected) {
+                menu_update(state.menuChoice, 1);
+            }
+            break;
 
-            case 7:
-            case 12:
-                menuSelect();
-                break;
+        case 7:
+        case 12:
+            menuSelect();
+            break;
 
-            case 17:
-                lcd[1].clear_screen(GRAY);
-                state.is_menu_active = false;
+        case 17:
+            lcd[1].clear_screen(GRAY);
+            state.is_menu_active = false;
 
-                if (state.menuChoice == mSETbias) {
-                    BIAS_OFF
-                    lpf.send_relay_data_safe(lpf.serial_data);
-                    state.mode = state.old_mode;
-                    state.MAX_CUR = 20;
-                    state.biasMeter = false;
-                }
+            if (state.menuChoice == mSETbias) {
+                BIAS_OFF
+                lpf.send_relay_data_safe(lpf.serial_data);
+                state.mode = state.old_mode;
+                state.MAX_CUR = 20;
+                state.biasMeter = false;
+            }
 
-                draw_home();
-//                lcd[0].lcd_reset();
+            draw_home();
+        //                lcd[0].lcd_reset();
         }
     } else {
         switch (pressedKey) {
-            case 5:
-            case 6:
-                if (!state.tx_is_on) {
-                    state.mode = next_mode(state.mode);
-                    EEPROM.write(eemode, mode_to_eeprom(state.mode));
-                    draw_ptt_mode();
-                    disable_ptt_detector();
-                    if (state.mode == mode_type::ptt) {
-                        enable_ptt_detector();
-                    }
+        case 5:
+        case 6:
+            if (!state.tx_is_on) {
+                state.mode = next_mode(state.mode);
+                EEPROM.write(eemode, mode_to_eeprom(state.mode));
+                draw_ptt_mode();
+                disable_ptt_detector();
+                if (state.mode == mode_type::ptt) {
+                    enable_ptt_detector();
                 }
-                break;
+            }
+            break;
 
-            case 8:
-                if (!state.tx_is_on) {
-                    if (++state.band >= 11)
-                        state.band = 1;
-                    set_band();
+        case 8:
+            if (!state.tx_is_on) {
+                if (++state.band >= 11)
+                    state.band = 1;
+                set_band();
+            }
+            break;
+
+        case 9:
+            if (!state.tx_is_on) {
+                if (--state.band == 0)
+                    state.band = 10;
+
+                if (state.band == 0xff)
+                    state.band = 10;
+                set_band();
+            }
+            break;
+
+        case 15:
+        case 16:
+            if (!state.tx_is_on) {
+                if (++state.antForBand[state.band] == 3)
+                    state.antForBand[state.band] = 1;
+
+                EEPROM.write(eeantsel + state.band, state.antForBand[state.band]);
+                if (state.antForBand[state.band] == 1) {
+                    SEL_ANT1;
+                } else if (state.antForBand[state.band] == 2) {
+                    SEL_ANT2;
                 }
-                break;
+                draw_ant();
+            }
+            break;
 
-            case 9:
-                if (!state.tx_is_on) {
-                    if (--state.band == 0)
-                        state.band = 10;
+        case 18:
+        case 19:
+            if (atu.is_present() && !state.tx_is_on) {
+                atu.set_active(!atu.is_active());
+                draw_atu();
+            }
+            break;
 
-                    if (state.band == 0xff)
-                        state.band = 10;
-                    set_band();
-                }
-                break;
+        case 12:
+            if (!atu.is_present()) {
+                lcd[1].clear_screen(GRAY);
+                draw_menu();
+                state.is_menu_active = true;
+            }
+            break;
 
-            case 15:
-            case 16:
-                if (!state.tx_is_on) {
-                    if (++state.antForBand[state.band] == 3)
-                        state.antForBand[state.band] = 1;
+        case 7:
+            if (atu.is_present()) {
+                lcd[1].clear_screen(GRAY);
+                draw_menu();
+                state.is_menu_active = true;
+            }
+            break;
 
-                    EEPROM.write(eeantsel + state.band, state.antForBand[state.band]);
-                    if (state.antForBand[state.band] == 1) {
-                        SEL_ANT1;
-                    } else if (state.antForBand[state.band] == 2) {
-                        SEL_ANT2;
-                    }
-                    draw_ant();
-                }
-                break;
-
-            case 18:
-            case 19:
-                if (atu.is_present() && !state.tx_is_on) {
-                    atu.set_active(!atu.is_active());
-                    draw_atu();
-                }
-                break;
-
-            case 12:
-                if (!atu.is_present()) {
-                    lcd[1].clear_screen(GRAY);
-                    draw_menu();
-                    state.is_menu_active = true;
-                }
-                break;
-
-            case 7:
-                if (atu.is_present()) {
-                    lcd[1].clear_screen(GRAY);
-                    draw_menu();
-                    state.is_menu_active = true;
-                }
-                break;
-
-            case 17:
-                if (atu.is_present()) {
-                    on_tune_button_pressed();
-                }
+        case 17:
+            if (atu.is_present()) {
+                on_tune_button_pressed();
+            }
         }
     }
     while (ts2.touched());
@@ -510,50 +516,50 @@ void amplifier::set_band() {
 
     byte lpfSerialData = 0;
     switch (state.band) {
-        case 0:
-            lpfSerialData = 0x00;
-            atu.println("*B0");
-            break;
-        case 1:
-            lpfSerialData = 0x20;
-            atu.println("*B1");
-            break;
-        case 2:
-            lpfSerialData = 0x20;
-            atu.println("*B2");
-            break;
-        case 3:
-            lpfSerialData = 0x20;
-            atu.println("*B3");
-            break;
-        case 4:
-            lpfSerialData = 0x08;
-            atu.println("*B4");
-            break;
-        case 5:
-            lpfSerialData = 0x08;
-            atu.println("*B5");
-            break;
-        case 6:
-            lpfSerialData = 0x04;
-            atu.println("*B6");
-            break;
-        case 7:
-            lpfSerialData = 0x04;
-            atu.println("*B7");
-            break;
-        case 8:
-            lpfSerialData = 0x02;
-            atu.println("*B8");
-            break;
-        case 9:
-            lpfSerialData = 0x01;
-            atu.println("*B9");
-            break;
-        case 10:
-            lpfSerialData = 0x00;
-            atu.println("*B10");
-            break;
+    case 0:
+        lpfSerialData = 0x00;
+        atu.println("*B0");
+        break;
+    case 1:
+        lpfSerialData = 0x20;
+        atu.println("*B1");
+        break;
+    case 2:
+        lpfSerialData = 0x20;
+        atu.println("*B2");
+        break;
+    case 3:
+        lpfSerialData = 0x20;
+        atu.println("*B3");
+        break;
+    case 4:
+        lpfSerialData = 0x08;
+        atu.println("*B4");
+        break;
+    case 5:
+        lpfSerialData = 0x08;
+        atu.println("*B5");
+        break;
+    case 6:
+        lpfSerialData = 0x04;
+        atu.println("*B6");
+        break;
+    case 7:
+        lpfSerialData = 0x04;
+        atu.println("*B7");
+        break;
+    case 8:
+        lpfSerialData = 0x02;
+        atu.println("*B8");
+        break;
+    case 9:
+        lpfSerialData = 0x01;
+        atu.println("*B9");
+        break;
+    case 10:
+        lpfSerialData = 0x00;
+        atu.println("*B10");
+        break;
     }
 
     if (atu.is_present() && !state.is_menu_active) {
@@ -627,7 +633,6 @@ void amplifier::update_meter_drawing() {
         if (state.OF_bar > state.F_bar)
             lcd[0].draw_v_line(--state.OF_bar, 101, 12, MGRAY);
     }
-
 }
 
 void amplifier::update_bias_reading() {
@@ -639,7 +644,6 @@ void amplifier::update_bias_reading() {
         sprintf(state.bias_text, "  %d mA", bias_current);
         lcd[1].draw_string(state.bias_text, 65, 80, 2, WHITE);
     }
-
 }
 
 void amplifier::handle_trx_band_detection() {
@@ -683,7 +687,6 @@ void amplifier::update_swr() {
         lcd[0].draw_string(state.RL_TXT, 70, 203, 2, WHITE);
         strcpy(state.ORL_TXT, state.RL_TXT);
     }
-
 }
 
 void amplifier::update_temperature() {
@@ -706,7 +709,6 @@ void amplifier::update_temperature() {
         state.old_temp_read = state.temp_read;
         view.item_changed(refresh_item::view_item_temperature);
     }
-
 }
 
 void amplifier::load_eeprom_config() {
@@ -794,49 +796,48 @@ void amplifier::configure_attenuator() {
 
         if (state.attenuator_enabled) {
             ATTN_ON_HIGH;
-            item_disp[mATTN] = (char *) " ATTENUATOR IN  ";
+            item_disp[mATTN] = (char*)" ATTENUATOR IN  ";
         } else {
             ATTN_ON_LOW;
-            item_disp[mATTN] = (char *) " ATTENUATOR OUT ";
+            item_disp[mATTN] = (char*)" ATTENUATOR OUT ";
         }
     } else {
         state.attenuator_present = false;
         state.attenuator_enabled = false;
-        item_disp[mATTN] = (char *) " NO ATTENUATOR  ";
+        item_disp[mATTN] = (char*)" NO ATTENUATOR  ";
     }
-
 }
 
 void amplifier::set_fan_speed(int speed) {
-// speed = [0,3]
+    // speed = [0,3]
     switch (speed) {
-        case 0:
-            digitalWrite(FAN1, LOW);
-            digitalWrite(FAN2, LOW);
-            state.temp_utp = 400;
-            state.temp_dtp = 00;
-            break;
+    case 0:
+        digitalWrite(FAN1, LOW);
+        digitalWrite(FAN2, LOW);
+        state.temp_utp = 400;
+        state.temp_dtp = 00;
+        break;
 
-        case 1:
-            digitalWrite(FAN1, HIGH);
-            digitalWrite(FAN2, LOW);
-            state.temp_utp = 500;
-            state.temp_dtp = 350;
-            break;
+    case 1:
+        digitalWrite(FAN1, HIGH);
+        digitalWrite(FAN2, LOW);
+        state.temp_utp = 500;
+        state.temp_dtp = 350;
+        break;
 
-        case 2:
-            digitalWrite(FAN1, LOW);
-            digitalWrite(FAN2, HIGH);
-            state.temp_utp = 600;
-            state.temp_dtp = 450;
-            break;
+    case 2:
+        digitalWrite(FAN1, LOW);
+        digitalWrite(FAN2, HIGH);
+        state.temp_utp = 600;
+        state.temp_dtp = 450;
+        break;
 
-        case 3:
-        default:
-            digitalWrite(FAN1, HIGH);
-            digitalWrite(FAN2, HIGH);
-            state.temp_utp = 2500;
-            state.temp_dtp = 550;
+    case 3:
+    default:
+        digitalWrite(FAN1, HIGH);
+        digitalWrite(FAN2, HIGH);
+        state.temp_utp = 2500;
+        state.temp_dtp = 550;
     }
 }
 
@@ -871,10 +872,10 @@ void amplifier::update_fwd_pwr_alert() {
         f_red = 482;
     }
 
-    if (state.f_tot > f_red) {
+    if (state.fwd_tot > f_red) {
         state.alerts[alert_fwd_pwr] = 3;
         trip_set();
-    } else if (state.f_tot > f_yel && state.alerts[alert_fwd_pwr] == 1) {
+    } else if (state.fwd_tot > f_yel && state.alerts[alert_fwd_pwr] == 1) {
         state.alerts[alert_fwd_pwr] = 2;
     }
 
@@ -882,14 +883,13 @@ void amplifier::update_fwd_pwr_alert() {
         state.old_alerts[alert_fwd_pwr] = state.alerts[alert_fwd_pwr];
         view.item_changed(refresh_item::view_item_fwd_alert);
     }
-
 }
 
 void amplifier::update_rfl_pwr_alert() {
-    if (state.r_tot > 590) {
+    if (state.rfl_tot > 590) {
         state.alerts[alert_rfl_pwr] = 3;
         trip_set();
-    } else if (state.r_tot > 450 && state.alerts[alert_rfl_pwr] == 1) {
+    } else if (state.rfl_tot > 450 && state.alerts[alert_rfl_pwr] == 1) {
         state.alerts[alert_rfl_pwr] = 2;
     }
 
@@ -900,9 +900,9 @@ void amplifier::update_rfl_pwr_alert() {
 }
 
 void amplifier::update_drive_pwr_alert() {
-    if (state.d_tot > 1100) {
+    if (state.drv_tot > 1100) {
         state.alerts[alert_drive_pwr] = 3;
-    } else if (state.d_tot > 900 && state.alerts[alert_drive_pwr] == 1) {
+    } else if (state.drv_tot > 900 && state.alerts[alert_drive_pwr] == 1) {
         state.alerts[alert_drive_pwr] = 2;
     }
 
@@ -938,9 +938,9 @@ void amplifier::update_vdd_alert() {
 }
 
 void amplifier::update_idd_alert() {
-    int dc_current = read_current();
-    int MC1 = 180 * state.MAX_CUR;
-    int MC2 = 200 * state.MAX_CUR;
+    const int dc_current = read_current();
+    const int MC1 = 180 * state.MAX_CUR;
+    const int MC2 = 200 * state.MAX_CUR;
 
     if (dc_current > MC2) {
         state.alerts[alert_idd] = 3;

@@ -94,13 +94,13 @@ struct amp_state {
     color_theme colors = color_theme::make_classic();
 
     byte fan_speed = 0;
-    volatile unsigned int f_tot = 0;
-    volatile unsigned int r_tot = 0;
-    volatile unsigned int d_tot = 0;
+    volatile unsigned int fwd_tot = 0;
+    volatile unsigned int rfl_tot = 0;
+    volatile unsigned int drv_tot = 0;
 
-    volatile unsigned int f_pep = 0;
-    volatile unsigned int r_pep = 0;
-    volatile unsigned int d_pep = 0;
+    volatile unsigned int fwd_pep = 0;
+    volatile unsigned int rfl_pep = 0;
+    volatile unsigned int drv_pep = 0;
 };
 
 mode_type next_mode(mode_type mode);
