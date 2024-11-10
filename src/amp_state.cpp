@@ -139,7 +139,15 @@ bool atu_board::is_active() const {
     return active;
 }
 
+amplifier::amplifier() {
+    ltc = new ltc2945{LTCADDR, 0.005};
+}
+
 void amplifier::setup() {
+    ltc->set_max_current(20.2);
+    ltc->set_max_voltage(60.0);
+    ltc->set_max_rfl_power(100);
+
     SETUP_RELAY_CS
     RELAY_CS_HIGH
     SETUP_LCD1_CS
@@ -194,7 +202,6 @@ void amplifier::trip_clear() {
     Wire.endTransmission(false);
     Wire.requestFrom(LTCADDR, 2, true); // shouldn't this only read one byte?
     delay(1);
-
     Wire.read();
     delay(10);
 
@@ -202,6 +209,7 @@ void amplifier::trip_clear() {
     Wire.write(0x01);
     Wire.write(0x02);
     Wire.endTransmission();
+
     Wire.requestFrom(LTCADDR, 2, true);
     delay(1);
 }
@@ -301,8 +309,8 @@ void amplifier::handle_ts1() {
 
         case 18:
         case 19:
-            state.tempInCelsius = !state.tempInCelsius;
-            EEPROM.write(eecelsius, state.tempInCelsius ? 1 : 0);
+            state.temp_in_celsius = !state.temp_in_celsius;
+            EEPROM.write(eecelsius, state.temp_in_celsius ? 1 : 0);
             break;
         }
 
@@ -620,10 +628,10 @@ void amplifier::update_meter_drawing() {
         unsigned int d_pw = read_power(power_type::drv_p);
         state.F_bar = constrain(map(d_pw, 0, 100, 19, 300), 10, 309);
     } else if (state.meterSelection == 4) {
-        state.F_bar = constrain(map(read_voltage(), 0, 2400, 19, 299), 19, 309);
+        state.F_bar = constrain(map(ltc->get_voltage(), 0, 60, 19, 299), 19, 309);
     } else {
         // MeterSel == 5
-        state.F_bar = constrain(map(read_current(), 0, 4000, 19, 299), 19, 309);
+        state.F_bar = constrain(map(ltc->get_current(), 0, 20, 19, 299), 19, 309);
     }
 
     while (state.F_bar != state.OF_bar) {
@@ -636,7 +644,8 @@ void amplifier::update_meter_drawing() {
 }
 
 void amplifier::update_bias_reading() {
-    const int bias_current = read_current() * 5;
+    ltc->update();
+    const int bias_current = ltc->get_current() * 1000;
     if (bias_current != state.old_bias_current) {
         state.old_bias_current = bias_current;
         lcd[1].draw_string(state.bias_text, 65, 80, 2, MGRAY);
@@ -649,7 +658,15 @@ void amplifier::update_bias_reading() {
 void amplifier::handle_trx_band_detection() {
     if (state.tx_is_on) return;
 
-    byte detected_band = this->get_detected_trx_band();
+    // byte detected_band = this->get_detected_trx_band();
+    Wire.beginTransmission(0x55); // arduino nano address
+    Wire.write(0x01); // CMD_GET_BAND
+    Wire.endTransmission(false);
+    Wire.requestFrom(0x55, 1, true);
+
+    delay(1);
+
+    byte detected_band = Wire.read();
     if (detected_band != 0 && detected_band != state.band) {
         state.band = detected_band;
         set_band();
@@ -697,7 +714,7 @@ void amplifier::update_temperature() {
         trip_set();
     }
 
-    if (state.tempInCelsius) {
+    if (state.temp_in_celsius) {
         state.temp_read = temp;
     } else {
         state.temp_read = ((temp * 9) / 5) + 320;
@@ -743,7 +760,7 @@ void amplifier::load_eeprom_config() {
     state.usbSpeed = speed_from_eeprom(EEPROM.read(eeusbbaud));
     setup_usb_serial(state.usbSpeed);
 
-    state.tempInCelsius = EEPROM.read(eecelsius) > 0;
+    state.temp_in_celsius = EEPROM.read(eecelsius) > 0;
 
     state.meterSelection = EEPROM.read(eemetsel);
     if (state.meterSelection < 1 || state.meterSelection > 5) {
@@ -762,31 +779,36 @@ void amplifier::load_eeprom_config() {
 }
 
 void amplifier::set_transceiver(byte type) {
-    if (type == xhobby || type == xkx23)
-        S_POL_REV
-    else
-        S_POL_NORM
+    Wire.beginTransmission(0x55); // arduino nano address
+    Wire.write(0x02); // CMD_SET_TRX_TYPE
+    Wire.write(type);
+    Wire.endTransmission();
 
-    if (type == xhobby) {
-        pinMode(TTL_PU, OUTPUT);
-        digitalWrite(TTL_PU, HIGH);
-    } else {
-        digitalWrite(TTL_PU, LOW);
-        pinMode(TTL_PU, INPUT);
-    }
-
-    if (type == xft817 || type == xelad || type == xxieg) {
-        strcpy(item_disp[mACCbaud], "  XCVR MODE ON  ");
-        Serial2.end();
-    } else {
-        setup_acc_serial(state.accSpeed);
-    }
-
-    if (type == xic705) {
-        state.accSpeed = serial_speed::baud_19200;
-        EEPROM.write(eeaccbaud, speed_to_eeprom(state.accSpeed));
-        setup_acc_serial(state.accSpeed);
-    }
+    // if (type == xhobby || type == xkx23)
+    //     S_POL_REV
+    // else
+    //     S_POL_NORM
+    //
+    // if (type == xhobby) {
+    //     pinMode(TTL_PU, OUTPUT);
+    //     digitalWrite(TTL_PU, HIGH);
+    // } else {
+    //     digitalWrite(TTL_PU, LOW);
+    //     pinMode(TTL_PU, INPUT);
+    // }
+    //
+    // if (type == xft817 || type == xelad || type == xxieg) {
+    //     strcpy(item_disp[mACCbaud], "  XCVR MODE ON  ");
+    //     Serial2.end();
+    // } else {
+    //     setup_acc_serial(state.accSpeed);
+    // }
+    //
+    // if (type == xic705) {
+    //     state.accSpeed = serial_speed::baud_19200;
+    //     EEPROM.write(eeaccbaud, speed_to_eeprom(state.accSpeed));
+    //     setup_acc_serial(state.accSpeed);
+    // }
 }
 
 void amplifier::configure_attenuator() {
@@ -925,9 +947,8 @@ void amplifier::update_drive_pwr_alert() {
 void amplifier::update_vdd_alert() {
     state.alerts[alert_vdd] = 1;
 
-    const int dc_voltage = read_voltage();
-    if (dc_voltage < volts_to_voltage_reading(45) ||
-        dc_voltage > volts_to_voltage_reading(75)) {
+    const int dc_voltage = ltc->get_voltage();
+    if (dc_voltage < 45 || dc_voltage > 75) {
         state.alerts[alert_vdd] = 2;
     }
 
@@ -938,14 +959,11 @@ void amplifier::update_vdd_alert() {
 }
 
 void amplifier::update_idd_alert() {
-    const int dc_current = read_current();
-    const int MC1 = 180 * state.MAX_CUR;
-    const int MC2 = 200 * state.MAX_CUR;
-
-    if (dc_current > MC2) {
+    const int dc_current = ltc->get_current();
+    if (dc_current > 20) {
         state.alerts[alert_idd] = 3;
         trip_set();
-    } else if (dc_current > MC1 && state.alerts[alert_idd] == 1) {
+    } else if (dc_current > 18 && state.alerts[alert_idd] == 1) {
         state.alerts[alert_idd] = 2;
     }
 

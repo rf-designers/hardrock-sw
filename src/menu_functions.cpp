@@ -5,6 +5,8 @@
 #include "HR500.h"
 #include "HR500V1.h"
 #include <EEPROM.h>
+#include <Wire.h>
+
 #include "hr500_displays.h"
 
 extern char *workingString;
@@ -164,31 +166,36 @@ void menuSelect() {
 }
 
 void setup_acc_serial(serial_speed speed) {
-    Serial2.end();
+    Wire.beginTransmission(0x55); // arduino nano address
+    Wire.write(0x03); // CMD_SET_BAUD
+    Wire.write(static_cast<uint8_t>(speed));
+    Wire.endTransmission();
 
-    switch (speed) {
-        case serial_speed::baud_4800:
-            Serial2.begin(4800);
-            strcpy(item_disp[mACCbaud], "   4800 Baud    ");
-            break;
-        case serial_speed::baud_9600:
-            Serial2.begin(9600);
-            strcpy(item_disp[mACCbaud], "   9600 Baud    ");
-            break;
-        case serial_speed::baud_19200:
-            Serial2.begin(19200);
-            strcpy(item_disp[mACCbaud], "   19200 Baud   ");
-            break;
-        case serial_speed::baud_38400:
-            Serial2.begin(38400);
-            strcpy(item_disp[mACCbaud], "   38400 Baud   ");
-            break;
-        case serial_speed::baud_57600:
-        case serial_speed::baud_115200:
-        default:
-            // TODO: figure out what to do here
-            break;
-    }
+    // Serial2.end();
+    //
+    // switch (speed) {
+    //     case serial_speed::baud_4800:
+    //         Serial2.begin(4800);
+    //         strcpy(item_disp[mACCbaud], "   4800 Baud    ");
+    //         break;
+    //     case serial_speed::baud_9600:
+    //         Serial2.begin(9600);
+    //         strcpy(item_disp[mACCbaud], "   9600 Baud    ");
+    //         break;
+    //     case serial_speed::baud_19200:
+    //         Serial2.begin(19200);
+    //         strcpy(item_disp[mACCbaud], "   19200 Baud   ");
+    //         break;
+    //     case serial_speed::baud_38400:
+    //         Serial2.begin(38400);
+    //         strcpy(item_disp[mACCbaud], "   38400 Baud   ");
+    //         break;
+    //     case serial_speed::baud_57600:
+    //     case serial_speed::baud_115200:
+    //     default:
+    //         // TODO: figure out what to do here
+    //         break;
+    // }
 }
 
 void setup_usb_serial(serial_speed speed) {

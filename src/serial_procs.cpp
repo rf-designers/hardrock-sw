@@ -195,7 +195,7 @@ void handle_usb_message(char uart) {
         if (found != nullptr) {
             if (found[4] == ';') {
                 UART_send(uart, "HRTS");
-                if (amp.state.tempInCelsius) {
+                if (amp.state.temp_in_celsius) {
                     UART_send(uart, "C");
                 } else {
                     UART_send(uart, "F");
@@ -204,13 +204,13 @@ void handle_usb_message(char uart) {
             }
 
             if (found[4] == 'F') {
-                amp.state.tempInCelsius = false;
-                EEPROM.write(eecelsius, amp.state.tempInCelsius ? 1 : 0);
+                amp.state.temp_in_celsius = false;
+                EEPROM.write(eecelsius, amp.state.temp_in_celsius ? 1 : 0);
             }
 
             if (found[4] == 'C') {
-                amp.state.tempInCelsius = true;
-                EEPROM.write(eecelsius, amp.state.tempInCelsius ? 1 : 0);
+                amp.state.temp_in_celsius = true;
+                EEPROM.write(eecelsius, amp.state.temp_in_celsius ? 1 : 0);
             }
         }
 
@@ -219,7 +219,7 @@ void handle_usb_message(char uart) {
         if (found != nullptr) {
             char vbuff[4];
             UART_send(uart, "HRVT");
-            sprintf(vbuff, "%2d", read_voltage() / 40);
+            sprintf(vbuff, "%2d", (int)amp.ltc->get_voltage());
             UART_send(uart, vbuff);
             UART_send_line(uart);
         }
@@ -278,7 +278,7 @@ void handle_usb_message(char uart) {
             char tbuff[4];
             int tread;
 
-            if (amp.state.tempInCelsius) {
+            if (amp.state.temp_in_celsius) {
                 tread = amp.state.temperature.get();
             } else {
                 tread = ((amp.state.temperature.get() * 9) / 5) + 320;
@@ -287,7 +287,7 @@ void handle_usb_message(char uart) {
             tread /= 10;
             UART_send(uart, "HRTP");
 
-            if (amp.state.tempInCelsius) {
+            if (amp.state.temp_in_celsius) {
                 sprintf(tbuff, "%dC", tread);
             } else {
                 sprintf(tbuff, "%dF", tread);
@@ -346,10 +346,10 @@ void handle_usb_message(char uart) {
             const auto stR = read_power(power_type::rfl_p);
             const auto stD = read_power(power_type::drv_p);
             const auto stS = read_power(power_type::vswr);
-            const auto stV = read_voltage() / 40;
-            const auto stI = read_current() / 20;
+            const auto stV = (int)amp.ltc->get_voltage();
+            const auto stI = (int)amp.ltc->get_current();
             auto stT = amp.state.temperature.get() / 10;
-            if (!amp.state.tempInCelsius) {
+            if (!amp.state.temp_in_celsius) {
                 stT = ((stT * 9) / 5) + 32;
             }
 

@@ -8,6 +8,7 @@
 #include "hr500_sensors.h"
 #include "transceivers.h"
 #include <HR500.h>
+#include <menu_functions.h>
 #include <TimerOne.h>
 #include <Wire.h>
 #include <avr/sleep.h>
@@ -249,6 +250,10 @@ void setup() {
 //    power_twi_disable();
     pinMode(9, OUTPUT);
     digitalWrite(9, LOW);
+
+
+    amp.set_transceiver(xkx23);
+    setup_acc_serial(serial_speed::baud_38400);
 }
 
 // ISR(PCINT0_vect) {
@@ -349,6 +354,8 @@ void loop() {
 //    static int a_count = 0;
 //    if (++a_count == 10) {
 //        a_count = 0;
+    amp.ltc->update();
+
     amp.update_alerts();
     amp.update_fan_speed();
 //    }
@@ -437,8 +444,3 @@ void loop() {
         go_to_sleep();
     }
 }
-
-
-
-
-

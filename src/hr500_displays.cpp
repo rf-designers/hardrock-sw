@@ -257,7 +257,8 @@ void draw_button_down(int button) {
             amp.lcd[0].display_string(221, 59, (uint8_t *) "15", FONT_1608, amp.state.colors.named.meter_ticks);
             amp.lcd[0].display_string(291, 59, (uint8_t *) "20", FONT_1608, amp.state.colors.named.meter_ticks);
             break;
-
+        default:
+            break;
     }
 
 }

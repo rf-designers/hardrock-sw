@@ -18,33 +18,32 @@ enum class refresh_item : uint32_t {
 };
 
 struct amp_view {
-
-    amplifier *amp;
+    amplifier* amp = nullptr;
 
     void refresh() {
         if (has_changes(view::left_panel)) {
-//            Serial.println("left panel has changes");
+            //            Serial.println("left panel has changes");
             left_panel_refresh();
         }
         if (has_changes(view::right_panel)) {
-//            Serial.println("right panel has changes");
+            //            Serial.println("right panel has changes");
             right_panel_refresh();
         }
     }
 
     volatile uint32_t changes = 0xFFFFFFFF;
 
-    bool has_changes(view type) {
+    bool has_changes(const view type) const {
         return type == view::left_panel ? (changes >> 16) > 0 : (changes & 0xFFFF) > 0;
     }
 
     inline bool has_change(refresh_item item) {
-        return (changes & (uint32_t) item) == (uint32_t) item;
+        return (changes & static_cast<uint32_t>(item)) == static_cast<uint32_t>(item);
     }
 
     void left_panel_refresh() {
-        if ((changes >> 16) == 0xFFFF) {
-//            Serial.println("redrawing all left panel");
+        if (changes >> 16 == 0xFFFF) {
+            //            Serial.println("redrawing all left panel");
             draw_meter();
         } else {
             // piece by piece
@@ -55,7 +54,8 @@ struct amp_view {
                 amp->lcd[0].fill_rect(84, 34, 25, 10, amp->state.colors.named.alarm[amp->state.alerts[alert_rfl_pwr]]);
             }
             if (has_change(refresh_item::view_item_drive_alert)) {
-                amp->lcd[0].fill_rect(148, 34, 25, 10, amp->state.colors.named.alarm[amp->state.alerts[alert_drive_pwr]]);
+                amp->lcd[0].fill_rect(148, 34, 25, 10,
+                                      amp->state.colors.named.alarm[amp->state.alerts[alert_drive_pwr]]);
             }
             if (has_change(refresh_item::view_item_voltage_alert)) {
                 amp->lcd[0].fill_rect(212, 34, 25, 10, amp->state.colors.named.alarm[amp->state.alerts[alert_vdd]]);
@@ -67,13 +67,13 @@ struct amp_view {
                 // erase the old one
                 amp->lcd[0].draw_string(amp->state.TEMPbuff, 237, 203, 2, DGRAY);
 
-                if (amp->state.tempInCelsius) {
+                if (amp->state.temp_in_celsius) {
                     sprintf(amp->state.TEMPbuff, "%d&C", amp->state.temp_read);
                 } else {
                     sprintf(amp->state.TEMPbuff, "%d&F", amp->state.temp_read);
                 }
 
-                auto temp = amp->state.temperature.get();
+                const auto temp = amp->state.temperature.get();
                 uint8_t temp_level = 1;
                 if (temp > 650)
                     temp_level = 3;
@@ -89,10 +89,10 @@ struct amp_view {
     void right_panel_refresh() {
         if ((changes & 0xFFFF) == 0xFFFF) {
             if (amp->state.is_menu_active) {
-//                Serial.println("redrawing menu");
+                //                Serial.println("redrawing menu");
                 draw_menu();
             } else {
-//                Serial.println("redrawing right panel");
+                //                Serial.println("redrawing right panel");
                 draw_home();
             }
         } else {
@@ -102,7 +102,7 @@ struct amp_view {
     }
 
     void item_changed(refresh_item item) {
-//        Serial.println("item changed");
-        changes |= (uint32_t) item;
+        //        Serial.println("item changed");
+        changes |= static_cast<uint32_t>(item);
     }
 };

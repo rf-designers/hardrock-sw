@@ -4,6 +4,7 @@
 #include <display_board.h>
 #include <HR500V1.h>
 #include <HR500X.h>
+
 #include "color_theme.h"
 #include "moving_average.h"
 
@@ -67,7 +68,7 @@ struct amp_state {
     byte trx_type = 0;
     byte antForBand[11] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}; // antenna selection for each band
     bool is_menu_active = false; // 0 is normal, 1 is menu mode
-    bool tempInCelsius = true; // display temperature in Celsius?
+    bool temp_in_celsius = true; // display temperature in Celsius?
 
     serial_speed accSpeed = serial_speed::baud_19200;
     serial_speed usbSpeed = serial_speed::baud_19200;
@@ -140,7 +141,11 @@ struct atu_board {
     char last_response[100];
 };
 
+class ltc2945;
+
 struct amplifier {
+    amplifier();
+
     void setup();
 
     void trip_clear();
@@ -165,6 +170,7 @@ struct amplifier {
     atu_board atu{};
     lpf_board lpf{};
     display_board lcd[2] = {display_board{new lcd1}, display_board{new lcd2}};
+    ltc2945* ltc;
     XPT2046_Touchscreen ts1{TP1_CS};
     XPT2046_Touchscreen ts2{TP2_CS};
     void update_meter_drawing();
